@@ -1,0 +1,2 @@
+# mynews
+mynews from ai
