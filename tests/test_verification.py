@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import hashlib
 import json
-import unicodedata
 from collections.abc import Mapping
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -14,7 +12,12 @@ import pytest
 from mynews.domain.models import Candidate, Evidence, EvidenceValidation
 from mynews.domain.normalization import Normalizer
 from mynews.infrastructure.http import HttpResponse
-from mynews.verification.codex import CodexVerifier, SubprocessCodexRunner, _prompt
+from mynews.verification.codex import (
+    CodexVerifier,
+    SubprocessCodexRunner,
+    _content_hash,
+    _prompt,
+)
 from mynews.verification.fake import FakeVerifier
 from mynews.verification.protocol import (
     EvidenceVerifier,
@@ -102,8 +105,34 @@ def target(
 
 
 def body_hash(body: str) -> str:
-    normalized = " ".join(unicodedata.normalize("NFKC", body).casefold().split())
-    return f"sha256:{hashlib.sha256(normalized.encode()).hexdigest()}"
+    return _content_hash(body)
+
+
+def test_codex_revalidation_ignores_dynamic_html_shell() -> None:
+    body = (
+        '<html><head><meta property="article:published_time" '
+        'content="2026-08-02T01:00:00Z"><script>'
+        'window.requestId = "two";</script></head>'
+        "<body><h1>Official launch of Model 5.</h1></body></html>"
+    )
+    stable_body = (
+        '<html><head><meta property="article:published_time" '
+        'content="2026-08-02T01:00:00Z"></head>'
+        "<body><h1>Official launch of Model 5.</h1></body></html>"
+    )
+    candidate = target(url="https://news.example/story")
+    payload = json.loads(suggestion(candidate.item.event_key))
+    payload["suggestions"][0]["content_hash"] = body_hash(stable_body)
+    verifier = CodexVerifier(
+        FakeHttp({"https://official.example/news": response(body)}),
+        runner=StaticCodex([json.dumps(payload)]),
+    )
+
+    result = verifier.verify(
+        [candidate], config=VerificationConfig(budget=1, batch_size=1)
+    )
+
+    assert result[0].status == "verified"
 
 
 def suggestion(item_id: str, *, url: str = "https://official.example/news") -> str:

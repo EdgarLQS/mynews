@@ -131,9 +131,10 @@ class SourcePlugin(Protocol):
 - `NewsStore` 有 `JsonNewsStore` 和测试用 `InMemoryNewsStore` 两个 Adapter。
 - Codex 是不受控外部依赖：只读、ephemeral、结构化输出、固定超时、失败不升级真实性。
 - 官方 HTML Adapter 将稳定页面标题作为逐字证据摘录、完整卡片文本保留在 `content`；核验时只在
-  可见文本中做逐字匹配，忽略 HTML 标签、脚本内容和零宽格式字符，不改变精确官方域名、日期或正文哈希规则。
-- Codex 提示明确要求返回页面中逐字连续的原文片段；模型改写、翻译、拼接或归因性转述仍会保持
-  `unverified`，并记录 `evidence_excerpt_mismatch`。
+  可见文本中做逐字匹配，忽略 HTML 标签、脚本内容和零宽格式字符；正文哈希也基于同一可见正文规范化结果，
+  同时保持精确官方域名和日期规则。
+- Codex 提示明确要求返回页面中逐字连续的原文片段和可见正文规范化哈希；模型改写、翻译、拼接或归因性
+  转述仍会保持 `unverified`，并记录 `evidence_excerpt_mismatch`。
 - Codex 模型、候选预算和批大小由配置注入，不在领域层或 Collector 中写死。
 - `SourceMetadata.official_domains` 采用精确主机名匹配；GitHub URL 还必须匹配声明的组织，
   不能用形似官方名称的子域名替代。

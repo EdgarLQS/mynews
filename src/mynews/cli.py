@@ -279,7 +279,13 @@ def main(
                 )
             )
             return 1
-        print(json.dumps(report.model_dump(mode="json"), ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                report.model_dump(mode="json", by_alias=True),
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
         return {"complete": 0, "partial": 3, "failed": 1}[report.status]
     if args.command == "probe":
         try:

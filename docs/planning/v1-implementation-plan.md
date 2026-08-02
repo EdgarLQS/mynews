@@ -271,6 +271,19 @@ HTML 摘录回归测试通过；plist 渲染结果通过 `/usr/bin/plutil -lint`
 真实 launchd 未加载是有意的验收边界：本阶段只用 Fake launchctl 验证管理动作，不修改系统状态；
 因此 OPS-02 最高标为 `Implemented`，v1 不在独立验收前宣称 `Verified`。
 
+#### 阶段 5 验收问题修复与重验（2026-08-02）
+
+独立验收发现两项问题并已修复：RunReport/CLI JSON 序列化统一使用字段别名，`requested_range`
+输出 `from`；第一方证据哈希改为 HTML 可见正文（去除脚本、样式和模板内容）规范化后的 SHA-256，
+避免动态 HTML 壳导致同一正文哈希漂移。新增回归测试后，受影响测试 72 passed，全量测试 109
+passed，文档检查、ruff 和 mypy 均通过。
+
+修复后在新的隔离临时目录重复执行两次 `collect --days 7`：两次均为 `partial`、退出码 3，12 个来源
+均有结果；首 run 35 条唯一事件、次 run 0 条新增事件，dedup 状态 35 个事件，两个价格快照存在，
+原始 RunReport/latest 均符合 `from` 别名和 Schema 要求。5 条 verified 证据逐条复抓后，最终域名、
+摘录、日期字段和可见正文哈希均通过；新增 Google Gemini 来源再次完成真实 Codex
+`codex_primary_evidence` 核验。真实 launchd 仍未安装或调用。
+
 ## 命令与语义
 
 ```bash

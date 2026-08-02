@@ -157,8 +157,9 @@ state/
 
 - `verification_status` 只有 `verified` 和 `unverified`。
 - `verified` 至少包含一条通过程序复核的 `primary_evidence`；该证据的 `reachable`、`official_domain` 和 `excerpt_matched` 必须都为 `true`。
-- `primary_evidence.content_hash` 是程序重新抓取正文后计算的规范化 SHA-256；Codex 若返回哈希，
-  必须与重新抓取结果一致。
+- `primary_evidence.content_hash` 是程序重新抓取 HTML 后，去除 `script`、`style`、`noscript`、
+  `template` 内容，提取可见正文并做 NFKC、大小写和空白规范化后计算的 SHA-256；Codex 若返回哈希，
+  必须与同一可见正文规范化结果一致。
 - 证据访问失败、官方域名或 GitHub 组织不匹配、异常重定向、正文摘录/日期/哈希不匹配、
   Codex 超时或坏 JSON 都必须保持 `verification_status: "unverified"`，并写入稳定
   `verification_reason`。

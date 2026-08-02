@@ -35,7 +35,7 @@ class JsonNewsStore:
         self, report: RunReport, *, dedup_state: DedupState | None = None
     ) -> StoredRun:
         validated = RunReport.model_validate(report)
-        payload = validated.model_dump(mode="json")
+        payload = validated.model_dump(mode="json", by_alias=True)
         run_path = self._runs / f"{_safe_filename(validated.run_id)}.json"
         if run_path.exists():
             raise JsonStoreError(f"运行文件已存在：{run_path.name}")

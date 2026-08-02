@@ -70,6 +70,21 @@ def test_store_appends_runs_and_failed_run_does_not_replace_latest(
     assert json.loads(run_files[1].read_text(encoding="utf-8"))["status"] == "failed"
 
 
+def test_store_serializes_collection_request_with_json_aliases(
+    tmp_path: Path,
+) -> None:
+    store = JsonNewsStore(tmp_path)
+
+    store.commit(report("run-alias"))
+
+    payload = json.loads(
+        (tmp_path / "output/runs/run-alias.json").read_text(encoding="utf-8")
+    )
+    requested_range = payload["requested_range"]
+    assert "from" in requested_range
+    assert "from_" not in requested_range
+
+
 def test_store_recovers_dedup_state_and_tracks_first_price_observation(
     tmp_path: Path,
 ) -> None:
