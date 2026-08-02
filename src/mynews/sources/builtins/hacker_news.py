@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from typing import cast
 from urllib.parse import urlsplit
@@ -37,8 +38,20 @@ class HackerNewsPlugin:
         story_ids = _story_ids(context.http.get_json(HN_TOP_STORIES_URL))
         candidates: list[Candidate] = []
         fetched_count = 0
-        for story_id in story_ids[: context.limit]:
-            raw_item = context.http.get_json(HN_ITEM_URL.format(item_id=story_id))
+        selected_ids = story_ids[: context.limit]
+        if not selected_ids:
+            return SourceBatch(HN_SOURCE_ID, (), fetched_count=0)
+        with ThreadPoolExecutor(
+            max_workers=min(context.limit, len(selected_ids))
+        ) as pool:
+            futures = [
+                pool.submit(
+                    context.http.get_json, HN_ITEM_URL.format(item_id=story_id)
+                )
+                for story_id in selected_ids
+            ]
+            items = [future.result() for future in futures]
+        for story_id, raw_item in zip(selected_ids, items, strict=True):
             if raw_item is None:
                 continue
             fetched_count += 1
