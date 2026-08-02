@@ -9,6 +9,7 @@ from html.parser import HTMLParser
 from urllib.parse import urljoin, urlsplit
 
 from mynews.domain.models import Candidate, PriceSnapshot
+from mynews.infrastructure.http import HttpClient
 from mynews.sources.protocol import (
     ProbeContext,
     SourceBatch,
@@ -135,14 +136,18 @@ class OfficialHtmlPlugin:
         *,
         event_type: str = "product_update",
         allow_page_fallback: bool = True,
+        fallback_markers: tuple[str, ...] = (),
+        public_metadata_only: bool = False,
     ) -> None:
         self.metadata = metadata
         self.page_url = page_url
         self._event_type = event_type
         self._allow_page_fallback = allow_page_fallback
+        self._fallback_markers = fallback_markers or (metadata.name,)
+        self._public_metadata_only = public_metadata_only
 
     def collect(self, context: SourceContext) -> SourceBatch:
-        entries = self._parse(context.http.get_text(self.page_url))
+        entries = self._parse(_get_page(context.http, self.page_url, self.metadata))
         candidates = tuple(
             candidate
             for candidate in self._candidates(entries, context.limit)
@@ -155,7 +160,7 @@ class OfficialHtmlPlugin:
         )
 
     def probe(self, context: ProbeContext) -> SourceHealth:
-        entries = self._parse(context.http.get_text(self.page_url))
+        entries = self._parse(_get_page(context.http, self.page_url, self.metadata))
         selected = self._candidates(entries, context.limit)
         return SourceHealth.healthy_result(
             source_id=self.metadata.source_id,
@@ -174,10 +179,10 @@ class OfficialHtmlPlugin:
             raise SourcePluginError(
                 "invalid_html", "官方页面不是可解析 HTML"
             ) from error
+        raw_entries = [entry for entry in parser.entries if entry.title or entry.url]
         entries = [
             entry
-            for entry in parser.entries
-            if entry.title or entry.url
+            for entry in raw_entries
             if _is_official_url(
                 urljoin(self.page_url, entry.url or self.page_url),
                 self.metadata.official_domains,
@@ -185,14 +190,28 @@ class OfficialHtmlPlugin:
         ]
         if entries:
             return entries
+        if any(
+            _is_http_url(urljoin(self.page_url, entry.url))
+            and not _is_official_url(
+                urljoin(self.page_url, entry.url), self.metadata.official_domains
+            )
+            for entry in raw_entries
+            if entry.url
+        ):
+            raise SourcePluginError("unofficial_entry", "页面条目链接不属于官方域名")
         if not self._allow_page_fallback:
             raise SourceBlockedError(
                 "public_metadata_unavailable", "页面没有可公开读取的元数据卡片"
             )
         title = parser.document_title or self.metadata.name
         excerpt = _clean_text(" ".join(parser.document_text))
-        if not excerpt:
-            raise SourcePluginError("empty_page", "官方页面没有可读取的公开文本")
+        page_text = f"{title} {excerpt}".casefold()
+        if not excerpt or not all(
+            marker.casefold() in page_text for marker in self._fallback_markers
+        ):
+            raise SourcePluginError(
+                "unexpected_page", "官方页面没有匹配的公开来源标识"
+            )
         return [
             _RawEntry(
                 title=title,
@@ -213,7 +232,9 @@ class OfficialHtmlPlugin:
                     "unofficial_entry", "页面条目链接不属于官方域名"
                 )
             title = _clean_text(entry.title or self.metadata.name)
-            excerpt = _clean_text(" ".join(entry.text or [])) or title
+            excerpt = title if self._public_metadata_only else (
+                _clean_text(" ".join(entry.text or [])) or title
+            )
             candidates.append(
                 Candidate.model_validate(
                     {
@@ -234,17 +255,21 @@ class OfficialHtmlPlugin:
 class OfficialPricingPlugin:
     """将官方价格页转成待持久化的规范化快照。"""
 
-    def __init__(self, metadata: SourceMetadata, page_url: str) -> None:
+    def __init__(
+        self, metadata: SourceMetadata, page_url: str, *, marker: str
+    ) -> None:
         self.metadata = metadata
         self.page_url = page_url
+        self._marker = marker
 
     def collect(self, context: SourceContext) -> SourceBatch:
-        payload = context.http.get_text(self.page_url)
+        payload = _get_page(context.http, self.page_url, self.metadata)
         snapshot = _snapshot(
             self.metadata.source_id,
             self.page_url,
             payload,
             context.clock.now(),
+            self._marker,
         )
         return SourceBatch(
             self.metadata.source_id,
@@ -254,8 +279,14 @@ class OfficialPricingPlugin:
         )
 
     def probe(self, context: ProbeContext) -> SourceHealth:
-        payload = context.http.get_text(self.page_url)
-        _snapshot(self.metadata.source_id, self.page_url, payload, context.clock.now())
+        payload = _get_page(context.http, self.page_url, self.metadata)
+        _snapshot(
+            self.metadata.source_id,
+            self.page_url,
+            payload,
+            context.clock.now(),
+            self._marker,
+        )
         return SourceHealth.healthy_result(
             source_id=self.metadata.source_id,
             role=self.metadata.role,
@@ -268,9 +299,16 @@ class OfficialPricingPlugin:
 class OpenAiNewsPlugin(OfficialHtmlPlugin):
     def __init__(self) -> None:
         super().__init__(
-            _metadata("openai", "OpenAI", "primary", "openai.com", ("html", "updates")),
+            _metadata(
+                "openai",
+                "OpenAI",
+                "primary",
+                "developers.openai.com",
+                ("html", "updates"),
+            ),
             OPENAI_NEWS_URL,
             event_type="product_update",
+            fallback_markers=("openai", "api"),
         )
 
 
@@ -281,11 +319,12 @@ class AnthropicNewsPlugin(OfficialHtmlPlugin):
                 "anthropic",
                 "Anthropic",
                 "primary",
-                "anthropic.com",
+                "www.anthropic.com",
                 ("html", "updates"),
             ),
             ANTHROPIC_NEWS_URL,
             event_type="product_update",
+            fallback_markers=("anthropic",),
         )
 
 
@@ -301,6 +340,7 @@ class GoogleGeminiPlugin(OfficialHtmlPlugin):
             ),
             GOOGLE_GEMINI_URL,
             event_type="product_update",
+            fallback_markers=("gemini",),
         )
 
 
@@ -316,15 +356,19 @@ class DeepSeekUpdatesPlugin(OfficialHtmlPlugin):
             ),
             DEEPSEEK_UPDATES_URL,
             event_type="model_release",
+            fallback_markers=("deepseek",),
         )
 
 
 class TraeChangelogPlugin(OfficialHtmlPlugin):
     def __init__(self) -> None:
         super().__init__(
-            _metadata("trae", "TRAE", "primary", "trae.cn", ("html", "changelog")),
+            _metadata(
+                "trae", "TRAE", "primary", "www.trae.cn", ("html", "changelog")
+            ),
             TRAE_CHANGELOG_URL,
             event_type="product_update",
+            fallback_markers=("trae",),
         )
 
 
@@ -335,10 +379,11 @@ class OpenAiPricingPlugin(OfficialPricingPlugin):
                 "openai-pricing",
                 "OpenAI API Pricing",
                 "monitor",
-                "openai.com",
+                "developers.openai.com",
                 ("html", "pricing", "snapshot"),
             ),
             OPENAI_PRICING_URL,
+            marker="openai",
         )
 
 
@@ -353,6 +398,7 @@ class DeepSeekPricingPlugin(OfficialPricingPlugin):
                 ("html", "pricing", "snapshot"),
             ),
             DEEPSEEK_PRICING_URL,
+            marker="deepseek",
         )
 
 
@@ -363,13 +409,14 @@ class ZhihuHotPlugin(OfficialHtmlPlugin):
                 "zhihu-hot",
                 "知乎热榜",
                 "discovery",
-                "zhihu.com",
+                "www.zhihu.com",
                 ("html", "public-metadata"),
                 stability="experimental",
                 region="cn",
             ),
             ZHIHU_HOT_URL,
             allow_page_fallback=False,
+            public_metadata_only=True,
         )
 
 
@@ -380,12 +427,13 @@ class BloombergAiPlugin(OfficialHtmlPlugin):
                 "bloomberg-ai",
                 "Bloomberg AI/Technology",
                 "discovery",
-                "bloomberg.com",
+                "www.bloomberg.com",
                 ("html", "public-metadata"),
                 stability="experimental",
             ),
             BLOOMBERG_AI_URL,
             allow_page_fallback=False,
+            public_metadata_only=True,
         )
 
 
@@ -413,11 +461,20 @@ def _metadata(
 
 
 def _snapshot(
-    source_id: str, url: str, payload: str, observed_at: datetime
+    source_id: str,
+    url: str,
+    payload: str,
+    observed_at: datetime,
+    marker: str,
 ) -> PriceSnapshot:
     parser = _PublicHtmlParser()
     parser.feed(payload)
     normalized = _normalize_snapshot_text(parser.document_text)
+    title_and_text = f"{parser.document_title} {normalized}".casefold()
+    if not normalized or marker.casefold() not in title_and_text:
+        raise SourcePluginError(
+            "unexpected_page", "官方价格页没有匹配的公开来源标识"
+        )
     if not normalized:
         raise SourcePluginError("empty_price_page", "官方价格页没有公开价格文本")
     digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
@@ -456,14 +513,27 @@ def _clean_text(value: str) -> str:
     return " ".join(value.split())
 
 
+def _get_page(http: HttpClient, url: str, metadata: SourceMetadata) -> str:
+    response = http.get(url)
+    final_url = response.final_url or url
+    if not _is_official_url(final_url, metadata.official_domains):
+        raise SourcePluginError("unofficial_redirect", "官方页面重定向到了非官方域名")
+    return response.text()
+
+
 def _is_official_url(url: str, domains: tuple[str, ...]) -> bool:
     parsed = urlsplit(url)
     if parsed.scheme != "https" or not parsed.hostname:
         return False
     return any(
-        parsed.hostname == domain or parsed.hostname.endswith("." + domain)
+        parsed.hostname == domain
         for domain in domains
     )
+
+
+def _is_http_url(url: str) -> bool:
+    parsed = urlsplit(url)
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
 
 
 def _in_requested_range(candidate: Candidate, context: SourceContext) -> bool:

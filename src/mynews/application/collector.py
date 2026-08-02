@@ -330,8 +330,13 @@ def _verify_items(
     verifier: EvidenceVerifier,
     config: VerificationConfig,
 ) -> tuple[NewsItem, ...]:
+    eligible_targets = tuple(
+        target for target in targets if target.source_role != "discovery"
+    )
+    if not eligible_targets:
+        return tuple(_apply_decision(item, None) for item in items)
     try:
-        decisions = verifier.verify(targets, config=config)
+        decisions = verifier.verify(eligible_targets, config=config)
     except Exception:
         return tuple(
             item.model_copy(
@@ -345,8 +350,10 @@ def _verify_items(
         )
     by_id = {decision.item_id: decision for decision in decisions}
     return tuple(
-        _apply_decision(item, by_id.get(item.event_key))
-        for item in items
+        _apply_decision(item, None)
+        if target.source_role == "discovery"
+        else _apply_decision(item, by_id.get(item.event_key))
+        for item, target in zip(items, targets, strict=True)
     )
 
 

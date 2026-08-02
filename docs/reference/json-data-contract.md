@@ -218,7 +218,7 @@ state/
 }
 ```
 
-阶段 4.5 已接入 OpenAI API Pricing 和 DeepSeek 模型与价格页。价格快照先写入状态，只有
+阶段 4.5 已接入 OpenAI 官方模型/价格页和 DeepSeek 模型与价格页。价格快照先写入状态，只有
 后续运行的规范化 URL 或内容哈希发生差异时，Pipeline 才生成 `event_type: pricing_change`
 的候选；首次观察不会生成新闻事件。官方页面没有发布日期时，`published_at` 保持 `null`：
 

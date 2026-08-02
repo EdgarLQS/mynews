@@ -7,7 +7,7 @@ import pytest
 
 from mynews.application.collector import PipelineCollector
 from mynews.domain.models import CollectionRequest
-from mynews.infrastructure.http import HttpClientError
+from mynews.infrastructure.http import HttpClientError, HttpResponse
 from mynews.sources.builtins.official_pages import (
     AnthropicNewsPlugin,
     BloombergAiPlugin,
@@ -20,7 +20,7 @@ from mynews.sources.builtins.official_pages import (
     TraeChangelogPlugin,
     ZhihuHotPlugin,
 )
-from mynews.sources.protocol import ProbeContext, SourceContext
+from mynews.sources.protocol import ProbeContext, SourceContext, SourcePluginError
 from mynews.sources.registry import SourceRegistry, built_in_registry
 from mynews.storage.json_store import JsonNewsStore
 from mynews.verification.fake import FakeVerifier
@@ -44,6 +44,16 @@ class FixtureHttp:
         self.requested.append(url)
         return self.payloads[url]
 
+    def get(self, url: str, **kwargs: object) -> HttpResponse:
+        del kwargs
+        self.requested.append(url)
+        return HttpResponse(
+            status_code=200,
+            headers={},
+            body=self.payloads[url].encode(),
+            final_url=url,
+        )
+
 
 class FixedClock:
     def now(self) -> datetime:
@@ -58,6 +68,16 @@ class IncrementingClock:
         value = datetime(2026, 8, 2, 9, 30, tzinfo=UTC)
         self._calls += 1
         return value.replace(second=self._calls)
+
+
+class CountingVerifier:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def verify(self, candidates: object, *, config: object) -> tuple[object, ...]:
+        del candidates, config
+        self.calls += 1
+        return ()
 
 
 @pytest.mark.parametrize(
@@ -150,10 +170,10 @@ def test_phase45_source_failure_isolated_by_registry() -> None:
     deepseek = DeepSeekUpdatesPlugin()
 
     class FailingHttp(FixtureHttp):
-        def get_text(self, url: str, **kwargs: object) -> str:
+        def get(self, url: str, **kwargs: object) -> HttpResponse:
             if url == deepseek.page_url:
                 raise HttpClientError("network_error", "fixture network failure")
-            return super().get_text(url, **kwargs)
+            return super().get(url, **kwargs)
 
     http = FailingHttp(
         {openai.page_url: (FIXTURES / "openai-news.html").read_text()}
@@ -163,6 +183,48 @@ def test_phase45_source_failure_isolated_by_registry() -> None:
     )
 
     assert [item.health for item in health] == ["healthy", "failed"]
+
+
+def test_official_page_rejects_unexpected_login_shell() -> None:
+    plugin = OpenAiNewsPlugin()
+    http = FixtureHttp({plugin.page_url: "<html><title>Access denied</title></html>"})
+
+    with pytest.raises(SourcePluginError, match="官方页面没有匹配"):
+        plugin.probe(ProbeContext(http=http))
+
+
+def test_official_page_rejects_unofficial_redirect() -> None:
+    plugin = OpenAiNewsPlugin()
+    payload = (FIXTURES / "openai-news.html").read_text()
+
+    class RedirectHttp(FixtureHttp):
+        def get(self, url: str, **kwargs: object) -> HttpResponse:
+            del kwargs
+            return HttpResponse(
+                status_code=200,
+                headers={},
+                body=self.payloads[url].encode(),
+                final_url="https://evil.example/redirect",
+            )
+
+    with pytest.raises(SourcePluginError, match="重定向"):
+        plugin.probe(ProbeContext(http=RedirectHttp({plugin.page_url: payload})))
+
+
+def test_discovery_candidate_never_enters_verifier(tmp_path: Path) -> None:
+    plugin = ZhihuHotPlugin()
+    http = FixtureHttp({plugin.page_url: (FIXTURES / "zhihu-hot.html").read_text()})
+    verifier = CountingVerifier()
+    report = PipelineCollector(
+        SourceRegistry([plugin], http=http),
+        JsonNewsStore(tmp_path),
+        clock=IncrementingClock(),
+        verifier=verifier,
+    ).collect(REQUEST)
+
+    assert len(report.items) == 1
+    assert report.items[0].verification_status == "unverified"
+    assert verifier.calls == 0
 
 
 def test_price_page_first_observation_only_writes_snapshot(tmp_path: Path) -> None:
