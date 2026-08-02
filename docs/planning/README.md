@@ -17,7 +17,7 @@ owner: project-maintainers
 
 | 计划 | 文档状态 | 实现状态 | 下一门槛 |
 | --- | --- | --- | --- |
-| [v1 热点收集器实施计划](v1-implementation-plan.md) | Current | In progress | 建立项目骨架、CLI help 与契约测试 |
+| [v1 热点收集器实施计划](v1-implementation-plan.md) | Current | In progress | 完成 SourcePlugin registry、共享 HTTP client 与真实 probe |
 
 ## 已完成计划
 

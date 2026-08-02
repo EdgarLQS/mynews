@@ -73,19 +73,44 @@ G2 至 G7：本阶段没有采集运行时代码，按门禁矩阵不适用；�
 
 ### 阶段 1：工程骨架与契约
 
-- 建立 `pyproject.toml`、Python 3.12、src layout、测试和质量检查。
-- 实现 `mynews --help`、`collect --help`、`probe --help` 与 `scripts/collect.sh --help`。
-- 定义 `CollectionRequest`、`Candidate`、`Evidence`、`NewsItem`、`SourceResult` 和 `RunReport`。
-- 先用 Pydantic 固定 JSON Schema，并写兼容性测试。
+- [x] 建立 `pyproject.toml`、Python 3.12、uv、src layout、测试和质量检查。
+- [x] 实现 `mynews --help`、`collect --help`、`probe --help` 与 `scripts/collect.sh --help`。
+- [x] 定义 `CollectionRequest`、`Candidate`、`Evidence`、`NewsItem`、`SourceResult` 和 `RunReport`。
+- [x] 先用 Pydantic 固定 JSON Schema，并写兼容性测试。
 
 验收：CLI help 可执行；非法日期给出中文原因；Schema fixture 通过。
+
+#### 阶段 1 功能验收记录（2026-08-02）
+
+结论：`PASS`（G0–G4）。验收范围为当前分支相对 `main` 的全部提交和工作树变更；基线为
+`main=8acafc2`，验收时工作树无未提交或未跟踪变更。本记录与完整证据见
+[阶段 1 功能验收说明](../testing/phase1-functional-acceptance.md)。
+
+本阶段完成工程骨架、CLI 参数契约和离线 JSON 模型兼容测试；当前分支另包含 CC Switch
+官方 Release 的离线解析 Adapter 增量。两者都不代表来源采集运行时、Codex 核验、JSON
+Store、真实网络或 launchd 已实现。
+
+| 门禁 | 命令或检查 | 结果 |
+| --- | --- | --- |
+| G0 | Git 范围、功能矩阵、计划和当前状态核对 | 通过；无越界状态夸大 |
+| G1 | `python3 scripts/check_docs.py` | 通过；17 个 Markdown 文件，0 个错误 |
+| G1 | `git diff --check main...HEAD`、`git diff --check` | 通过 |
+| G2 | `UV_CACHE_DIR=/tmp/mynews-uv-cache uv run ruff check .` | 通过 |
+| G2 | `UV_CACHE_DIR=/tmp/mynews-uv-cache uv run mypy src` | 通过；6 个源文件无问题 |
+| G3 | 受影响测试和 `UV_CACHE_DIR=/tmp/mynews-uv-cache uv run pytest` | 通过；30 passed，0 skipped |
+| G4 | 全局/子命令/脚本 help、非法参数、退出码和 Schema fixture | 通过；help 为 0，非法参数为 2 |
+
+G5、G6-S、G6-V、G7：本阶段没有执行；真实来源、Codex、存储和定时能力留给后续计划，不能据此标记为 Verified。
 
 ### 阶段 2：来源插件与原始采集
 
 - 实现 SourcePlugin interface、built-in registry、共享 HTTP 客户端和来源隔离。
-- 先接 Hacker News、官方 Feed/GitHub Release，再接来源专用网页。
+- 先接 Hacker News、CC Switch 官方 Changelog/Release、其他官方 Feed/GitHub Release，再接来源专用网页。
 - 实现 `probe` 和来源健康状态。
 - 所有响应设置超时、有限重试、User-Agent、并发上限和缓存头。
+
+当前进展：CC Switch 已完成独立的离线 Release “新功能”解析 Adapter 和 v3.19.1 fixture；
+SourcePlugin registry、共享 HTTP client、CLI 接线和真实 probe 尚未完成，因此该来源仍为 `In progress`，不能标记为 Verified。
 
 验收：每个 Adapter 有离线 fixture；实时 probe 如实给出状态。
 

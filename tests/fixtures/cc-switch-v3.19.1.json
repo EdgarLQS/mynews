@@ -1,0 +1,9 @@
+{
+  "tag_name": "v3.19.1",
+  "name": "CC Switch v3.19.1",
+  "draft": false,
+  "prerelease": false,
+  "published_at": "2026-07-31T14:53:23Z",
+  "html_url": "https://github.com/farion1231/cc-switch/releases/tag/v3.19.1",
+  "body": "# CC Switch v3.19.1\n\n## 新功能\n\n### 官方厂商模型目录镜像（DeepSeek 首发）\n\n为 Codex 提供官方模型目录镜像。\n\n### 腾讯混元（TokenHub）Codex 预设\n\n新增腾讯混元预设。\n\n### 8 个此前按 $0 记账的模型补上内置定价\n\n补充模型定价。\n\n### Grok Build 加入故障转移页签与环境变量冲突检测\n\n新增 Grok Build 管理能力。\n\n## 修复\n\n### 不应作为候选的新功能\n\n这段不属于新功能。"
+}

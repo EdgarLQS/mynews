@@ -2,7 +2,7 @@
 title: mynews 信息来源目录
 doc_type: reference
 status: current
-implementation_status: proposed
+implementation_status: in_progress
 version: 1.0
 created: 2026-08-02
 updated: 2026-08-02
@@ -49,6 +49,7 @@ owner: project-maintainers
 | windsurf | Windsurf / Devin Desktop | primary, monitor | Changelog、价格页 | experimental | https://docs.devin.ai/desktop/changelog |
 | nvidia-ai | NVIDIA AI | primary | Developer Blog、Release | adapter-planned | https://developer.nvidia.com/blog/ |
 | huggingface | Hugging Face | primary, discovery | Blog、模型/库 Release | adapter-planned | https://huggingface.co/blog |
+| cc-switch | CC Switch | primary, monitor | 官方 Changelog + GitHub Releases API | adapter-planned | https://ccswitch.io/zh/changelog/3.19.1 |
 
 ## 国内官方来源
 
@@ -74,6 +75,16 @@ owner: project-maintainers
 - 价格页没有发布日期时，事件日期为空，只记录首次观察时间和前后哈希。
 - 多个媒体重复同一消息只能提高热度，不能提高第一方证据等级。
 - `windsurf.com/changelog` 当前会跳转到 Devin Docs；实现前必须确认产品归属、历史连续性和新的官方域名白名单，因此暂列 experimental。
+
+## CC Switch 更新日志监控约定
+
+- 稳定来源 ID 为 `cc-switch`；官方 Changelog 页面是候选回链，版本内容通过官方仓库
+  `https://api.github.com/repos/farion1231/cc-switch/releases` 获取。
+- 仅接受 `farion1231/cc-switch` 的稳定 Release；草稿、预发布和非官方仓库 URL 不进入候选。
+- 每个版本 `## 新功能` 下的 `###` 条目单独产生一个候选，发布日期使用 Release 的
+  `published_at`，不知道发布时间时不得用抓取时间补齐。
+- v3.19.1 已有离线 fixture，覆盖官方厂商模型目录镜像和腾讯混元 Codex 预设；真实
+  `probe`、CLI 接线和后续 JSON Store 仍待阶段 2/3。
 
 ## 新增来源流程
 

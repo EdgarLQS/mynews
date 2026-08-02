@@ -2,7 +2,7 @@
 title: mynews JSON 数据契约
 doc_type: reference
 status: current
-implementation_status: proposed
+implementation_status: in_progress
 version: 1.0
 created: 2026-08-02
 updated: 2026-08-02
@@ -14,6 +14,10 @@ owner: project-maintainers
 ## 目标
 
 JSON 是 v1 的持久化和后续开发 interface。UI、数据库导入或分析脚本应读取本契约，不依赖内部 Python 对象或日志文本。
+
+阶段 1 已由 Pydantic 模型固定运行报告 schema；代码和 schema 的唯一来源是
+`mynews.domain.models.RunReport.model_json_schema()`。`tests/fixtures/run-report-v1.json`
+是兼容性 fixture，当前只证明模型和契约可离线互读，不代表真实采集已经实现。
 
 ## 文件布局
 
@@ -43,7 +47,9 @@ state/
   "requested_range": {
     "from": "2026-08-01T09:30:00+08:00",
     "to": "2026-08-02T09:30:00+08:00",
-    "timezone": "Asia/Shanghai"
+    "timezone": "Asia/Shanghai",
+    "source_ids": [],
+    "verification_budget": 30
   },
   "started_at": "2026-08-02T09:30:00+08:00",
   "finished_at": "2026-08-02T09:31:10+08:00",
@@ -103,7 +109,7 @@ state/
 规则：
 
 - `verification_status` 只有 `verified` 和 `unverified`。
-- `verified` 至少包含一条通过程序复核的 `primary_evidence`。
+- `verified` 至少包含一条通过程序复核的 `primary_evidence`；该证据的 `reachable`、`official_domain` 和 `excerpt_matched` 必须都为 `true`。
 - `published_at` 不确定时必须为 `null`，不能使用抓取时间。
 - 中文摘要不能添加证据之外的性能、价格或发布时间判断。
 - `heat_score` 和 `relevance_score` 不参与真实性判定。
@@ -134,3 +140,12 @@ state/
 - 消费者必须忽略未知字段，但不得忽略未知 major 版本。
 - 稳定枚举新增值属于兼容风险，必须同步契约测试和变更记录。
 - Python Model 和导出的 JSON Schema 必须由同一处定义生成，避免运行时与文档漂移。
+
+## 阶段 1 已实现的模型边界
+
+- `CollectionRequest` 要求带时区且前后顺序正确的时间范围；`from_` 以 JSON 别名 `from` 序列化。
+- `Candidate` 表示来源 Adapter 的未经规范化候选，不直接作为 Run JSON 顶层字段。
+- `Evidence` 的校验结果默认显式为 `false`，避免未执行校验时产生成功暗示。
+- `NewsItem` 的 `verified` 状态必须包含至少一条通过三项 validation 的 `primary_evidence`。
+- `SourceResult` 的非 `healthy` 状态必须包含结构化 `error`。
+- 当前模型接受 `1.x` minor 版本和未知字段，并拒绝未知 major `schema_version`；持久化和原子写入在阶段 3 实现。

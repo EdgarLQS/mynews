@@ -1,0 +1,177 @@
+"""mynews 中文命令行入口。"""
+
+from __future__ import annotations
+
+import argparse
+from collections.abc import Sequence
+from datetime import date, datetime, time, timedelta
+from typing import NoReturn
+from zoneinfo import ZoneInfo
+
+from mynews.domain.models import CollectionRequest
+
+SHANGHAI = ZoneInfo("Asia/Shanghai")
+
+
+class ChineseArgumentParser(argparse.ArgumentParser):
+    """将 argparse 的用户可见帮助和错误保持为中文。"""
+
+    def format_usage(self) -> str:
+        return super().format_usage().replace("usage:", "用法：", 1)
+
+    def format_help(self) -> str:
+        help_text = super().format_help()
+        help_text = help_text.replace("usage:", "用法：", 1)
+        help_text = help_text.replace("options:", "选项：", 1)
+        return help_text.replace("optional arguments:", "选项：", 1)
+
+    def error(self, message: str) -> NoReturn:
+        translated = message.replace("unrecognized arguments:", "无法识别的参数：")
+        translated = translated.replace("invalid choice:", "无效选项：")
+        translated = translated.replace("expected one argument", "需要一个参数")
+        translated = translated.replace(
+            "the following arguments are required:", "缺少必需参数："
+        )
+        translated = translated.replace("argument ", "参数 ")
+        self.print_usage()
+        self.exit(2, f"{self.prog}: 参数错误：{translated}\n")
+
+
+def build_parser() -> ChineseArgumentParser:
+    parser = ChineseArgumentParser(
+        prog="mynews",
+        description="收集 AI 与科技热点，并保存可验证的结构化结果。",
+        add_help=False,
+    )
+    parser.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    commands = parser.add_subparsers(
+        dest="command", title="子命令", parser_class=ChineseArgumentParser
+    )
+
+    collect = commands.add_parser(
+        "collect",
+        help="收集热点候选",
+        description="按时间范围收集热点候选。阶段 1 仅提供参数契约。",
+        add_help=False,
+    )
+    collect.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    selector = collect.add_mutually_exclusive_group()
+    selector.add_argument("--days", metavar="天数", help="收集最近 N 天")
+    selector.add_argument(
+        "--date", metavar="日期", help="收集指定本地日期，格式 YYYY-MM-DD"
+    )
+    selector.add_argument(
+        "--from", dest="from_date", metavar="日期", help="起始本地日期"
+    )
+    collect.add_argument(
+        "--to", dest="to_date", metavar="日期", help="结束本地日期（包含当天）"
+    )
+    collect.add_argument(
+        "--source", dest="source_ids", action="append", help="只选择指定来源"
+    )
+
+    probe = commands.add_parser(
+        "probe",
+        help="检查来源健康状态",
+        description="检查来源健康状态。阶段 1 仅提供命令契约。",
+        add_help=False,
+    )
+    probe.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    probe.add_argument(
+        "--source", dest="source_ids", action="append", help="只检查指定来源"
+    )
+    return parser
+
+
+def _parse_local_date(value: str, parser: ChineseArgumentParser, option: str) -> date:
+    try:
+        parsed = date.fromisoformat(value)
+    except ValueError:
+        parser.error(f"{option} 必须使用 YYYY-MM-DD")
+    if value != parsed.isoformat():
+        parser.error(f"{option} 必须使用 YYYY-MM-DD")
+    return parsed
+
+
+def _local_midnight(value: date) -> datetime:
+    return datetime.combine(value, time.min, tzinfo=SHANGHAI)
+
+
+def _request_from_namespace(
+    args: argparse.Namespace,
+    parser: ChineseArgumentParser,
+    now: datetime | None,
+) -> CollectionRequest:
+    current = now or datetime.now(SHANGHAI)
+    if current.tzinfo is None or current.utcoffset() is None:
+        parser.error("当前时间必须包含时区")
+
+    source_ids = args.source_ids or []
+    has_calendar_selector = args.days is not None or args.date is not None
+    has_range_selector = args.from_date is not None or args.to_date is not None
+    if has_calendar_selector and has_range_selector:
+        parser.error("日期选择器不能混用")
+    if args.days is not None:
+        try:
+            days = int(args.days)
+        except ValueError:
+            parser.error("--days 必须是正整数")
+        if days <= 0:
+            parser.error("--days 必须是正整数")
+        start = current - timedelta(days=days)
+        end = current
+    elif args.date is not None:
+        selected = _parse_local_date(args.date, parser, "--date")
+        start = _local_midnight(selected)
+        end = start + timedelta(days=1)
+    else:
+        if (args.from_date is None) != (args.to_date is None):
+            parser.error("--from 与 --to 必须同时提供")
+        if args.from_date is None:
+            start = current - timedelta(days=1)
+            end = current
+        else:
+            start_date = _parse_local_date(args.from_date, parser, "--from")
+            end_date = _parse_local_date(args.to_date, parser, "--to")
+            start = _local_midnight(start_date)
+            end = _local_midnight(end_date) + timedelta(days=1)
+
+    if start >= end:
+        parser.error("开始时间必须早于结束时间")
+
+    return CollectionRequest.model_validate(
+        {
+            "from": start,
+            "to": end,
+            "timezone": "Asia/Shanghai",
+            "source_ids": source_ids,
+        }
+    )
+
+
+def build_collection_request(
+    arguments: Sequence[str], *, now: datetime | None = None
+) -> CollectionRequest:
+    """解析 collect 参数，供 CLI 和离线测试共用。"""
+
+    parser = build_parser()
+    args = parser.parse_args(["collect", *arguments])
+    return _request_from_namespace(args, parser, now)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if args.command == "collect":
+        _request_from_namespace(args, parser, None)
+        print("阶段 1 仅完成工程骨架与契约，collect 将在后续阶段实现。")
+        return 1
+    if args.command == "probe":
+        print("阶段 1 仅完成工程骨架与契约，probe 将在后续阶段实现。")
+        return 1
+    parser.print_help()
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
