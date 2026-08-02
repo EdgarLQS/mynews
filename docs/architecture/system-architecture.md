@@ -41,7 +41,7 @@ flowchart LR
 | Module | Interface | 隐藏的实现复杂度 |
 | --- | --- | --- |
 | Collector | `collect(request) -> RunReport` | 来源并发、降级、归并、核验、提交 |
-| SourceRegistry | `collect_all(context) -> SourceBatch`、`probe(...)` | 插件发现、隔离、超时和状态汇总 |
+| SourceRegistry | `collect_all(context) -> SourceCollection`、`probe(...)` | 插件发现、隔离、超时和状态汇总 |
 | Normalizer | `normalize(batch) -> CandidateSet` | URL、日期、语言、事件键和去重 |
 | EvidenceVerifier | `verify(candidates) -> VerificationBatch` | Codex 批次、Schema、超时、证据匹配 |
 | NewsStore | `commit(report) -> StoredRun` | 原子写、latest、历史和状态快照 |
@@ -91,6 +91,8 @@ class SourcePlugin(Protocol):
   并在并发执行时将单个 Adapter 异常转换为自身的结构化健康错误。
 - `src/mynews/infrastructure/http.py` 提供可注入的共享 HTTP client：超时、有限重试、User-Agent、
   并发上限和 ETag/Last-Modified 缓存协商集中在一个边界内。
+- `SourceContext`/`ProbeContext` 同时注入 `Clock`；来源 metadata 声明 plugin API 版本、能力、
+  地区、稳定等级和发布时间语义，registry 会拒绝不支持的协议版本或空能力声明。
 - 阶段 2 CLI 输出的是原始候选与健康快照；它不是 `RunReport`，不写 `output/`，不做规范化、
   去重、第一方核验或 JSON Store。
 

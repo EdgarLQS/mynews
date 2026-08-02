@@ -18,7 +18,7 @@ owner: project-maintainers
 | 项目 | 状态 | 说明 |
 | --- | --- | --- |
 | 产品范围 | Current | 聚焦 AI 与科技，v1 优先模型、AI 编程工具和开发者平台 |
-| v1 计划 | Current / In progress | 阶段 0 和阶段 1 已完成，来源采集运行时尚未开始 |
+| v1 计划 | Current / In progress | 阶段 0、阶段 1 已完成，阶段 2 第一批来源运行时已 Implemented |
 | 系统架构 | Current / In progress | SourcePlugin、registry 和共享 HTTP seam 已 Implemented；下游模块仍按计划推进 |
 | AI 开发说明 | Current / Implemented | Codex 与 Claude Code 共用一套项目规则 |
 | 验收流程 | Current / Implemented | 统一验收规则与 Claude `/acceptance` 入口已建立 |

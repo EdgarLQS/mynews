@@ -121,7 +121,7 @@ G5、G6-S、G6-V、G7：本阶段没有执行；真实来源、Codex、存储和
 
 | 门禁 | 实际命令/检查 | 结果 |
 | --- | --- | --- |
-| 离线 Adapter | `UV_CACHE_DIR=/tmp/mynews-uv-cache uv run pytest tests/test_cc_switch.py tests/test_http_client.py tests/test_sources.py tests/test_hacker_news.py tests/test_feed.py tests/test_cli_sources.py -q` | PASS；29 passed |
+| 离线 Adapter | `UV_CACHE_DIR=/tmp/mynews-uv-cache uv run pytest tests/test_cc_switch.py tests/test_http_client.py tests/test_sources.py tests/test_hacker_news.py tests/test_feed.py tests/test_cli_sources.py -q` | PASS；32 passed |
 | 共享 HTTP/类型 | `uv run ruff check src tests`；`uv run mypy src` | PASS |
 | CC Switch | `uv run mynews probe --source cc-switch` | Verified；healthy，退出码 0 |
 | Hacker News | `uv run mynews probe --source hacker-news` | Verified；healthy，退出码 0 |
