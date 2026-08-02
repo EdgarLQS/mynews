@@ -73,3 +73,27 @@ Google Gemini；稳定来源均真实 healthy。知乎和 Bloomberg 的 CLI 顶�
 摘录无法在程序重抓正文中逐字匹配。相关实现位置为
 `src/mynews/sources/builtins/official_pages.py` 的页面回退逻辑和
 `src/mynews/verification/codex.py` 的摘录校验逻辑。修复后必须重新执行 G6-V。
+
+## G6-V 修复后重验记录（2026-08-02）
+
+修复范围没有放宽域名或摘录规则：官方 HTML Adapter 使用稳定的页面标题作为 `excerpt`，完整卡片
+文本保留在 `content`；核验器把 HTML 转为可见文本后进行逐字匹配，并仅去除零宽格式字符；Codex
+提示明确要求返回页面中逐字连续、不可改写/翻译/拼接/添加归因的原文片段。原始失败记录保留在上节。
+
+| 时间（UTC） | 场景 | 来源 | 结果 | 证据 |
+| --- | --- | --- | --- | --- |
+| 2026-08-02T10:13:58Z | 真实 `collect --days 7` | deepseek | `healthy`，`verified` | 官方 URL `https://api-docs.deepseek.com/zh-cn`，`excerpt_matched=true` |
+| 2026-08-02T10:13:58Z | 真实 `collect --days 7` | google-gemini | `healthy`，`verified` | 官方 URL `https://ai.google.dev/gemini-api/docs/interactions-overview`，`excerpt_matched=true` |
+| 2026-08-02T10:17:27Z | 真实 `SubprocessCodexRunner` Codex 分支重验 | google-gemini | `verified / codex_primary_evidence` | 同一官方 URL；`reachable/official_domain/excerpt_matched=true` |
+
+新增来源回溯命令为：
+
+```bash
+UV_CACHE_DIR=/tmp/mynews-acceptance-cache uv run --project /Users/edgarlqs/Downloads/mynews \
+  mynews collect --days 7 --source deepseek --source google-gemini
+```
+
+该命令在 `/tmp` 隔离根目录执行，退出码为 0，两个新增来源均 `healthy`，`verified_count=2`。真实
+Codex 分支重验返回的逐字摘录为 Google 官方页面中的
+`The Interactions API is the best way to build with Gemini models and agents.`，程序二次抓取确认
+摘录、官方域名和可访问性均通过。

@@ -208,7 +208,7 @@ launchd、真实价格源和七天回溯仍未实现或验收。
   `published_at` 保持 `null`。
 - [x] 接入 `zhihu-hot` 和 `bloomberg-ai` 实验 Adapter，只读取公开标题、链接、日期等元数据；
   登录、付费墙、robots、验证码或没有公开卡片时如实返回 `blocked`，不绕过访问控制。
-- [x] 保留已有 Hacker News、CC Switch 和 Qwen 来源；未实现阶段 5 定时任务或自动发布。
+- [x] 保留已有 Hacker News、CC Switch 和 Qwen 来源；阶段 5 只提供需显式安装的定时模板，不做自动发布。
 
 #### 阶段 4.5 离线与 live probe 记录（2026-08-02）
 
@@ -231,17 +231,45 @@ probe healthy。
 | 访问限制 | 同上，允许升级网络权限的只读 probe | 发现 HTTP 403 或没有公开元数据时退出码 1，健康状态和 error 如实保留；未绕过登录、付费墙、robots 或验证码 |
 | 本次 G0-G5 | `check_docs.py`、ruff、mypy、受影响测试和全量测试 | 通过；全量测试 96 passed；运行数据仅写入临时目录 |
 | 本次 G6-S | `UV_CACHE_DIR=/tmp/mynews-acceptance-cache uv run mynews probe --source <source-id>` 与最终 URL 检查 | 通过；6 个重点第一方来源和 2 个价格源 healthy；知乎/Bloomberg blocked |
-| 本次 G6-V | 真实 `codex-cli 0.144.1`、DeepSeek/Google Gemini 新增来源采集和程序二次校验 | 失败；Codex 建议产生，但摘录校验为 `evidence_excerpt_mismatch`，保持 `unverified` |
+| 本次 G6-V（旧记录） | 真实 `codex-cli`、DeepSeek/Google Gemini 新增来源采集和程序二次校验 | 失败；Codex 建议产生，但摘录校验为 `evidence_excerpt_mismatch`，保持 `unverified`；修复后重验见下 |
 
-阶段 4.5 不改变阶段 5 的范围；launchd、`collect --days 7` 首次回溯和自动定时仍留待独立门禁。
+#### 阶段 4.5 G6-V 修复与重验（2026-08-02）
 
-### 阶段 5：脚本、定时模板与真实验收
+修复保持精确官方域名、日期、正文哈希和逐字摘录门槛：官方 HTML Adapter 将条目标题作为稳定
+`excerpt`，完整卡片文本保留在 `content`；核验器只在可见 HTML 文本中匹配，并去除零宽格式字符；
+Codex 提示要求返回逐字连续原文，不接受改写或归因性转述。修复后的真实结果如下：
 
-- `scripts/collect.sh` 固定 cwd、uv、代理继承和日志位置。
-- 提供 launchd plist 渲染、安装、状态和卸载脚本，不自动执行安装。
-- 执行 `collect --days 7`，检查来源覆盖、去重和全部 verified 证据。
+| 门禁 | 实际命令/证据 | 结果 |
+| --- | --- | --- |
+| 新增来源真实回溯 | `uv run --project /Users/edgarlqs/Downloads/mynews mynews collect --days 7 --source deepseek --source google-gemini` | `complete`，两个来源 `healthy`，`verified_count=2`，退出码 0；证据校验全为 `true` |
+| 真实 Codex G6-V | 对同一 Google Gemini 官方候选单独走 `SubprocessCodexRunner` 的 Codex 分支 | `verified / codex_primary_evidence`；URL 为 `https://ai.google.dev/gemini-api/docs/interactions-overview`，`reachable/official_domain/excerpt_matched=true` |
+
+阶段 4.5 仍保持 `Implemented`；完整来源回溯中 CC Switch 当前为 `blocked/http_403`，实验来源
+允许 `blocked`，不得把本次结果写成所有稳定来源均 healthy。
+
+### 阶段 5：脚本、定时模板与真实验收（已 Implemented，v1 独立验收待执行）
+
+- [x] `scripts/collect.sh` 固定项目 cwd、绝对 uv、代理继承和日志位置；参数使用数组安全透传，常见密钥和代理值不写入日志。
+- [x] 提供中文 help、launchd plist 渲染、安装、状态和卸载动作；label 固定为 `com.mynews.collect`，
+  `Asia/Shanghai` 每日 09:30，操作幂等；测试使用临时 HOME 和 Fake launchctl，不自动安装、不调用真实 launchctl、不修改系统时区。
+- [x] 执行隔离临时目录中的真实 `collect --days 7`，检查 Schema、12 个来源覆盖、35 条事件无重复、
+  OpenAI/DeepSeek 价格快照和 5 条 verified 第一方证据。
 
 验收：`plutil -lint` 通过；七天结果满足 JSON Schema；每条 verified 均有可访问的第一方证据。
+
+#### 阶段 5 实现与真实回溯记录（2026-08-02）
+
+阶段 5 代码验证为 `Implemented`，运行数据均写入隔离 `/tmp` 目录，没有进入仓库。受影响测试 45
+passed；全量测试 107 passed。Fake launchctl 安装/状态/卸载幂等性、中文 help、参数/代理透传和
+HTML 摘录回归测试通过；plist 渲染结果通过 `/usr/bin/plutil -lint`。全量真实回溯结果为
+`status=partial`、退出码 3：12 个来源
+均有结果，稳定来源中 CC Switch 为 `blocked/http_403`，知乎为 `blocked/http_403`，Bloomberg 为
+`blocked/public_metadata_unavailable`；这三类状态均按来源协议如实保留。结果包含 35 条无重复事件、
+5 条 verified、`openai-pricing` 和 `deepseek-pricing` 两个价格快照；对 5 条 verified 证据再次抓取后，
+官方域名、可访问性和逐字摘录均通过。
+
+真实 launchd 未加载是有意的验收边界：本阶段只用 Fake launchctl 验证管理动作，不修改系统状态；
+因此 OPS-02 最高标为 `Implemented`，v1 不在独立验收前宣称 `Verified`。
 
 ## 命令与语义
 

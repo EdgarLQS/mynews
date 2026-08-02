@@ -42,7 +42,7 @@ owner: project-maintainers
 | DATA-02 | 数据 | latest 原子更新和失败保护 | Implemented | 原子写入与 failed 保护测试 |
 | DATA-03 | 数据 | 去重状态与价格快照 JSON | Implemented | 重启恢复与 first_observed_at 测试 |
 | OPS-01 | 运维 | 已注册内置来源 `probe` | Implemented | 12 个 built-in 来源均可单独选择；健康、blocked、failed 证据见阶段 4.5 记录 |
-| OPS-02 | 运维 | 09:30 launchd 安装脚本 | Planned | `plutil -lint` |
+| OPS-02 | 运维 | 09:30 launchd 安装脚本 | Implemented | `scripts/collect.sh render-plist/install/status/uninstall`；Fake launchctl 幂等测试与 `plutil -lint`；真实 launchd 未加载 |
 | EXT-01 | 扩展 | built-in SourcePlugin registry | Implemented | registry 隔离、重复 ID 和选择测试 |
 | EXT-02 | 扩展 | 仓库外 Python entry-point 插件 | Future | 后续 ADR |
 | EXT-03 | 扩展 | 其他核验器 Adapter | Future | 后续需求 |

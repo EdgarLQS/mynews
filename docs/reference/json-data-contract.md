@@ -18,7 +18,7 @@ JSON 是 v1 的持久化和后续开发 interface。UI、数据库导入或分�
 阶段 1 已由 Pydantic 模型固定运行报告 schema；代码和 schema 的唯一来源是
 `mynews.domain.models.RunReport.model_json_schema()`。阶段 3 增加规范化事件、去重状态和
 价格快照模型；`tests/fixtures/run-report-v1.json` 仍是兼容性 fixture。阶段 3 的实现和
-JSON Store 和阶段 4.5 价格来源由离线测试证明；真实七天回溯和阶段 5 定时能力仍未完成。
+JSON Store 和阶段 4.5 价格来源由离线测试及阶段 5 隔离临时目录回溯证明；定时模板与管理脚本已 Implemented，但未自动安装或加载真实 launchd。
 
 ## 文件布局
 
