@@ -6,7 +6,13 @@ from typing import Any
 
 import pytest
 
-from mynews.sources.cc_switch import CcSwitchPayloadError, CcSwitchReleaseAdapter
+from mynews.domain.models import CollectionRequest
+from mynews.sources.cc_switch import (
+    CcSwitchPayloadError,
+    CcSwitchReleaseAdapter,
+    CcSwitchSourcePlugin,
+)
+from mynews.sources.protocol import ProbeContext, SourceContext
 
 FIXTURE = Path(__file__).parent / "fixtures/cc-switch-v3.19.1.json"
 
@@ -85,6 +91,27 @@ def test_adapter_preserves_unknown_publication_date_as_none() -> None:
     candidates = CcSwitchReleaseAdapter().collect(FixtureFetcher([payload]))
 
     assert candidates[0].published_at is None
+
+
+def test_cc_switch_source_plugin_uses_fixture_through_public_seam() -> None:
+    fetcher = FixtureFetcher([fixture_payload()])
+    plugin = CcSwitchSourcePlugin()
+    request = CollectionRequest.model_validate(
+        {
+            "from": "2026-07-30T00:00:00+00:00",
+            "to": "2026-08-02T00:00:00+00:00",
+        }
+    )
+
+    batch = plugin.collect(
+        SourceContext(request=request, http=fetcher)
+    )
+    health = plugin.probe(ProbeContext(http=FixtureFetcher([fixture_payload()])))
+
+    assert batch.source_id == "cc-switch"
+    assert batch.fetched_count == 4
+    assert health.health == "healthy"
+    assert health.accepted_count == 4
 
 
 @pytest.mark.parametrize(

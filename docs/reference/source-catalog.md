@@ -15,6 +15,14 @@ owner: project-maintainers
 
 内容范围是 AI 与科技；v1 来源优先覆盖模型、AI 编程工具、开发者平台、芯片/云基础设施及重大科技产品动态。下表是优先接入清单，不是允许核验的厂商穷举表；任何表外线索仍必须回溯到对应第一方来源。
 
+## 阶段 2 当前内置实现
+
+当前 built-in registry 已接入 `cc-switch`、`hacker-news` 和 `qwen`。三者均有独立离线
+fixture；2026-08-02 使用 `mynews probe --source <source-id>` 逐项返回 `healthy`，因此
+这三项均完成过真实 probe 尝试；2026-08-02 05:03 三者最新结果均为 `healthy`，CC Switch
+在 04:57 曾短暂返回 HTTP 403 `blocked`、随后恢复。本节不把 probe 通过解释为
+候选已 `verified`，候选核验留给阶段 4。
+
 ## 来源角色
 
 - `discovery`：发现热点，只能产生候选，不能单独证明事实。
@@ -83,8 +91,16 @@ owner: project-maintainers
 - 仅接受 `farion1231/cc-switch` 的稳定 Release；草稿、预发布和非官方仓库 URL 不进入候选。
 - 每个版本 `## 新功能` 下的 `###` 条目单独产生一个候选，发布日期使用 Release 的
   `published_at`，不知道发布时间时不得用抓取时间补齐。
-- v3.19.1 已有离线 fixture，覆盖官方厂商模型目录镜像和腾讯混元 Codex 预设；真实
-  `probe`、CLI 接线和后续 JSON Store 仍待阶段 2/3。
+- v3.19.1 已有离线 fixture，覆盖官方厂商模型目录镜像和腾讯混元 Codex 预设；运行时
+  `probe --source cc-switch` 于 05:03 返回 `healthy`，退出码为 0；04:57 的 HTTP 403
+  `blocked` 已被后续重试覆盖。JSON Store 仍待阶段 3。
+
+## 阶段 2 其他稳定入口
+
+- Hacker News 使用官方 Firebase API：`topstories.json` 加 `item/{id}.json`，发布时间来自
+  API 的 Unix 时间；无外链的 Ask HN 条目回退到官方 item URL。
+- Qwen 使用官方 Blog RSS：`https://qwenlm.github.io/blog/index.xml`；日期无法确认时保持
+  `published_at: null`，不使用抓取时间代替。
 
 ## 新增来源流程
 

@@ -8,7 +8,9 @@ from datetime import date, datetime, time, timedelta
 from typing import NoReturn
 from zoneinfo import ZoneInfo
 
+from mynews.application.collector import SourceCollector
 from mynews.domain.models import CollectionRequest
+from mynews.sources.registry import SourceRegistry, built_in_registry
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 
@@ -51,7 +53,7 @@ def build_parser() -> ChineseArgumentParser:
     collect = commands.add_parser(
         "collect",
         help="收集热点候选",
-        description="按时间范围收集热点候选。阶段 1 仅提供参数契约。",
+        description="按时间范围收集原始热点候选，不执行去重、核验或持久化。",
         add_help=False,
     )
     collect.add_argument("-h", "--help", action="help", help="显示帮助并退出")
@@ -73,7 +75,7 @@ def build_parser() -> ChineseArgumentParser:
     probe = commands.add_parser(
         "probe",
         help="检查来源健康状态",
-        description="检查来源健康状态。阶段 1 仅提供命令契约。",
+        description="检查内置来源健康状态并输出结构化结果。",
         add_help=False,
     )
     probe.add_argument("-h", "--help", action="help", help="显示帮助并退出")
@@ -159,16 +161,28 @@ def build_collection_request(
     return _request_from_namespace(args, parser, now)
 
 
-def main(argv: Sequence[str] | None = None) -> int:
+def main(
+    argv: Sequence[str] | None = None, *, registry: SourceRegistry | None = None
+) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    active_registry = registry or built_in_registry()
+    collector = SourceCollector(active_registry)
     if args.command == "collect":
-        _request_from_namespace(args, parser, None)
-        print("阶段 1 仅完成工程骨架与契约，collect 将在后续阶段实现。")
-        return 1
+        request = _request_from_namespace(args, parser, None)
+        try:
+            result = collector.collect(request, args.source_ids)
+        except KeyError as error:
+            parser.error(str(error).strip("'"))
+        print(collector.collection_json(result))
+        return collector.exit_code(result.health)
     if args.command == "probe":
-        print("阶段 1 仅完成工程骨架与契约，probe 将在后续阶段实现。")
-        return 1
+        try:
+            health = collector.probe(args.source_ids)
+        except KeyError as error:
+            parser.error(str(error).strip("'"))
+        print(collector.probe_json(health))
+        return collector.exit_code(health)
     parser.print_help()
     return 2
 

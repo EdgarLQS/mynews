@@ -9,6 +9,13 @@ from typing import Protocol, cast
 from urllib.parse import urlsplit
 
 from mynews.domain.models import Candidate
+from mynews.sources.protocol import (
+    ProbeContext,
+    SourceBatch,
+    SourceContext,
+    SourceHealth,
+    SourceMetadata,
+)
 
 CC_SWITCH_SOURCE_ID = "cc-switch"
 CC_SWITCH_CHANGELOG_BASE = "https://ccswitch.io/zh/changelog"
@@ -21,7 +28,7 @@ RELEASE_TAG_PATTERN = re.compile(r"^v(\d+\.\d+\.\d+)$")
 class JsonFetcher(Protocol):
     """可替换的 JSON 网络边界。"""
 
-    def get_json(self, url: str, *, timeout: float) -> object: ...
+    def get_json(self, url: str, *, timeout: float | None) -> object: ...
 
 
 class CcSwitchPayloadError(ValueError):
@@ -37,7 +44,7 @@ class CcSwitchReleaseAdapter:
         self,
         fetcher: JsonFetcher,
         *,
-        timeout: float = 10.0,
+        timeout: float | None = None,
         limit: int = 20,
     ) -> list[Candidate]:
         if limit <= 0:
@@ -157,3 +164,57 @@ class CcSwitchReleaseAdapter:
                 current_lines.append(line)
         flush()
         return [(title, excerpt or title) for title, excerpt in sections]
+
+
+class CcSwitchSourcePlugin:
+    """将 CC Switch Release 解析器接入阶段 2 SourcePlugin seam。"""
+
+    metadata = SourceMetadata(
+        source_id=CC_SWITCH_SOURCE_ID,
+        name="CC Switch",
+        role="primary",
+        homepage=CC_SWITCH_CHANGELOG_BASE,
+        official_domains=("ccswitch.io", "github.com"),
+        capabilities=("github-release", "changelog"),
+        stability="adapter-planned",
+        publication_time_semantics="github-published-at",
+    )
+
+    def __init__(self, *, timeout: float | None = None) -> None:
+        self._timeout = timeout
+        self._adapter = CcSwitchReleaseAdapter()
+
+    def collect(self, context: SourceContext) -> SourceBatch:
+        fetched = self._adapter.collect(
+            context.http, timeout=self._timeout, limit=context.limit
+        )
+        candidates = [
+            candidate
+            for candidate in fetched
+            if _in_requested_range(candidate, context)
+        ]
+        return SourceBatch(
+            self.metadata.source_id,
+            tuple(candidates),
+            fetched_count=len(fetched),
+        )
+
+    def probe(self, context: ProbeContext) -> SourceHealth:
+        candidates = self._adapter.collect(
+            context.http, timeout=self._timeout, limit=context.limit
+        )
+        return SourceHealth.healthy_result(
+            source_id=self.metadata.source_id,
+            role=self.metadata.role,
+            fetched_count=len(candidates),
+            accepted_count=len(candidates),
+            checked_at=context.clock.now(),
+        )
+
+
+def _in_requested_range(candidate: Candidate, context: SourceContext) -> bool:
+    published_at = candidate.published_at
+    return (
+        published_at is None
+        or context.request.from_ <= published_at < context.request.to
+    )

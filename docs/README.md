@@ -18,13 +18,13 @@ owner: project-maintainers
 | 项目 | 状态 | 说明 |
 | --- | --- | --- |
 | 产品范围 | Current | 聚焦 AI 与科技，v1 优先模型、AI 编程工具和开发者平台 |
-| v1 计划 | Current / In progress | 阶段 0 和阶段 1 已完成，来源采集运行时尚未开始 |
-| 系统架构 | Current / Proposed | 模块、接口和扩展 seam 已设计 |
+| v1 计划 | Current / In progress | 阶段 0、阶段 1 已完成，阶段 2 第一批来源运行时已 Implemented |
+| 系统架构 | Current / In progress | SourcePlugin、registry 和共享 HTTP seam 已 Implemented；下游模块仍按计划推进 |
 | AI 开发说明 | Current / Implemented | Codex 与 Claude Code 共用一套项目规则 |
 | 验收流程 | Current / Implemented | 统一验收规则与 Claude `/acceptance` 入口已建立 |
 | 工程骨架与 JSON 契约 | Implemented | 阶段 1 已建立 Python 3.12 + uv、CLI 入口、Pydantic 模型和兼容测试 |
-| CC Switch 更新日志 Adapter | In progress | 已完成官方 Release 的离线“新功能”解析，尚未接入运行时 probe/Store |
-| 采集运行时 | Not implemented | 阶段 2 开始实现来源 Adapter 和实际采集 |
+| CC Switch 更新日志 Adapter | Verified | fixture 与运行时接线已完成；04:57 曾 HTTP 403 blocked，05:03 重跑 healthy、退出码 0；JSON Store 留给阶段 3 |
+| 阶段 2 原始采集运行时 | Implemented | 内置 registry、共享 HTTP 策略、来源隔离、`probe`/`collect --source` 和三项 Adapter 已完成；去重、Store、核验未实现 |
 | 自动定时 | Not implemented | 仅在计划中提供 launchd 安装脚本 |
 | 新闻数据 | None | 尚未执行首次七天回溯 |
 
@@ -65,7 +65,7 @@ owner: project-maintainers
 | 文档 | 状态 | 实现状态 |
 | --- | --- | --- |
 | [v1 实施计划](planning/v1-implementation-plan.md) | Current | In progress |
-| [系统架构](architecture/system-architecture.md) | Current | Proposed |
+| [系统架构](architecture/system-architecture.md) | Current | In progress |
 | [功能矩阵](product/feature-matrix.md) | Current | In progress |
 | [项目验收规则](testing/acceptance-rules.md) | Current | Implemented |
 | [阶段 1 功能验收说明](testing/phase1-functional-acceptance.md) | Current | Implemented |
