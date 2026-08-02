@@ -183,13 +183,18 @@ class CcSwitchSourcePlugin:
         self._adapter = CcSwitchReleaseAdapter()
 
     def collect(self, context: SourceContext) -> SourceBatch:
-        candidates = self._adapter.collect(
+        fetched = self._adapter.collect(
             context.http, timeout=self._timeout, limit=context.limit
         )
+        candidates = [
+            candidate
+            for candidate in fetched
+            if _in_requested_range(candidate, context)
+        ]
         return SourceBatch(
             self.metadata.source_id,
             tuple(candidates),
-            fetched_count=len(candidates),
+            fetched_count=len(fetched),
         )
 
     def probe(self, context: ProbeContext) -> SourceHealth:
@@ -202,3 +207,11 @@ class CcSwitchSourcePlugin:
             fetched_count=len(candidates),
             accepted_count=len(candidates),
         )
+
+
+def _in_requested_range(candidate: Candidate, context: SourceContext) -> bool:
+    published_at = candidate.published_at
+    return (
+        published_at is None
+        or context.request.from_ <= published_at < context.request.to
+    )

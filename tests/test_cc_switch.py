@@ -98,8 +98,8 @@ def test_cc_switch_source_plugin_uses_fixture_through_public_seam() -> None:
     plugin = CcSwitchSourcePlugin()
     request = CollectionRequest.model_validate(
         {
-            "from": "2026-08-01T00:00:00+00:00",
-            "to": "2026-08-03T00:00:00+00:00",
+            "from": "2026-07-30T00:00:00+00:00",
+            "to": "2026-08-02T00:00:00+00:00",
         }
     )
 
