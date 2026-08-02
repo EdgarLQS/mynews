@@ -62,7 +62,7 @@ flowchart LR
 - `NewsItem`：规范化事件、中文事实摘要、核验状态和证据集合。
 - `SourceResult`：来源状态、数量、耗时和结构化错误。
 - `RunReport`：一次执行的完整可序列化结果。
-- `PriceSnapshot`：通用价格页快照、内容指纹和 `first_observed_at`，不绑定任何真实价格来源。
+- `PriceSnapshot`：官方价格页快照、规范化内容指纹、`first_observed_at` 和可选 `published_at`。
 - `VerificationConfig`：Verifier 的模型、预算、批大小、超时和 Codex 可执行文件配置，不属于
   JSON 领域模型。
 
@@ -85,6 +85,8 @@ class SourcePlugin(Protocol):
 - 插件 ID 永久稳定，不从显示名称自动生成。
 - 插件不得写 output/state，不得直接调用 Codex，不得决定最终 verified。
 - 插件必须声明发布时间语义；不知道发布日期时返回 `None`，不能使用抓取时间冒充。
+- 价格 Adapter 可在 `SourceBatch.price_snapshot` 返回快照，但不得自行写 `state`；只有
+  Pipeline 发现已有快照且规范化 URL/内容哈希变化时，才生成 `pricing_change` 候选。
 - 插件失败只影响自身，必须返回结构化错误。
 - 所有网络调用使用注入的共享 HTTP client、Clock 和配置。
 - 插件 fixture 测试与真实 probe 使用同一个 interface。
@@ -94,13 +96,18 @@ class SourcePlugin(Protocol):
 ### 阶段 2 已实现的来源 seam
 
 - `src/mynews/sources/protocol.py` 定义 `SourcePlugin`、`SourceContext`、`ProbeContext`、
-  `SourceBatch` 和 `SourceHealth`；领域候选仍使用阶段 1 的 `Candidate`，不引入 Store 或核验依赖。
+  `SourceBatch`、`SourceCollection` 和 `SourceHealth`；`SourceBatch` 可携带价格快照，领域候选
+  仍使用阶段 1 的 `Candidate`，不引入 Store 或核验依赖。
 - `src/mynews/sources/registry.py` 只加载显式 built-in 插件，检查重复 ID，按 `--source` 选择，
   并在并发执行时将单个 Adapter 异常转换为自身的结构化健康错误。
 - `src/mynews/infrastructure/http.py` 提供可注入的共享 HTTP client：超时、有限重试、User-Agent、
   并发上限和 ETag/Last-Modified 缓存协商集中在一个边界内。
 - `SourceContext`/`ProbeContext` 同时注入 `Clock`；来源 metadata 声明 plugin API 版本、能力、
   地区、稳定等级和发布时间语义，registry 会拒绝不支持的协议版本或空能力声明。
+- `official_pages.py` 提供 OpenAI、Anthropic、Google Gemini、DeepSeek、TRAE 的官方更新页，
+  OpenAI/DeepSeek 的价格页，以及只读取公开元数据的知乎/Bloomberg 实验 Adapter。
+- `SourceBlockedError` 将登录、付费墙或实验入口不可公开访问转换为 `blocked`；Adapter 不尝试
+  绕过访问控制。`discovery` 候选保持 `unverified`，不会由来源直接决定真实性。
 - 阶段 2 的原始 `SourceCollector` seam 输出候选与健康快照；生产 `PipelineCollector`/CLI
   `collect` 已接入 `RunReport`、规范化、跨运行去重、JSON Store 和阶段 4 核验。
 
@@ -145,6 +152,7 @@ src/mynews/
 │   ├── registry.py
 │   ├── cc_switch.py
 │   └── builtins/
+│       ├── official_pages.py
 │       ├── hacker_news.py
 │       ├── feed.py
 │       ├── github_releases.py

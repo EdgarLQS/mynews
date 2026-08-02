@@ -13,6 +13,7 @@ from mynews.domain.models import (
     Candidate,
     CollectionRequest,
     ContractModel,
+    PriceSnapshot,
     SourceError,
 )
 from mynews.infrastructure.clock import Clock, SystemClock
@@ -51,6 +52,10 @@ class SourcePluginError(RuntimeError):
         self.message = message
 
 
+class SourceBlockedError(SourcePluginError):
+    """来源只提供受限内容，Adapter 不尝试绕过访问控制。"""
+
+
 @dataclass(frozen=True, slots=True)
 class SourceContext:
     request: CollectionRequest
@@ -79,6 +84,7 @@ class SourceBatch:
     source_id: str
     candidates: tuple[Candidate, ...]
     fetched_count: int | None = None
+    price_snapshot: PriceSnapshot | None = None
 
     def __post_init__(self) -> None:
         if self.fetched_count is not None and self.fetched_count < len(self.candidates):
@@ -145,6 +151,7 @@ class SourcePlugin(Protocol):
 class SourceCollection:
     candidates: tuple[Candidate, ...]
     health: tuple[SourceHealth, ...]
+    price_snapshots: tuple[PriceSnapshot, ...] = ()
 
 
 def ensure_unique_source_ids(

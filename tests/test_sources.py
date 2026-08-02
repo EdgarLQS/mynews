@@ -155,4 +155,15 @@ def test_registry_rejects_unknown_source_selection() -> None:
 def test_built_in_registry_contains_phase_two_sources() -> None:
     registry = built_in_registry(http=NullHttpClient())
 
-    assert registry.source_ids == ("cc-switch", "hacker-news", "qwen")
+    assert registry.source_ids[:3] == ("cc-switch", "hacker-news", "qwen")
+    assert {
+        "openai",
+        "anthropic",
+        "google-gemini",
+        "deepseek",
+        "trae",
+        "openai-pricing",
+        "deepseek-pricing",
+        "zhihu-hot",
+        "bloomberg-ai",
+    }.issubset(registry.source_ids)

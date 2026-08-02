@@ -13,6 +13,7 @@ from mynews.domain.models import (
     Candidate,
     CollectionRequest,
     NewsItem,
+    PriceSnapshot,
     RunReport,
     SourceResult,
 )
@@ -66,6 +67,9 @@ class SourceCollector:
             "status": _health_status(result.health),
             "sources": [item.model_dump(mode="json") for item in result.health],
             "candidates": [item.model_dump(mode="json") for item in result.candidates],
+            "price_snapshots": [
+                item.model_dump(mode="json") for item in result.price_snapshots
+            ],
         }
         return json.dumps(payload, ensure_ascii=False, indent=2)
 
@@ -111,6 +115,7 @@ class PipelineCollector:
         )
         finished_at = self._clock.now()
         status = _health_status(raw.health)
+        raw = self._observe_price_snapshots(raw, status)
         verification_config = _config_for_request(
             request, self._verification_config
         )
@@ -146,6 +151,19 @@ class PipelineCollector:
             dedup_state=dedup_state if status in {"complete", "partial"} else None,
         )
         return report
+
+    def _observe_price_snapshots(
+        self, raw: SourceCollection, status: str
+    ) -> SourceCollection:
+        if status == "failed" or not raw.price_snapshots:
+            return raw
+        changes: list[Candidate] = []
+        for snapshot in raw.price_snapshots:
+            previous = self._store.load_price_snapshot(snapshot.source_id)
+            stored = self._store.save_price_snapshot(snapshot)
+            if previous is not None and _price_changed(previous, stored):
+                changes.append(_pricing_candidate(previous, stored))
+        return replace(raw, candidates=raw.candidates + tuple(changes))
 
     def _process_items(
         self,
@@ -190,6 +208,32 @@ def _health_status(
     if any(item.health in {"healthy", "degraded"} for item in health):
         return "partial"
     return "failed"
+
+
+def _price_changed(previous: PriceSnapshot, current: PriceSnapshot) -> bool:
+    return (
+        previous.content_hash != current.content_hash
+        or previous.url != current.url
+    )
+
+
+def _pricing_candidate(
+    previous: PriceSnapshot, current: PriceSnapshot
+) -> Candidate:
+    return Candidate.model_validate(
+        {
+            "source_id": current.source_id,
+            "title_original": f"{current.source_id} 官方价格页发生变化",
+            "url": current.url,
+            "published_at": current.published_at,
+            "excerpt": (
+                f"规范化快照由 {previous.content_hash} 变为 {current.content_hash}"
+            ),
+            "heat_signals": {"official_price_page": 1.0},
+            "event_type": "pricing_change",
+            "source_role": "monitor",
+        }
+    )
 
 
 def _source_result(health: SourceHealth) -> SourceResult:

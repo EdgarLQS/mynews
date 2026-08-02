@@ -156,18 +156,21 @@ class NewsItem(ContractModel):
 
 
 class PriceSnapshot(ContractModel):
-    """通用价格页快照；不代表已经接入任何真实价格来源。"""
+    """官方价格页的规范化快照和可选的页面发布日期。"""
 
     source_id: str = Field(min_length=1)
     url: str = Field(min_length=1)
     observed_at: datetime
     first_observed_at: datetime | None = None
+    published_at: datetime | None = None
     content_hash: str = Field(min_length=1)
     values: dict[str, object] = Field(default_factory=dict)
 
-    @field_validator("observed_at", "first_observed_at")
+    @field_validator("observed_at", "first_observed_at", "published_at")
     @classmethod
-    def validate_snapshot_datetime(cls, value: datetime) -> datetime:
+    def validate_snapshot_datetime(cls, value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
         if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError("价格快照时间必须包含时区")
         return value

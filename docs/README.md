@@ -18,15 +18,16 @@ owner: project-maintainers
 | 项目 | 状态 | 说明 |
 | --- | --- | --- |
 | 产品范围 | Current | 聚焦 AI 与科技，v1 优先模型、AI 编程工具和开发者平台 |
-| v1 计划 | Current / In progress | 阶段 0 至阶段 4 已完成实现与验收；阶段 5 仍需独立门禁 |
+| v1 计划 | Current / In progress | 阶段 0 至阶段 4.5 已完成实现；阶段 5 仍需独立门禁 |
 | 系统架构 | Current / In progress | SourcePlugin、registry、规范化/去重、EvidenceVerifier 和 NewsStore seam 已 Implemented |
 | AI 开发说明 | Current / Implemented | Codex 与 Claude Code 共用一套项目规则 |
 | 验收流程 | Current / Implemented | 统一验收规则与 Claude `/acceptance` 入口已建立 |
 | 工程骨架与 JSON 契约 | Implemented | 阶段 1 已建立 Python 3.12 + uv、CLI 入口、Pydantic 模型和兼容测试 |
 | CC Switch 更新日志 Adapter | Verified | fixture 与运行时接线已完成；2026-08-02 15:34 probe healthy，33/33 条，退出码 0 |
 | 阶段 2 原始采集运行时 | Implemented | 内置 registry、共享 HTTP 策略、来源隔离、`probe`/原始采集 seam 和三项 Adapter 已完成 |
-| 阶段 3 规范化、去重与 JSON Store | Implemented | Normalizer、跨运行 DedupState、原子 Run/latest、失败保护和通用 PriceSnapshot 已通过离线测试；未接入真实价格源 |
+| 阶段 3 规范化、去重与 JSON Store | Implemented | Normalizer、跨运行 DedupState、原子 Run/latest、失败保护和 PriceSnapshot 已通过离线测试 |
 | 阶段 4 第一方证据核验 | Verified | 官方直验、Fake/Codex Verifier、预算/批次限制和二次 URL/域名/摘录/日期/哈希校验通过；G6-S/G6-V 已完成 |
+| 阶段 4.5 来源覆盖与价格监控 | Implemented | 已接入 3 个国内、3 个国外官方自动来源、2 个官方价格页和 2 个实验 Adapter；live probe 结果如实记录，发现渠道不直接标 verified |
 | 自动定时 | Not implemented | 仅在计划中提供 launchd 安装脚本 |
 | 新闻数据 | None | 尚未执行首次七天回溯 |
 

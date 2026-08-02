@@ -18,7 +18,7 @@ JSON 是 v1 的持久化和后续开发 interface。UI、数据库导入或分�
 阶段 1 已由 Pydantic 模型固定运行报告 schema；代码和 schema 的唯一来源是
 `mynews.domain.models.RunReport.model_json_schema()`。阶段 3 增加规范化事件、去重状态和
 价格快照模型；`tests/fixtures/run-report-v1.json` 仍是兼容性 fixture。阶段 3 的实现和
-JSON Store 只由离线测试证明，不代表真实七天回溯、真实价格来源或阶段 4 核验已完成。
+JSON Store 和阶段 4.5 价格来源由离线测试证明；真实七天回溯和阶段 5 定时能力仍未完成。
 
 ## 文件布局
 
@@ -112,7 +112,8 @@ state/
 }
 ```
 
-`probe` 省略 `candidates`，原始 `collect` 只增加来源 Adapter 的 `candidates`；生产
+`probe` 省略 `candidates`，原始 `collect` 增加来源 Adapter 的 `candidates` 和可选
+`price_snapshots`；生产
 `collect` 才生成 `run_id`、事件键、去重状态和 `latest.json`。阶段 4 生产流水线会先尝试
 官方来源直验，再将其余候选交给可配置的 Codex Verifier。非 healthy 来源必须包含
 `error.code` 和 `error.message`，单个来源失败不会吞掉其他来源。
@@ -217,7 +218,9 @@ state/
 }
 ```
 
-价格快照是通用存储 seam，不代表已接入真实价格页：
+阶段 4.5 已接入 OpenAI API Pricing 和 DeepSeek 模型与价格页。价格快照先写入状态，只有
+后续运行的规范化 URL 或内容哈希发生差异时，Pipeline 才生成 `event_type: pricing_change`
+的候选；首次观察不会生成新闻事件。官方页面没有发布日期时，`published_at` 保持 `null`：
 
 ```json
 {
@@ -225,9 +228,12 @@ state/
   "url": "https://official.example/pricing",
   "observed_at": "2026-08-02T09:30:00Z",
   "first_observed_at": "2026-08-02T09:30:00Z",
+  "published_at": null,
   "content_hash": "sha256:...",
   "values": {"model": "1.00"}
 }
 ```
 
-同一来源和 URL 的后续快照保留最早的 `first_observed_at`；来源变化或 URL 变化时开始新的观察序列。
+同一来源和 URL 的后续快照保留最早的 `first_observed_at`；规范化内容哈希不变时不生成
+`pricing_change`。价格变化事件的来源角色为 `monitor`，仍须经过统一证据流程，不能因价格
+页本身而直接标为 `verified`。

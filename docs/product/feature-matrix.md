@@ -26,11 +26,11 @@ owner: project-maintainers
 | CLI-03 | CLI | `--days`、`--date`、`--from/--to` 参数契约与时区校验 | Implemented | 日期参数测试 |
 | CLI-04 | CLI | 结构化退出码 0/1/2/3 | Implemented | 来源状态与流水线测试 |
 | SRC-01 | 来源 | Hacker News 官方 API | Verified | fixture + `uv run mynews probe --source hacker-news` |
-| SRC-02 | 来源 | 官方 RSS/Atom/API 与 GitHub Release | Implemented | Qwen RSS、CC Switch Release 和共享 Adapter 契约测试 |
-| SRC-03 | 来源 | 官方价格页和更新日志监控 | Planned | 快照差异测试 |
-| SRC-04 | 来源 | 知乎热榜实验 Adapter | Planned | live probe，可 blocked |
-| SRC-05 | 来源 | Bloomberg 实验 Adapter | Planned | live probe，可 blocked |
-| SRC-06 | 来源 | 国内外 AI 与重点科技官方来源 | Planned | 来源目录逐项 probe |
+| SRC-02 | 来源 | 官方 RSS/Atom/API、GitHub Release 与官方 HTML 更新页 | Implemented | Qwen RSS、CC Switch Release、OpenAI/Anthropic/Gemini/DeepSeek/TRAE fixtures 与 Adapter 测试 |
+| SRC-03 | 来源 | 官方价格页和更新日志监控 | Implemented | OpenAI API Pricing、DeepSeek 模型与价格页；首观快照、规范化差异与 `pricing_change` 测试 |
+| SRC-04 | 来源 | 知乎热榜实验 Adapter | Implemented | 公开元数据 fixture + live probe；登录/受限时结构化 `blocked` |
+| SRC-05 | 来源 | Bloomberg 实验 Adapter | Implemented | 公开元数据 fixture + live probe；不读取付费墙内容 |
+| SRC-06 | 来源 | 国内外 AI 与重点科技官方来源 | Implemented | 国内 Qwen/DeepSeek/TRAE，国外 OpenAI/Anthropic/Google Gemini，逐项 probe |
 | SRC-07 | 来源 | CC Switch 官方 Changelog 新功能监控 | Verified | fixture；2026-08-02 15:34 probe healthy，33/33 条，退出码 0 |
 | PIPE-01 | 处理 | 规范化、相关性、热度分离 | Implemented | Normalizer 领域测试 |
 | PIPE-02 | 处理 | 跨来源、跨日期、跨运行去重 | Implemented | 批内与跨运行状态恢复测试 |
@@ -41,7 +41,7 @@ owner: project-maintainers
 | DATA-01 | 数据 | 每次运行独立 JSON | Implemented | JSON Store 追加运行测试 |
 | DATA-02 | 数据 | latest 原子更新和失败保护 | Implemented | 原子写入与 failed 保护测试 |
 | DATA-03 | 数据 | 去重状态与价格快照 JSON | Implemented | 重启恢复与 first_observed_at 测试 |
-| OPS-01 | 运维 | 已注册内置来源 `probe` | Verified | HN/Qwen 05:03、CC Switch 15:34 probe healthy；目录中的未接入来源仍为 Planned |
+| OPS-01 | 运维 | 已注册内置来源 `probe` | Implemented | 12 个 built-in 来源均可单独选择；健康、blocked、failed 证据见阶段 4.5 记录 |
 | OPS-02 | 运维 | 09:30 launchd 安装脚本 | Planned | `plutil -lint` |
 | EXT-01 | 扩展 | built-in SourcePlugin registry | Implemented | registry 隔离、重复 ID 和选择测试 |
 | EXT-02 | 扩展 | 仓库外 Python entry-point 插件 | Future | 后续 ADR |
