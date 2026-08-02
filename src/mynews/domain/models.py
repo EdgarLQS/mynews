@@ -63,6 +63,16 @@ class Candidate(ContractModel):
     published_at: datetime | None = None
     excerpt: str | None = None
     heat_signals: dict[str, float] = Field(default_factory=dict)
+    content: str | None = None
+    language: str | None = None
+    language_original: str | None = None
+    entities: list[str] = Field(default_factory=list)
+    event_type: str | None = None
+    source_role: str | None = None
+    title_zh: str | None = None
+    summary_zh: str | None = None
+    heat_score: int | None = Field(default=None, ge=0, le=100)
+    relevance_score: int | None = Field(default=None, ge=0, le=100)
 
     @field_validator("published_at")
     @classmethod
@@ -119,6 +129,9 @@ class NewsItem(ContractModel):
     verification_reason: str = Field(min_length=1)
     primary_evidence: list[Evidence] = Field(default_factory=list)
     content_hash: str = Field(min_length=1)
+    canonical_url: str | None = None
+    entities: list[str] = Field(default_factory=list)
+    source_roles: list[str] = Field(default_factory=list)
 
     @field_validator("published_at", "first_seen_at")
     @classmethod
@@ -139,6 +152,33 @@ class NewsItem(ContractModel):
                 for evidence in self.primary_evidence
             ):
                 raise ValueError("verified 条目的 primary_evidence 必须通过 validation")
+        return self
+
+
+class PriceSnapshot(ContractModel):
+    """通用价格页快照；不代表已经接入任何真实价格来源。"""
+
+    source_id: str = Field(min_length=1)
+    url: str = Field(min_length=1)
+    observed_at: datetime
+    first_observed_at: datetime | None = None
+    content_hash: str = Field(min_length=1)
+    values: dict[str, object] = Field(default_factory=dict)
+
+    @field_validator("observed_at", "first_observed_at")
+    @classmethod
+    def validate_snapshot_datetime(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("价格快照时间必须包含时区")
+        return value
+
+    @model_validator(mode="after")
+    def require_first_observation_before_current(self) -> PriceSnapshot:
+        if (
+            self.first_observed_at is not None
+            and self.first_observed_at > self.observed_at
+        ):
+            raise ValueError("first_observed_at 不能晚于 observed_at")
         return self
 
 

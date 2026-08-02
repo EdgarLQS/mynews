@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from pathlib import Path
 
 from mynews.cli import main
 from mynews.domain.models import Candidate, SourceError
@@ -12,6 +13,7 @@ from mynews.sources.protocol import (
     SourceContext,
     SourceHealth,
 )
+from mynews.storage.json_store import JsonNewsStore
 
 
 class FakeRegistry:
@@ -90,3 +92,21 @@ def test_degraded_health_is_partial_success(capsys) -> None:
 
     assert exit_code == 3
     assert json.loads(capsys.readouterr().out)["status"] == "partial"
+
+
+def test_collect_pipeline_can_be_injected_at_the_store_seam(
+    capsys, tmp_path: Path
+) -> None:
+    registry = FakeRegistry((healthy(),))
+
+    exit_code = main(
+        ["collect", "--source", "qwen"],
+        registry=registry,
+        store=JsonNewsStore(tmp_path),
+    )
+
+    assert exit_code == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["status"] == "complete"
+    assert "run_id" in output
+    assert (tmp_path / "output/latest.json").exists()

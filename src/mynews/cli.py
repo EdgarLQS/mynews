@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import argparse
+import json
 from collections.abc import Sequence
 from datetime import date, datetime, time, timedelta
+from pathlib import Path
 from typing import NoReturn
 from zoneinfo import ZoneInfo
 
-from mynews.application.collector import SourceCollector
+from mynews.application.collector import PipelineCollector, SourceCollector
 from mynews.domain.models import CollectionRequest
 from mynews.sources.registry import SourceRegistry, built_in_registry
+from mynews.storage.json_store import JsonNewsStore, JsonStoreError
+from mynews.storage.protocol import NewsStore
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 
@@ -53,7 +57,7 @@ def build_parser() -> ChineseArgumentParser:
     collect = commands.add_parser(
         "collect",
         help="收集热点候选",
-        description="按时间范围收集原始热点候选，不执行去重、核验或持久化。",
+        description="按时间范围收集、规范化、去重并保存热点候选，不执行阶段4核验。",
         add_help=False,
     )
     collect.add_argument("-h", "--help", action="help", help="显示帮助并退出")
@@ -162,7 +166,10 @@ def build_collection_request(
 
 
 def main(
-    argv: Sequence[str] | None = None, *, registry: SourceRegistry | None = None
+    argv: Sequence[str] | None = None,
+    *,
+    registry: SourceRegistry | None = None,
+    store: NewsStore | None = None,
 ) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -171,11 +178,29 @@ def main(
     if args.command == "collect":
         request = _request_from_namespace(args, parser, None)
         try:
-            result = collector.collect(request, args.source_ids)
+            if registry is not None and store is None:
+                result = collector.collect(request, args.source_ids)
+                print(collector.collection_json(result))
+                return collector.exit_code(result.health)
+            pipeline = PipelineCollector(
+                active_registry, store or JsonNewsStore(Path.cwd())
+            )
+            report = pipeline.collect(request, args.source_ids)
         except KeyError as error:
             parser.error(str(error).strip("'"))
-        print(collector.collection_json(result))
-        return collector.exit_code(result.health)
+        except (JsonStoreError, ValueError) as error:
+            print(
+                json.dumps(
+                    {
+                        "status": "failed",
+                        "error": {"code": "pipeline_error", "message": str(error)},
+                    },
+                    ensure_ascii=False,
+                )
+            )
+            return 1
+        print(json.dumps(report.model_dump(mode="json"), ensure_ascii=False, indent=2))
+        return {"complete": 0, "partial": 3, "failed": 1}[report.status]
     if args.command == "probe":
         try:
             health = collector.probe(args.source_ids)

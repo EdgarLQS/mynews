@@ -51,6 +51,13 @@ class SourceRegistry:
         return self._ordered_ids
 
     @property
+    def source_roles(self) -> dict[str, str]:
+        return {
+            source_id: self._plugins[source_id].metadata.role
+            for source_id in self._ordered_ids
+        }
+
+    @property
     def http(self) -> HttpClient:
         return self._http
 

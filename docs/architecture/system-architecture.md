@@ -42,9 +42,13 @@ flowchart LR
 | --- | --- | --- |
 | Collector | 阶段 2 `SourceCollector.collect(request) -> SourceCollection`；阶段 3+ `collect(request) -> RunReport` | 阶段 2 原始来源编排；后续规范化、降级、归并、核验、提交 |
 | SourceRegistry | `collect_all(context) -> SourceCollection`、`probe(...)` | 插件发现、隔离、超时和状态汇总 |
-| Normalizer | `normalize(batch) -> CandidateSet` | URL、日期、语言、事件键和去重 |
+| Normalizer | `normalize(batch) -> tuple[NewsItem, ...]` | URL、日期、语言、来源角色、事件类型和稳定事件键 |
 | EvidenceVerifier | `verify(candidates) -> VerificationBatch` | Codex 批次、Schema、超时、证据匹配 |
 | NewsStore | `commit(report) -> StoredRun` | 原子写、latest、历史和状态快照 |
+
+阶段 3 已实现 `Normalizer`、`Deduplicator`、`JsonNewsStore` 和 `PipelineCollector`。
+`PipelineCollector` 通过阶段 2 的 `SourceCollector` 获取原始候选，再把规范化、跨运行
+去重和 `RunReport` 提交保持在这些 seam 内；它不调用 Codex，也不生成 `verified`。
 
 测试通过这些 interface 观察结果，不依赖内部函数排列。
 
@@ -57,6 +61,7 @@ flowchart LR
 - `NewsItem`：规范化事件、中文事实摘要、核验状态和证据集合。
 - `SourceResult`：来源状态、数量、耗时和结构化错误。
 - `RunReport`：一次执行的完整可序列化结果。
+- `PriceSnapshot`：通用价格页快照、内容指纹和 `first_observed_at`，不绑定任何真实价格来源。
 
 类型定义不依赖 httpx、feedparser、Codex CLI 或文件系统。
 
@@ -93,8 +98,8 @@ class SourcePlugin(Protocol):
   并发上限和 ETag/Last-Modified 缓存协商集中在一个边界内。
 - `SourceContext`/`ProbeContext` 同时注入 `Clock`；来源 metadata 声明 plugin API 版本、能力、
   地区、稳定等级和发布时间语义，registry 会拒绝不支持的协议版本或空能力声明。
-- 阶段 2 CLI 输出的是原始候选与健康快照；它不是 `RunReport`，不写 `output/`，不做规范化、
-  去重、第一方核验或 JSON Store。
+- 阶段 2 的原始 `SourceCollector` seam 输出候选与健康快照；生产 `PipelineCollector`/CLI
+  `collect` 已接入 `RunReport`、规范化、跨运行去重和 JSON Store，但仍不做第一方核验。
 
 ### v1
 

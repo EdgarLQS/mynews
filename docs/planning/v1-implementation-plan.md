@@ -142,6 +142,29 @@ live probe 输出中的 `fetched_count` 是探测窗口内实际读取的条目�
 
 验收：一日/七日范围、跨日去重、原子写入和失败保护测试通过。
 
+#### 阶段 3 实现与离线验证记录（2026-08-02）
+
+结论：`Implemented`。Normalizer、Deduplicator、JsonNewsStore 和 PipelineCollector 已接入
+阶段 2 SourceCollector seam；实现只保留 `unverified`，没有 Codex 核验或真实价格来源。
+
+| 能力 | 结果 |
+| --- | --- |
+| URL、时间、语言、来源角色、事件类型规范化 | 离线领域测试通过 |
+| URL/实体/标题/日期/内容指纹事件键 | 稳定键与跨来源合并测试通过 |
+| 一日、七日和指定日期范围 | CLI 日期契约复用并进入流水线请求 |
+| 跨运行去重状态 | `state/dedup.json` 原子保存与恢复测试通过 |
+| Run、latest、failed 保护 | 每次运行独立 JSON、原子替换和失败保护测试通过 |
+| 通用价格快照 | `state/price_snapshots/<source-id>.json` 与 `first_observed_at` 测试通过；真实源未接入 |
+
+本阶段门禁记录：
+
+| 门禁 | 命令 | 结果 |
+| --- | --- | --- |
+| 测试 | `UV_CACHE_DIR=/tmp/mynews-uv-cache uv run pytest -q` | PASS；66 passed |
+| 静态检查 | `UV_CACHE_DIR=/tmp/mynews-uv-cache uv run ruff check .` | PASS |
+| 类型检查 | `UV_CACHE_DIR=/tmp/mynews-uv-cache uv run mypy src` | PASS；21 个源文件无问题 |
+| 文档/差异 | `python3 scripts/check_docs.py`、`git diff --check` | PASS；18 个 Markdown 文件、0 个错误 |
+
 ### 阶段 4：第一方证据核验
 
 - 官方来源自身满足域名、正文和日期规则时直接核验。
@@ -186,8 +209,8 @@ uv run mypy src
 git diff --check
 ```
 
-真实网络 probe 和七天回溯是独立验收门槛，不得用离线测试通过代替；本轮仅完成阶段 2
-内置来源 probe，七天回溯留给阶段 5/后续流水线。
+真实网络 probe 和七天回溯是独立验收门槛，不得用离线测试通过代替；阶段 3 的离线检查
+只能证明 `Implemented`，不升级为真实来源、真实价格或阶段 4 的 `Verified`。
 每个阶段开发完成后，按 [项目验收规则](../testing/acceptance-rules.md) 选择门禁并输出独立验收结论。
 
 ## 文档联动
