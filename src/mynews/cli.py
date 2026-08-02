@@ -3,12 +3,20 @@
 from __future__ import annotations
 
 import argparse
+import json
 from collections.abc import Sequence
 from datetime import date, datetime, time, timedelta
 from typing import NoReturn
 from zoneinfo import ZoneInfo
 
 from mynews.domain.models import CollectionRequest
+from mynews.sources.protocol import (
+    ProbeContext,
+    SourceCollection,
+    SourceContext,
+    SourceHealth,
+)
+from mynews.sources.registry import SourceRegistry, built_in_registry
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 
@@ -51,7 +59,7 @@ def build_parser() -> ChineseArgumentParser:
     collect = commands.add_parser(
         "collect",
         help="收集热点候选",
-        description="按时间范围收集热点候选。阶段 1 仅提供参数契约。",
+        description="按时间范围收集原始热点候选，不执行去重、核验或持久化。",
         add_help=False,
     )
     collect.add_argument("-h", "--help", action="help", help="显示帮助并退出")
@@ -73,7 +81,7 @@ def build_parser() -> ChineseArgumentParser:
     probe = commands.add_parser(
         "probe",
         help="检查来源健康状态",
-        description="检查来源健康状态。阶段 1 仅提供命令契约。",
+        description="检查内置来源健康状态并输出结构化结果。",
         add_help=False,
     )
     probe.add_argument("-h", "--help", action="help", help="显示帮助并退出")
@@ -159,18 +167,64 @@ def build_collection_request(
     return _request_from_namespace(args, parser, now)
 
 
-def main(argv: Sequence[str] | None = None) -> int:
+def main(
+    argv: Sequence[str] | None = None, *, registry: SourceRegistry | None = None
+) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    active_registry = registry or built_in_registry()
     if args.command == "collect":
-        _request_from_namespace(args, parser, None)
-        print("阶段 1 仅完成工程骨架与契约，collect 将在后续阶段实现。")
-        return 1
+        request = _request_from_namespace(args, parser, None)
+        try:
+            result = active_registry.collect_all(
+                SourceContext(request=request, http=active_registry.http),
+                args.source_ids,
+            )
+        except KeyError as error:
+            parser.error(str(error).strip("'"))
+        print(_collection_json(result))
+        return _health_exit_code(result.health)
     if args.command == "probe":
-        print("阶段 1 仅完成工程骨架与契约，probe 将在后续阶段实现。")
-        return 1
+        try:
+            health = active_registry.probe(
+                ProbeContext(http=active_registry.http), args.source_ids
+            )
+        except KeyError as error:
+            parser.error(str(error).strip("'"))
+        print(_health_json(health))
+        return _health_exit_code(health)
     parser.print_help()
     return 2
+
+
+def _collection_json(result: SourceCollection) -> str:
+    payload = {
+        "status": _health_status(result.health),
+        "sources": [item.model_dump(mode="json") for item in result.health],
+        "candidates": [item.model_dump(mode="json") for item in result.candidates],
+    }
+    return json.dumps(payload, ensure_ascii=False, indent=2)
+
+
+def _health_json(health: Sequence[SourceHealth]) -> str:
+    payload = {
+        "status": _health_status(health),
+        "sources": [item.model_dump(mode="json") for item in health],
+    }
+    return json.dumps(payload, ensure_ascii=False, indent=2)
+
+
+def _health_status(health: Sequence[SourceHealth]) -> str:
+    if health and all(item.health == "healthy" for item in health):
+        return "complete"
+    if any(item.health == "healthy" for item in health):
+        return "partial"
+    return "failed"
+
+
+def _health_exit_code(health: Sequence[SourceHealth]) -> int:
+    status = _health_status(health)
+    return {"complete": 0, "partial": 3, "failed": 1}[status]
 
 
 if __name__ == "__main__":

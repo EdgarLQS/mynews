@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Qwen Blog</title>
+    <item>
+      <title>Qwen official update</title>
+      <link>https://qwenlm.github.io/blog/official-update/</link>
+      <pubDate>Sun, 02 Aug 2026 02:00:00 GMT</pubDate>
+      <description>Official feed excerpt.</description>
+    </item>
+    <item>
+      <title>Older Qwen update</title>
+      <link>https://qwenlm.github.io/blog/older-update/</link>
+      <pubDate>Sun, 20 Jul 2026 02:00:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>

@@ -1,0 +1,29 @@
+{
+  "1001": {
+    "id": 1001,
+    "type": "story",
+    "title": "AI tooling update",
+    "url": "https://example.com/ai-tooling",
+    "time": 1785632400,
+    "score": 120,
+    "descendants": 42
+  },
+  "1002": {
+    "id": 1002,
+    "type": "story",
+    "title": "Old story outside request",
+    "url": "https://example.com/old",
+    "time": 1784505600,
+    "score": 80,
+    "descendants": 10
+  },
+  "1003": {
+    "id": 1003,
+    "type": "story",
+    "title": "Ask HN: build tools",
+    "time": 1785621600,
+    "score": 55,
+    "descendants": 18,
+    "text": "A discussion about developer tools."
+  }
+}
