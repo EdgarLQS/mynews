@@ -22,6 +22,7 @@ def request() -> CollectionRequest:
         {
             "from": "2026-08-01T00:00:00+00:00",
             "to": "2026-08-02T00:00:00+00:00",
+            "verification_budget": 30,
         }
     )
 

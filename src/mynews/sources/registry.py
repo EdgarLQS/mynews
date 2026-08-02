@@ -19,6 +19,7 @@ from mynews.sources.protocol import (
     SourceCollection,
     SourceContext,
     SourceHealth,
+    SourceMetadata,
     SourcePlugin,
     SourcePluginError,
     ensure_unique_source_ids,
@@ -54,6 +55,13 @@ class SourceRegistry:
     def source_roles(self) -> dict[str, str]:
         return {
             source_id: self._plugins[source_id].metadata.role
+            for source_id in self._ordered_ids
+        }
+
+    @property
+    def source_metadata(self) -> dict[str, SourceMetadata]:
+        return {
+            source_id: self._plugins[source_id].metadata
             for source_id in self._ordered_ids
         }
 

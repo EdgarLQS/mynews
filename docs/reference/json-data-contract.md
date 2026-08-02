@@ -68,6 +68,9 @@ state/
 - `partial`：已有可用结果，但 stable 来源部分失败。
 - `failed`：没有可用来源、配置无效、Schema 无效或无法提交结果。
 
+`requested_range.verification_budget` 是应用层生效的 Codex 候选预算。输入请求可以省略它，
+此时由 `VerificationConfig` 注入计划默认值 30；持久化的 `RunReport` 始终记录本次实际预算。
+
 ## SourceResult
 
 ```json
@@ -110,8 +113,8 @@ state/
 ```
 
 `probe` 省略 `candidates`，原始 `collect` 只增加来源 Adapter 的 `candidates`；生产
-`collect` 才生成 `run_id`、事件键、去重状态和 `latest.json`。任一生产流水线条目都保持
-`verification_status: "unverified"`，阶段 4 尚未接入。非 healthy 来源必须包含
+`collect` 才生成 `run_id`、事件键、去重状态和 `latest.json`。阶段 4 生产流水线会先尝试
+官方来源直验，再将其余候选交给可配置的 Codex Verifier。非 healthy 来源必须包含
 `error.code` 和 `error.message`，单个来源失败不会吞掉其他来源。
 
 ## NewsItem
@@ -153,6 +156,11 @@ state/
 
 - `verification_status` 只有 `verified` 和 `unverified`。
 - `verified` 至少包含一条通过程序复核的 `primary_evidence`；该证据的 `reachable`、`official_domain` 和 `excerpt_matched` 必须都为 `true`。
+- `primary_evidence.content_hash` 是程序重新抓取正文后计算的规范化 SHA-256；Codex 若返回哈希，
+  必须与重新抓取结果一致。
+- 证据访问失败、官方域名或 GitHub 组织不匹配、异常重定向、正文摘录/日期/哈希不匹配、
+  Codex 超时或坏 JSON 都必须保持 `verification_status: "unverified"`，并写入稳定
+  `verification_reason`。
 - `published_at` 不确定时必须为 `null`，不能使用抓取时间。
 - 中文摘要不能添加证据之外的性能、价格或发布时间判断。
 - `heat_score` 和 `relevance_score` 不参与真实性判定。

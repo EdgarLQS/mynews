@@ -15,6 +15,8 @@ from mynews.domain.models import CollectionRequest
 from mynews.sources.registry import SourceRegistry, built_in_registry
 from mynews.storage.json_store import JsonNewsStore, JsonStoreError
 from mynews.storage.protocol import NewsStore
+from mynews.verification.codex import CodexVerifier
+from mynews.verification.protocol import VerificationConfig
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 
@@ -57,7 +59,7 @@ def build_parser() -> ChineseArgumentParser:
     collect = commands.add_parser(
         "collect",
         help="收集热点候选",
-        description="按时间范围收集、规范化、去重并保存热点候选，不执行阶段4核验。",
+        description="按时间范围收集、规范化、去重、核验并保存结构化结果。",
         add_help=False,
     )
     collect.add_argument("-h", "--help", action="help", help="显示帮助并退出")
@@ -74,6 +76,27 @@ def build_parser() -> ChineseArgumentParser:
     )
     collect.add_argument(
         "--source", dest="source_ids", action="append", help="只选择指定来源"
+    )
+    collect.add_argument(
+        "--verification-model", metavar="模型", help="Codex 核验模型"
+    )
+    collect.add_argument(
+        "--verification-budget",
+        metavar="条数",
+        type=_nonnegative_int,
+        help="最多交给 Codex 的候选条数",
+    )
+    collect.add_argument(
+        "--verification-batch-size",
+        metavar="条数",
+        type=_positive_int,
+        help="每次 Codex 请求包含的候选条数",
+    )
+    collect.add_argument(
+        "--verification-timeout",
+        metavar="秒",
+        type=_positive_float,
+        help="每次 Codex/证据请求的超时时间",
     )
 
     probe = commands.add_parser(
@@ -97,6 +120,59 @@ def _parse_local_date(value: str, parser: ChineseArgumentParser, option: str) ->
     if value != parsed.isoformat():
         parser.error(f"{option} 必须使用 YYYY-MM-DD")
     return parsed
+
+
+def _positive_int(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("必须是正整数") from error
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("必须是正整数")
+    return parsed
+
+
+def _nonnegative_int(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("必须是非负整数") from error
+    if parsed < 0:
+        raise argparse.ArgumentTypeError("必须是非负整数")
+    return parsed
+
+
+def _positive_float(value: str) -> float:
+    try:
+        parsed = float(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("必须是正数") from error
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("必须是正数")
+    return parsed
+
+
+def _verification_config(args: argparse.Namespace) -> VerificationConfig:
+    defaults = VerificationConfig()
+    return VerificationConfig(
+        model=args.verification_model or defaults.model,
+        budget=(
+            args.verification_budget
+            if args.verification_budget is not None
+            else defaults.budget
+        ),
+        batch_size=(
+            args.verification_batch_size
+            if args.verification_batch_size is not None
+            else defaults.batch_size
+        ),
+        timeout=(
+            args.verification_timeout
+            if args.verification_timeout is not None
+            else defaults.timeout
+        ),
+        codex_executable=defaults.codex_executable,
+    )
 
 
 def _local_midnight(value: date) -> datetime:
@@ -177,13 +253,17 @@ def main(
     collector = SourceCollector(active_registry)
     if args.command == "collect":
         request = _request_from_namespace(args, parser, None)
+        verification_config = _verification_config(args)
         try:
             if registry is not None and store is None:
                 result = collector.collect(request, args.source_ids)
                 print(collector.collection_json(result))
                 return collector.exit_code(result.health)
             pipeline = PipelineCollector(
-                active_registry, store or JsonNewsStore(Path.cwd())
+                active_registry,
+                store or JsonNewsStore(Path.cwd()),
+                verifier=CodexVerifier(active_registry.http),
+                verification_config=verification_config,
             )
             report = pipeline.collect(request, args.source_ids)
         except KeyError as error:

@@ -28,6 +28,7 @@ class SourceMetadata:
     role: str
     homepage: str
     official_domains: tuple[str, ...]
+    official_github_organizations: tuple[str, ...] = ()
     capabilities: tuple[str, ...] = ()
     region: str = "global"
     stability: str = "stable-planned"

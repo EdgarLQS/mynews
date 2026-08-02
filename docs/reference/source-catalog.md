@@ -19,8 +19,9 @@ owner: project-maintainers
 
 当前 built-in registry 已接入 `cc-switch`、`hacker-news` 和 `qwen`。三者均有独立离线
 fixture；2026-08-02 使用 `mynews probe --source <source-id>` 逐项返回 `healthy`，因此
-这三项均完成过真实 probe 尝试；2026-08-02 05:03 三者最新结果均为 `healthy`，CC Switch
-在 04:57 曾短暂返回 HTTP 403 `blocked`、随后恢复。本节不把 probe 通过解释为
+这三项均完成过真实 probe 尝试；Hacker News/Qwen 最新记录为 05:03 `healthy`，CC Switch
+最新记录为 15:34 `healthy`（33/33 条），此前 04:57 曾短暂返回 HTTP 403 `blocked`。
+本节不把 probe 通过解释为
 候选已 `verified`，候选核验留给阶段 4。
 
 ## 来源角色
@@ -82,6 +83,8 @@ fixture；2026-08-02 使用 `mynews probe --source <source-id>` 逐项返回 `he
 - 官方状态页只证明服务状态，不自动证明模型发布或价格变化。
 - 价格页没有发布日期时，事件日期为空，只记录首次观察时间和前后哈希。
 - 多个媒体重复同一消息只能提高热度，不能提高第一方证据等级。
+- 实现使用精确官方主机名匹配；GitHub 证据还必须匹配配置的官方组织，伪造子域名、
+  跨域异常重定向和不可访问页面均保持 unverified。
 - `windsurf.com/changelog` 当前会跳转到 Devin Docs；实现前必须确认产品归属、历史连续性和新的官方域名白名单，因此暂列 experimental。
 
 ## CC Switch 更新日志监控约定
@@ -92,8 +95,9 @@ fixture；2026-08-02 使用 `mynews probe --source <source-id>` 逐项返回 `he
 - 每个版本 `## 新功能` 下的 `###` 条目单独产生一个候选，发布日期使用 Release 的
   `published_at`，不知道发布时间时不得用抓取时间补齐。
 - v3.19.1 已有离线 fixture，覆盖官方厂商模型目录镜像和腾讯混元 Codex 预设；运行时
-  `probe --source cc-switch` 于 05:03 返回 `healthy`，退出码为 0；04:57 的 HTTP 403
-  `blocked` 已被后续重试覆盖。JSON Store 仍待阶段 3。
+  `probe --source cc-switch` 于 2026-08-02 15:34（Asia/Shanghai）返回 `healthy`，
+  `fetched_count=33`、`accepted_count=33`，退出码为 0；JSON Store 已在阶段 3 实现，
+  真实价格源仍未接入。
 
 ## 阶段 2 其他稳定入口
 

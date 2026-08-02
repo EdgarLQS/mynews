@@ -36,7 +36,7 @@ def test_normalizer_builds_stable_normalized_news_item() -> None:
     assert item.heat_score == 100
     assert item.relevance_score == 50
     assert item.verification_status == "unverified"
-    assert item.verification_reason == "stage4_not_implemented"
+    assert item.verification_reason == "verification_pending"
     assert item.entities == ["model 5", "openai"]
     assert item.id == item.event_key
     assert item.content_hash.startswith("sha256:")

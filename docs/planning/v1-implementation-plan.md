@@ -174,6 +174,30 @@ live probe 输出中的 `fetched_count` 是探测窗口内实际读取的条目�
 
 验收：伪造子域名、媒体转述、搜索摘要和坏 JSON 不能进入 verified。
 
+#### 阶段 4 实现与验收记录（2026-08-02）
+
+结论：`Verified`。EvidenceVerifier、FakeVerifier 和 CodexVerifier 已接入
+PipelineCollector；模型、预算、批大小和超时由 VerificationConfig 注入，计划默认模型
+为 gpt-5.6-luna、预算为 30，默认值不写入领域层。Codex 子进程使用 ephemeral、
+read-only、shell=False 和超时；Codex 只能产生结构化建议，程序重新抓取并检查最终 URL、
+精确官方域名/GitHub 组织、摘录、日期和规范化正文哈希。
+
+本次验收执行 G0、G1、G2、G3、G4、G5、G6-S、G6-V：文档检查 0 错误，受影响测试
+37 passed，全量测试 81 passed；预算、批次、超时、坏结构化输出、失败恢复和历史
+`latest.json` 保护均通过。伪造子域名、恶意重定向、非官方 GitHub 组织、媒体转述、
+搜索摘要、正文不含摘录、日期不匹配和页面提示注入均保持 `unverified`。
+
+G6-S：`uv run mynews probe --source cc-switch` 返回 `healthy`，`fetched_count=33`、
+`accepted_count=33`，退出码 0。G6-V 使用真实 `codex-cli 0.144.1` 验证 Qwen
+候选 `https://qwenlm.github.io/blog/qwen3guard/`；Codex 返回结构化建议，程序通过
+真实 `SharedHttpClient` 重抓第一方页面，确认 URL、域名、摘录和正文哈希后判定
+`verified`，证据校验 `reachable`、`official_domain`、`excerpt_matched` 均为 `true`。
+
+人工复查确认页面正文包含摘录，页面日期为 `2025-09-23T04:00:00+08:00`，程序计算的
+正文哈希为 `sha256:e16359e11609257b7206c77769f5b35a27451c3c43603a50e80bb77b2b969a09`。
+当前日期校验按日历日匹配，尚未证明 `published_at` 的精确时间戳相等；阶段 5 的
+launchd、真实价格源和七天回溯仍未实现或验收。
+
 ### 阶段 5：脚本、定时模板与真实验收
 
 - `scripts/collect.sh` 固定 cwd、uv、代理继承和日志位置。

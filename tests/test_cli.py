@@ -18,6 +18,8 @@ def test_collect_help_is_chinese(capsys: pytest.CaptureFixture[str]) -> None:
     output = capsys.readouterr().out
     assert "用法：" in output
     assert "收集" in output
+    assert "--verification-model" in output
+    assert "--verification-batch-size" in output
 
 
 @pytest.mark.parametrize("arguments", [["--help"], ["probe", "--help"]])

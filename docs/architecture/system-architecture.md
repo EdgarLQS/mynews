@@ -46,15 +46,16 @@ flowchart LR
 | EvidenceVerifier | `verify(candidates) -> VerificationBatch` | Codex 批次、Schema、超时、证据匹配 |
 | NewsStore | `commit(report) -> StoredRun` | 原子写、latest、历史和状态快照 |
 
-阶段 3 已实现 `Normalizer`、`Deduplicator`、`JsonNewsStore` 和 `PipelineCollector`。
-`PipelineCollector` 通过阶段 2 的 `SourceCollector` 获取原始候选，再把规范化、跨运行
-去重和 `RunReport` 提交保持在这些 seam 内；它不调用 Codex，也不生成 `verified`。
+阶段 3 已实现 `Normalizer`、`Deduplicator`、`JsonNewsStore` 和 `PipelineCollector`；
+阶段 4 通过 `EvidenceVerifier` 接入官方直验和 Codex 辅助核验。`PipelineCollector` 通过
+阶段 2 的 `SourceCollector` 获取原始候选，再把规范化、跨运行去重、核验和 `RunReport`
+提交保持在这些 seam 内。
 
 测试通过这些 interface 观察结果，不依赖内部函数排列。
 
 ## 核心领域类型
 
-- `CollectionRequest`：精确时间范围、时区、来源过滤和核验上限。
+- `CollectionRequest`：精确时间范围、时区、来源过滤和可选核验上限；未指定时由应用配置注入。
 - `SourceMetadata`：稳定 ID、角色、地区、官方域名、稳定等级和能力。
 - `Candidate`：原始标题、URL、时间、来源、热度信号和原始摘录。
 - `Evidence`：第一方 URL、发布者、日期、摘录、内容哈希和检索时间。
@@ -62,6 +63,8 @@ flowchart LR
 - `SourceResult`：来源状态、数量、耗时和结构化错误。
 - `RunReport`：一次执行的完整可序列化结果。
 - `PriceSnapshot`：通用价格页快照、内容指纹和 `first_observed_at`，不绑定任何真实价格来源。
+- `VerificationConfig`：Verifier 的模型、预算、批大小、超时和 Codex 可执行文件配置，不属于
+  JSON 领域模型。
 
 类型定义不依赖 httpx、feedparser、Codex CLI 或文件系统。
 
@@ -99,7 +102,7 @@ class SourcePlugin(Protocol):
 - `SourceContext`/`ProbeContext` 同时注入 `Clock`；来源 metadata 声明 plugin API 版本、能力、
   地区、稳定等级和发布时间语义，registry 会拒绝不支持的协议版本或空能力声明。
 - 阶段 2 的原始 `SourceCollector` seam 输出候选与健康快照；生产 `PipelineCollector`/CLI
-  `collect` 已接入 `RunReport`、规范化、跨运行去重和 JSON Store，但仍不做第一方核验。
+  `collect` 已接入 `RunReport`、规范化、跨运行去重、JSON Store 和阶段 4 核验。
 
 ### v1
 
@@ -116,10 +119,13 @@ class SourcePlugin(Protocol):
 
 ## 核验与存储 seam
 
-- `EvidenceVerifier` 有 `CodexVerifier` 和测试用 `FakeVerifier` 两个 Adapter。
+- `EvidenceVerifier` 有 `CodexVerifier` 和测试用 `FakeVerifier` 两个 Adapter，公共方法为
+  `verify(candidates, *, config) -> VerificationBatch`。
 - `NewsStore` 有 `JsonNewsStore` 和测试用 `InMemoryNewsStore` 两个 Adapter。
 - Codex 是不受控外部依赖：只读、ephemeral、结构化输出、固定超时、失败不升级真实性。
 - Codex 模型、候选预算和批大小由配置注入，不在领域层或 Collector 中写死。
+- `SourceMetadata.official_domains` 采用精确主机名匹配；GitHub URL 还必须匹配声明的组织，
+  不能用形似官方名称的子域名替代。
 - Storage 接收完整 `RunReport`，不知道来源抓取细节。
 
 ## 计划代码结构

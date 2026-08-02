@@ -106,7 +106,7 @@ class Normalizer:
             else 50,
             discovery_sources=[candidate.source_id],
             verification_status="unverified",
-            verification_reason="stage4_not_implemented",
+            verification_reason="verification_pending",
             content_hash=content_hash,
             canonical_url=canonical_url,
             entities=entities,
