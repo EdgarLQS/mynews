@@ -12,10 +12,22 @@ from mynews.infrastructure.clock import Clock
 from mynews.infrastructure.http import HttpClient, HttpClientError, SharedHttpClient
 from mynews.sources.builtins.feed import QwenFeedPlugin
 from mynews.sources.builtins.hacker_news import HackerNewsPlugin
+from mynews.sources.builtins.official_pages import (
+    AnthropicNewsPlugin,
+    BloombergAiPlugin,
+    DeepSeekPricingPlugin,
+    DeepSeekUpdatesPlugin,
+    GoogleGeminiPlugin,
+    OpenAiNewsPlugin,
+    OpenAiPricingPlugin,
+    TraeChangelogPlugin,
+    ZhihuHotPlugin,
+)
 from mynews.sources.cc_switch import CcSwitchSourcePlugin
 from mynews.sources.protocol import (
     ProbeContext,
     SourceBatch,
+    SourceBlockedError,
     SourceCollection,
     SourceContext,
     SourceHealth,
@@ -86,7 +98,12 @@ class SourceRegistry:
             candidate for batch, _ in results for candidate in batch.candidates
         )
         health = tuple(snapshot for _, snapshot in results)
-        return SourceCollection(candidates, health)
+        price_snapshots = tuple(
+            batch.price_snapshot
+            for batch, _ in results
+            if batch.price_snapshot is not None
+        )
+        return SourceCollection(candidates, health, price_snapshots)
 
     def probe(
         self, context: ProbeContext, source_ids: Sequence[str] | None = None
@@ -123,9 +140,17 @@ class SourceRegistry:
                 raise SourcePluginError(
                     "source_id_mismatch", "Adapter 返回了错误的来源 ID"
                 )
-            fetched_count = batch.fetched_count or len(batch.candidates)
+            fetched_count = (
+                batch.fetched_count
+                if batch.fetched_count is not None
+                else len(batch.candidates)
+            )
             health = self._healthy(
-                plugin, fetched_count, len(batch.candidates), started, context
+                plugin,
+                fetched_count,
+                len(batch.candidates) + int(batch.price_snapshot is not None),
+                started,
+                context,
             )
             return batch, health
         except Exception as error:
@@ -187,7 +212,20 @@ class SourceRegistry:
 def built_in_registry(*, http: HttpClient | None = None) -> SourceRegistry:
     client = http or SharedHttpClient()
     return SourceRegistry(
-        [CcSwitchSourcePlugin(), HackerNewsPlugin(), QwenFeedPlugin()],
+        [
+            CcSwitchSourcePlugin(),
+            HackerNewsPlugin(),
+            QwenFeedPlugin(),
+            OpenAiNewsPlugin(),
+            AnthropicNewsPlugin(),
+            GoogleGeminiPlugin(),
+            DeepSeekUpdatesPlugin(),
+            TraeChangelogPlugin(),
+            OpenAiPricingPlugin(),
+            DeepSeekPricingPlugin(),
+            ZhihuHotPlugin(),
+            BloombergAiPlugin(),
+        ],
         http=client,
     )
 
@@ -200,7 +238,9 @@ def _error_details(
     error: Exception,
 ) -> tuple[str, str, HealthStatus]:
     if isinstance(error, SourcePluginError):
-        status: HealthStatus = "failed"
+        status: HealthStatus = (
+            "blocked" if isinstance(error, SourceBlockedError) else "failed"
+        )
         return error.code, error.message, status
     if isinstance(error, HttpClientError):
         status = "blocked" if error.status_code in {401, 403, 429} else "failed"

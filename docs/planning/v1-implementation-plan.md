@@ -198,6 +198,43 @@ G6-S：`uv run mynews probe --source cc-switch` 返回 `healthy`，`fetched_coun
 当前日期校验按日历日匹配，尚未证明 `published_at` 的精确时间戳相等；阶段 5 的
 launchd、真实价格源和七天回溯仍未实现或验收。
 
+### 阶段 4.5：来源覆盖与价格监控（已完成实现）
+
+- [x] 接入至少 3 个国内和 3 个国外第一方自动来源：Qwen、DeepSeek、TRAE，以及 OpenAI、
+  Anthropic、Google Gemini；每个来源都有独立 fixture、registry/collect/probe 接线和结构化
+  故障隔离。
+- [x] 接入 OpenAI 官方开发者模型/价格更新页和 DeepSeek 官方模型与价格页；首次观察只保存
+  `PriceSnapshot`，规范化 URL 或内容哈希变化后才生成 `pricing_change`，没有官方日期时
+  `published_at` 保持 `null`。
+- [x] 接入 `zhihu-hot` 和 `bloomberg-ai` 实验 Adapter，只读取公开标题、链接、日期等元数据；
+  登录、付费墙、robots、验证码或没有公开卡片时如实返回 `blocked`，不绕过访问控制。
+- [x] 保留已有 Hacker News、CC Switch 和 Qwen 来源；未实现阶段 5 定时任务或自动发布。
+
+#### 阶段 4.5 离线与 live probe 记录（2026-08-02）
+
+结论：离线能力为 `Implemented`，本次独立完整验收结论为 `FAIL`。离线 Adapter、registry
+隔离、价格首观/差异和 discovery 保持 `unverified` 测试通过；真实 probe 的逐项命令、原始状态和访问限制见
+[阶段 4.5 probe 证据](../testing/phase45-source-probe-evidence.md)。`healthy` 只表示入口和
+解析器可用，不表示新闻已 `verified`。
+
+OpenAI 原 `https://openai.com/news/` 与 `https://openai.com/api/pricing/` 首次 probe 返回
+HTTP 403，已按“只能替换为同类官方来源”的要求改用官方
+`https://developers.openai.com/api/docs/models` 模型/价格更新页，并记录为 `openai` 与
+`openai-pricing` 的入口；没有使用媒体、搜索摘要或非官方 API。Anthropic 页面初次解析时
+误把 `mailto:` 页脚识别为条目，已修复为跳过非官方卡片并以官方公开页级元数据回退，随后
+probe healthy。
+
+| 门禁 | 命令/证据 | 结果 |
+| --- | --- | --- |
+| TDD/Adapter | `UV_CACHE_DIR=/tmp/mynews-uv-cache uv run pytest tests/test_phase45_sources.py tests/test_sources.py tests/test_collector_pipeline.py -q` | 通过；阶段 4.5 来源、价格、隔离与既有流水线测试 |
+| 来源 live probe | `uv run mynews probe --source <source-id>` 逐项执行 10 个阶段 4.5 来源 | OpenAI、Anthropic、Gemini、DeepSeek、TRAE、OpenAI pricing、DeepSeek pricing、Qwen 为 `healthy`；知乎/Bloomberg 为 `blocked`；原始 JSON 见证据文件 |
+| 访问限制 | 同上，允许升级网络权限的只读 probe | 发现 HTTP 403 或没有公开元数据时退出码 1，健康状态和 error 如实保留；未绕过登录、付费墙、robots 或验证码 |
+| 本次 G0-G5 | `check_docs.py`、ruff、mypy、受影响测试和全量测试 | 通过；全量测试 96 passed；运行数据仅写入临时目录 |
+| 本次 G6-S | `UV_CACHE_DIR=/tmp/mynews-acceptance-cache uv run mynews probe --source <source-id>` 与最终 URL 检查 | 通过；6 个重点第一方来源和 2 个价格源 healthy；知乎/Bloomberg blocked |
+| 本次 G6-V | 真实 `codex-cli 0.144.1`、DeepSeek/Google Gemini 新增来源采集和程序二次校验 | 失败；Codex 建议产生，但摘录校验为 `evidence_excerpt_mismatch`，保持 `unverified` |
+
+阶段 4.5 不改变阶段 5 的范围；launchd、`collect --days 7` 首次回溯和自动定时仍留待独立门禁。
+
 ### 阶段 5：脚本、定时模板与真实验收
 
 - `scripts/collect.sh` 固定 cwd、uv、代理继承和日志位置。

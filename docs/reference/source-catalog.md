@@ -15,14 +15,41 @@ owner: project-maintainers
 
 内容范围是 AI 与科技；v1 来源优先覆盖模型、AI 编程工具、开发者平台、芯片/云基础设施及重大科技产品动态。下表是优先接入清单，不是允许核验的厂商穷举表；任何表外线索仍必须回溯到对应第一方来源。
 
-## 阶段 2 当前内置实现
+## 当前内置实现
 
-当前 built-in registry 已接入 `cc-switch`、`hacker-news` 和 `qwen`。三者均有独立离线
-fixture；2026-08-02 使用 `mynews probe --source <source-id>` 逐项返回 `healthy`，因此
-这三项均完成过真实 probe 尝试；Hacker News/Qwen 最新记录为 05:03 `healthy`，CC Switch
-最新记录为 15:34 `healthy`（33/33 条），此前 04:57 曾短暂返回 HTTP 403 `blocked`。
-本节不把 probe 通过解释为
-候选已 `verified`，候选核验留给阶段 4。
+当前 built-in registry 已接入 `cc-switch`、`hacker-news`、`qwen`、`openai`、`anthropic`、
+`google-gemini`、`deepseek`、`trae`、`openai-pricing`、`deepseek-pricing`、`zhihu-hot` 和
+`bloomberg-ai`。阶段 4.5 新增来源均有独立 fixture、`collect`/`probe` 接线和故障隔离；本节
+不把 probe 通过解释为候选已 `verified`，候选核验仍由阶段 4 的统一流程负责。
+
+阶段 2 的 Hacker News、Qwen 和 CC Switch 既有真实 probe 证据继续保留；阶段 4.5 的每个
+新增来源 probe 命令和当次状态见 [阶段 4.5 记录](../planning/v1-implementation-plan.md#阶段-45来源覆盖与价格监控)。
+
+## 阶段 4.5 来源覆盖
+
+| 来源 ID | 地区 | 角色 | 官方入口 | 采集类型 | 发布时间语义 |
+| --- | --- | --- | --- | --- | --- |
+| openai | 国外 | primary | https://developers.openai.com/api/docs/models | 官方开发者模型/价格更新页 | 页面提供则使用，否则 `null` |
+| anthropic | 国外 | primary | https://www.anthropic.com/news | 官方 HTML 新闻页 | 页面提供则使用，否则 `null` |
+| google-gemini | 国外 | primary | https://ai.google.dev/gemini-api/docs/changelog | 官方 HTML 更新页 | 页面提供则使用，否则 `null` |
+| qwen | 国内 | primary | https://qwenlm.github.io/blog/index.xml | 官方 RSS | Feed 日期，否则 `null` |
+| deepseek | 国内 | primary | https://api-docs.deepseek.com/zh-cn/updates | 官方 HTML 更新页 | 页面提供则使用，否则 `null` |
+| trae | 国内 | primary | https://www.trae.cn/changelog | 官方 HTML 更新页 | 页面提供则使用，否则 `null` |
+| openai-pricing | 国外 | monitor | https://developers.openai.com/api/docs/models | 官方开发者模型/价格页快照 | 无官方日期时 `null` |
+| deepseek-pricing | 国内 | monitor | https://api-docs.deepseek.com/zh-cn/quick_start/pricing | 官方价格页快照 | 无官方日期时 `null` |
+| zhihu-hot | 国内 | discovery | https://www.zhihu.com/hot | 公开 HTML 元数据实验 | 页面提供则使用，否则 `null` |
+| bloomberg-ai | 国外 | discovery | https://www.bloomberg.com/technology | 公开 HTML 元数据实验 | 页面提供则使用，否则 `null` |
+
+本次六个重点官方自动来源均使用第一方入口。OpenAI 原 `https://openai.com/news/` 与
+`https://openai.com/api/pricing/` 在 2026-08-02 live probe 返回 HTTP 403，因此按同类
+替换规则改用可公开访问的官方 `developers.openai.com/api/docs/models` 模型/价格更新页，
+并由 `openai` 与 `openai-pricing` fixture/probe 覆盖；Anthropic、Gemini、DeepSeek 和
+TRAE 的入口由实现前的公开页面检查确认。若 live probe 受本机网络、登录、付费墙
+或 robots 限制，记录为 `blocked`/`failed`，不改用媒体、搜索摘要或非官方 API。
+
+价格来源首次观察只保存 `state/price_snapshots/<source-id>.json`；只有后续运行规范化快照
+的 URL 或内容哈希变化时，才产生 `pricing_change` 候选。实验来源只保留公开标题、链接、
+日期等元数据，不能采集登录后正文或付费墙内容。
 
 ## 来源角色
 
@@ -50,7 +77,7 @@ fixture；2026-08-02 使用 `mynews probe --source <source-id>` 逐项返回 `he
 
 | ID | 产品/机构 | 角色 | 计划方式 | 等级 | 官方入口 |
 | --- | --- | --- | --- | --- | --- |
-| openai | OpenAI / Codex | primary, monitor | 公告、Release Notes、价格页 | adapter-planned | https://openai.com/news/ |
+| openai | OpenAI / Codex | primary, monitor | 官方开发者模型/价格更新页（原 News 入口 403 后替换） | adapter-planned | https://developers.openai.com/api/docs/models |
 | anthropic | Anthropic / Claude | primary, monitor | News、文档更新、价格页 | adapter-planned | https://www.anthropic.com/news |
 | google-gemini | Google Gemini | primary, monitor | Gemini API changelog、价格页 | stable-planned | https://ai.google.dev/gemini-api/docs/changelog |
 | github-copilot | GitHub Copilot | primary, monitor | GitHub Changelog、官方文档 | stable-planned | https://github.blog/changelog/label/copilot/ |
