@@ -14,7 +14,7 @@ import pytest
 from mynews.domain.models import Candidate, Evidence, EvidenceValidation
 from mynews.domain.normalization import Normalizer
 from mynews.infrastructure.http import HttpResponse
-from mynews.verification.codex import CodexVerifier, SubprocessCodexRunner
+from mynews.verification.codex import CodexVerifier, SubprocessCodexRunner, _prompt
 from mynews.verification.fake import FakeVerifier
 from mynews.verification.protocol import (
     EvidenceVerifier,
@@ -183,6 +183,46 @@ def test_codex_suggestion_is_rechecked_before_it_can_verify() -> None:
 
     assert result[0].status == "verified"
     assert runner.calls == [("test-model", 30.0)]
+
+
+def test_codex_excerpt_matches_visible_text_across_html_elements() -> None:
+    body = (
+        '<meta property="article:published_time" content="2026-08-02T01:00:00Z">'
+        "<article><h1>Official\u200b launch</h1><p>of Model 5.</p></article>"
+    )
+    candidate = target(url="https://news.example/story")
+    payload = json.loads(suggestion(candidate.item.event_key))
+    payload["suggestions"][0]["content_hash"] = body_hash(body)
+    runner = StaticCodex([json.dumps(payload)])
+    verifier = CodexVerifier(
+        FakeHttp({"https://official.example/news": response(body)}), runner=runner
+    )
+
+    result = verifier.verify(
+        [candidate], config=VerificationConfig(budget=1, batch_size=1)
+    )
+
+    assert result[0].status == "verified"
+
+
+def test_codex_prompt_requires_verbatim_evidence_excerpt() -> None:
+    candidate = target(url="https://news.example/story")
+
+    prompt = _prompt(
+        [
+            VerificationTarget(
+                item=candidate.item,
+                source_id="fixture",
+                publisher="Official Publisher",
+                excerpt=candidate.excerpt,
+                official_domains=("official.example",),
+                source_role="discovery",
+            )
+        ]
+    )
+
+    assert "逐字连续的原文片段" in prompt
+    assert "不能改写" in prompt
 
 
 @pytest.mark.parametrize(

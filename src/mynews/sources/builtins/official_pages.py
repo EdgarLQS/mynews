@@ -232,9 +232,9 @@ class OfficialHtmlPlugin:
                     "unofficial_entry", "页面条目链接不属于官方域名"
                 )
             title = _clean_text(entry.title or self.metadata.name)
-            excerpt = title if self._public_metadata_only else (
-                _clean_text(" ".join(entry.text or [])) or title
-            )
+            content = None
+            if not self._public_metadata_only:
+                content = _clean_text(" ".join(entry.text or [])) or title
             candidates.append(
                 Candidate.model_validate(
                     {
@@ -242,7 +242,8 @@ class OfficialHtmlPlugin:
                         "title_original": title,
                         "url": url,
                         "published_at": entry.published_at,
-                        "excerpt": excerpt[:1000],
+                        "excerpt": title,
+                        "content": content,
                         "heat_signals": {"official_page": 1.0},
                         "event_type": self._event_type,
                         "source_role": self.metadata.role,

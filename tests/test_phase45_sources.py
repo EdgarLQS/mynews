@@ -105,6 +105,8 @@ def test_official_pages_collect_fixture_entries(
 
     assert batch.source_id == plugin.metadata.source_id
     assert batch.candidates[0].title_original == expected_title
+    assert batch.candidates[0].excerpt == expected_title
+    assert batch.candidates[0].content is not None
     assert batch.candidates[0].published_at is not None
     assert health.health == "healthy"
     assert health.accepted_count == 1
