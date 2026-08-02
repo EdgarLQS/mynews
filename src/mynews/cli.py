@@ -3,19 +3,13 @@
 from __future__ import annotations
 
 import argparse
-import json
 from collections.abc import Sequence
 from datetime import date, datetime, time, timedelta
 from typing import NoReturn
 from zoneinfo import ZoneInfo
 
+from mynews.application.collector import SourceCollector
 from mynews.domain.models import CollectionRequest
-from mynews.sources.protocol import (
-    ProbeContext,
-    SourceCollection,
-    SourceContext,
-    SourceHealth,
-)
 from mynews.sources.registry import SourceRegistry, built_in_registry
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
@@ -173,58 +167,24 @@ def main(
     parser = build_parser()
     args = parser.parse_args(argv)
     active_registry = registry or built_in_registry()
+    collector = SourceCollector(active_registry)
     if args.command == "collect":
         request = _request_from_namespace(args, parser, None)
         try:
-            result = active_registry.collect_all(
-                SourceContext(request=request, http=active_registry.http),
-                args.source_ids,
-            )
+            result = collector.collect(request, args.source_ids)
         except KeyError as error:
             parser.error(str(error).strip("'"))
-        print(_collection_json(result))
-        return _health_exit_code(result.health)
+        print(collector.collection_json(result))
+        return collector.exit_code(result.health)
     if args.command == "probe":
         try:
-            health = active_registry.probe(
-                ProbeContext(http=active_registry.http), args.source_ids
-            )
+            health = collector.probe(args.source_ids)
         except KeyError as error:
             parser.error(str(error).strip("'"))
-        print(_health_json(health))
-        return _health_exit_code(health)
+        print(collector.probe_json(health))
+        return collector.exit_code(health)
     parser.print_help()
     return 2
-
-
-def _collection_json(result: SourceCollection) -> str:
-    payload = {
-        "status": _health_status(result.health),
-        "sources": [item.model_dump(mode="json") for item in result.health],
-        "candidates": [item.model_dump(mode="json") for item in result.candidates],
-    }
-    return json.dumps(payload, ensure_ascii=False, indent=2)
-
-
-def _health_json(health: Sequence[SourceHealth]) -> str:
-    payload = {
-        "status": _health_status(health),
-        "sources": [item.model_dump(mode="json") for item in health],
-    }
-    return json.dumps(payload, ensure_ascii=False, indent=2)
-
-
-def _health_status(health: Sequence[SourceHealth]) -> str:
-    if health and all(item.health == "healthy" for item in health):
-        return "complete"
-    if any(item.health == "healthy" for item in health):
-        return "partial"
-    return "failed"
-
-
-def _health_exit_code(health: Sequence[SourceHealth]) -> int:
-    status = _health_status(health)
-    return {"complete": 0, "partial": 3, "failed": 1}[status]
 
 
 if __name__ == "__main__":

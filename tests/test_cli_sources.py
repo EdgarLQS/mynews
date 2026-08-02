@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 
 from mynews.cli import main
-from mynews.domain.models import Candidate
+from mynews.domain.models import Candidate, SourceError
 from mynews.sources.protocol import (
     ProbeContext,
     SourceCollection,
@@ -75,3 +75,18 @@ def test_collect_outputs_raw_candidates_without_store(capsys) -> None:
     assert output["candidates"][0]["title_original"] == "Fixture candidate"
     assert output["sources"][0]["health"] == "healthy"
     assert "run_id" not in output
+
+
+def test_degraded_health_is_partial_success(capsys) -> None:
+    degraded = healthy().model_copy(
+        update={
+            "health": "degraded",
+            "error": SourceError(code="partial", message="fixture partial"),
+        }
+    )
+    registry = FakeRegistry((degraded,))
+
+    exit_code = main(["probe"], registry=registry)
+
+    assert exit_code == 3
+    assert json.loads(capsys.readouterr().out)["status"] == "partial"

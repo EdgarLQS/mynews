@@ -28,7 +28,7 @@ RELEASE_TAG_PATTERN = re.compile(r"^v(\d+\.\d+\.\d+)$")
 class JsonFetcher(Protocol):
     """可替换的 JSON 网络边界。"""
 
-    def get_json(self, url: str, *, timeout: float) -> object: ...
+    def get_json(self, url: str, *, timeout: float | None) -> object: ...
 
 
 class CcSwitchPayloadError(ValueError):
@@ -44,7 +44,7 @@ class CcSwitchReleaseAdapter:
         self,
         fetcher: JsonFetcher,
         *,
-        timeout: float = 10.0,
+        timeout: float | None = None,
         limit: int = 20,
     ) -> list[Candidate]:
         if limit <= 0:
@@ -176,9 +176,11 @@ class CcSwitchSourcePlugin:
         homepage=CC_SWITCH_CHANGELOG_BASE,
         official_domains=("ccswitch.io", "github.com"),
         capabilities=("github-release", "changelog"),
+        stability="adapter-planned",
+        publication_time_semantics="github-published-at",
     )
 
-    def __init__(self, *, timeout: float = 10.0) -> None:
+    def __init__(self, *, timeout: float | None = None) -> None:
         self._timeout = timeout
         self._adapter = CcSwitchReleaseAdapter()
 

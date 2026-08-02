@@ -80,6 +80,8 @@ class QwenFeedPlugin(RssFeedPlugin):
                 homepage=QWEN_FEED_URL,
                 official_domains=("qwenlm.github.io",),
                 capabilities=("rss",),
+                region="cn",
+                publication_time_semantics="feed-date",
             ),
             QWEN_FEED_URL,
         )

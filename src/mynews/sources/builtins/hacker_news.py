@@ -32,6 +32,7 @@ class HackerNewsPlugin:
         homepage="https://news.ycombinator.com/",
         official_domains=("hacker-news.firebaseio.com", "news.ycombinator.com"),
         capabilities=("api",),
+        publication_time_semantics="hacker-news-time",
     )
 
     def collect(self, context: SourceContext) -> SourceBatch:
@@ -62,12 +63,24 @@ class HackerNewsPlugin:
 
     def probe(self, context: ProbeContext) -> SourceHealth:
         story_ids = _story_ids(context.http.get_json(HN_TOP_STORIES_URL))
-        count = min(len(story_ids), context.limit)
+        selected_ids = story_ids[: context.limit]
+        if not selected_ids:
+            return SourceHealth.healthy_result(
+                source_id=HN_SOURCE_ID,
+                role=self.metadata.role,
+                fetched_count=0,
+                accepted_count=0,
+            )
+        story_id = selected_ids[0]
+        raw_item = context.http.get_json(HN_ITEM_URL.format(item_id=story_id))
+        if raw_item is None:
+            raise SourcePluginError("missing_item", "Hacker News item API 返回空值")
+        _candidate_from_item(raw_item, story_id)
         return SourceHealth.healthy_result(
             source_id=HN_SOURCE_ID,
             role=self.metadata.role,
-            fetched_count=count,
-            accepted_count=count,
+            fetched_count=1,
+            accepted_count=1,
         )
 
 

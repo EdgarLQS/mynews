@@ -36,6 +36,14 @@ class NullHttpClient:
         raise AssertionError("stub source does not use HTTP")
 
 
+class FrozenClock:
+    def __init__(self, value: datetime) -> None:
+        self.value = value
+
+    def now(self) -> datetime:
+        return self.value
+
+
 def metadata(source_id: str) -> SourceMetadata:
     return SourceMetadata(
         source_id=source_id,
@@ -43,6 +51,7 @@ def metadata(source_id: str) -> SourceMetadata:
         role="discovery",
         homepage="https://example.test/",
         official_domains=("example.test",),
+        capabilities=("fixture",),
     )
 
 
@@ -97,6 +106,33 @@ def test_registry_isolates_collection_failure_and_keeps_other_source() -> None:
     assert result.health[1].health == "failed"
     assert result.health[1].error is not None
     assert result.health[1].error.code == "fixture_failure"
+
+
+def test_registry_uses_injected_clock_for_health_snapshot() -> None:
+    clock = FrozenClock(datetime(2026, 8, 2, 12, 0, tzinfo=UTC))
+    registry = SourceRegistry([StubPlugin(metadata("good"))])
+
+    result = registry.collect_all(
+        SourceContext(request=REQUEST, http=NullHttpClient(), clock=clock)
+    )
+
+    assert result.health[0].checked_at == clock.value
+
+
+def test_registry_rejects_unsupported_plugin_protocol_version() -> None:
+    plugin_metadata = metadata("old")
+    plugin_metadata = SourceMetadata(
+        source_id=plugin_metadata.source_id,
+        name=plugin_metadata.name,
+        role=plugin_metadata.role,
+        homepage=plugin_metadata.homepage,
+        official_domains=plugin_metadata.official_domains,
+        capabilities=plugin_metadata.capabilities,
+        plugin_api_version="0.9",
+    )
+
+    with pytest.raises(ValueError, match="协议版本"):
+        SourceRegistry([StubPlugin(plugin_metadata)])
 
 
 def test_registry_probe_can_select_one_source() -> None:

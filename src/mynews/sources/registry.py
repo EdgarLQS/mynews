@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from concurrent.futures import ThreadPoolExecutor
-from datetime import UTC, datetime
 from time import perf_counter
 from typing import Literal
 
 from mynews.domain.models import SourceError
+from mynews.infrastructure.clock import Clock
 from mynews.infrastructure.http import HttpClient, HttpClientError, SharedHttpClient
 from mynews.sources.builtins.feed import QwenFeedPlugin
 from mynews.sources.builtins.hacker_news import HackerNewsPlugin
@@ -40,6 +40,7 @@ class SourceRegistry:
         if max_workers <= 0:
             raise ValueError("max_workers 必须是正整数")
         ordered = ensure_unique_source_ids(plugins)
+        _validate_plugin_metadata(ordered)
         self._plugins = {plugin.metadata.source_id: plugin for plugin in ordered}
         self._ordered_ids = tuple(self._plugins)
         self._http = http or SharedHttpClient()
@@ -109,12 +110,12 @@ class SourceRegistry:
                 )
             fetched_count = batch.fetched_count or len(batch.candidates)
             health = self._healthy(
-                plugin, fetched_count, len(batch.candidates), started
+                plugin, fetched_count, len(batch.candidates), started, context
             )
             return batch, health
         except Exception as error:
             return SourceBatch(plugin.metadata.source_id, ()), self._failed(
-                plugin, error, started
+                plugin, error, started, context.clock
             )
 
     def _probe_one(self, plugin: SourcePlugin, context: ProbeContext) -> SourceHealth:
@@ -127,12 +128,12 @@ class SourceRegistry:
                 )
             return health.model_copy(
                 update={
-                    "checked_at": datetime.now(UTC),
+                    "checked_at": context.clock.now(),
                     "duration_ms": _duration(started),
                 }
             )
         except Exception as error:
-            return self._failed(plugin, error, started)
+            return self._failed(plugin, error, started, context.clock)
 
     def _healthy(
         self,
@@ -140,6 +141,7 @@ class SourceRegistry:
         fetched_count: int,
         accepted_count: int,
         started: float,
+        context: SourceContext,
     ) -> SourceHealth:
         return SourceHealth(
             source_id=plugin.metadata.source_id,
@@ -148,10 +150,11 @@ class SourceRegistry:
             fetched_count=fetched_count,
             accepted_count=accepted_count,
             duration_ms=_duration(started),
+            checked_at=context.clock.now(),
         )
 
     def _failed(
-        self, plugin: SourcePlugin, error: Exception, started: float
+        self, plugin: SourcePlugin, error: Exception, started: float, clock: Clock
     ) -> SourceHealth:
         code, message, health = _error_details(error)
         return SourceHealth(
@@ -162,6 +165,7 @@ class SourceRegistry:
             accepted_count=0,
             duration_ms=_duration(started),
             error=SourceError(code=code, message=message),
+            checked_at=clock.now(),
         )
 
 
@@ -188,3 +192,14 @@ def _error_details(
         return error.code, str(error), status
     status = "failed"
     return "plugin_error", str(error) or error.__class__.__name__, status
+
+
+def _validate_plugin_metadata(plugins: tuple[SourcePlugin, ...]) -> None:
+    for plugin in plugins:
+        metadata = plugin.metadata
+        if metadata.plugin_api_version != "1.0":
+            raise ValueError(
+                f"不支持的来源插件协议版本：{metadata.plugin_api_version}"
+            )
+        if not metadata.capabilities:
+            raise ValueError(f"来源必须声明能力：{metadata.source_id}")

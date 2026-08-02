@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Literal, Protocol, runtime_checkable
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from mynews.domain.models import (
     Candidate,
@@ -15,6 +15,7 @@ from mynews.domain.models import (
     ContractModel,
     SourceError,
 )
+from mynews.infrastructure.clock import Clock, SystemClock
 from mynews.infrastructure.http import HttpClient
 
 
@@ -28,6 +29,10 @@ class SourceMetadata:
     homepage: str
     official_domains: tuple[str, ...]
     capabilities: tuple[str, ...] = ()
+    region: str = "global"
+    stability: str = "stable-planned"
+    publication_time_semantics: str = "source-provided"
+    plugin_api_version: str = "1.0"
 
     def __post_init__(self) -> None:
         if not self.source_id.strip():
@@ -50,6 +55,7 @@ class SourceContext:
     request: CollectionRequest
     http: HttpClient
     limit: int = 30
+    clock: Clock = field(default_factory=SystemClock)
 
     def __post_init__(self) -> None:
         if self.limit <= 0:
@@ -60,6 +66,7 @@ class SourceContext:
 class ProbeContext:
     http: HttpClient
     limit: int = 5
+    clock: Clock = field(default_factory=SystemClock)
 
     def __post_init__(self) -> None:
         if self.limit <= 0:
@@ -95,6 +102,12 @@ class SourceHealth(ContractModel):
         if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError("健康检查时间必须包含时区")
         return value
+
+    @model_validator(mode="after")
+    def require_error_for_unhealthy(self) -> SourceHealth:
+        if self.health != "healthy" and self.error is None:
+            raise ValueError("非 healthy 来源必须提供 error")
+        return self
 
     @classmethod
     def healthy_result(

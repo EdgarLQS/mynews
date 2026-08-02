@@ -63,8 +63,8 @@ def test_hacker_news_probe_only_checks_official_topstories_endpoint() -> None:
     health = HackerNewsPlugin().probe(ProbeContext(http=http, limit=2))
 
     assert health.health == "healthy"
-    assert health.fetched_count == 2
-    assert http.requested == [HN_TOP_STORIES_URL]
+    assert health.fetched_count == 1
+    assert http.requested == [HN_TOP_STORIES_URL, HN_ITEM_URL.format(item_id=1001)]
 
 
 def test_hacker_news_rejects_malformed_topstories_payload() -> None:
