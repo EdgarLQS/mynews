@@ -125,11 +125,13 @@ def test_experimental_pages_keep_public_metadata_and_discovery_role(
     http = FixtureHttp({plugin.page_url: (FIXTURES / fixture_name).read_text()})
 
     batch = plugin.collect(SourceContext(request=REQUEST, http=http))
+    health = plugin.probe(ProbeContext(http=http))
 
     assert plugin.metadata.role == "discovery"
     assert plugin.metadata.stability == "experimental"
     assert batch.candidates[0].source_role == "discovery"
     assert batch.candidates[0].content is None
+    assert health.health == "healthy"
 
 
 def test_built_in_registry_contains_phase45_sources() -> None:
@@ -238,10 +240,12 @@ def test_price_page_first_observation_only_writes_snapshot(tmp_path: Path) -> No
     )
 
     first = collector.collect(REQUEST)
+    health = plugin.probe(ProbeContext(http=http))
 
     assert first.items == []
     assert store.load_price_snapshot("deepseek-pricing") is not None
     assert first.stats["candidate_count"] == 0
+    assert health.health == "healthy"
 
 
 def test_price_page_change_creates_pricing_change_with_unknown_date(
