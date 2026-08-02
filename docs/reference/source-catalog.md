@@ -19,8 +19,8 @@ owner: project-maintainers
 
 当前 built-in registry 已接入 `cc-switch`、`hacker-news` 和 `qwen`。三者均有独立离线
 fixture；2026-08-02 使用 `mynews probe --source <source-id>` 逐项返回 `healthy`，因此
-这三项均完成过真实 probe 尝试；Hacker News 与 Qwen 的最新结果为 `healthy`，CC Switch
-在 04:38 曾为 `healthy`、04:57 重跑返回 HTTP 403 `blocked`。本节不把 probe 通过解释为
+这三项均完成过真实 probe 尝试；2026-08-02 05:03 三者最新结果均为 `healthy`，CC Switch
+在 04:57 曾短暂返回 HTTP 403 `blocked`、随后恢复。本节不把 probe 通过解释为
 候选已 `verified`，候选核验留给阶段 4。
 
 ## 来源角色
@@ -92,8 +92,8 @@ fixture；2026-08-02 使用 `mynews probe --source <source-id>` 逐项返回 `he
 - 每个版本 `## 新功能` 下的 `###` 条目单独产生一个候选，发布日期使用 Release 的
   `published_at`，不知道发布时间时不得用抓取时间补齐。
 - v3.19.1 已有离线 fixture，覆盖官方厂商模型目录镜像和腾讯混元 Codex 预设；运行时
-  `probe --source cc-switch` 于 04:38 返回 `healthy`，04:57 重跑返回 HTTP 403 `blocked`，
-  退出码为 1。JSON Store 仍待阶段 3。
+  `probe --source cc-switch` 于 05:03 返回 `healthy`，退出码为 0；04:57 的 HTTP 403
+  `blocked` 已被后续重试覆盖。JSON Store 仍待阶段 3。
 
 ## 阶段 2 其他稳定入口
 

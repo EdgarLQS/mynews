@@ -124,7 +124,7 @@ CC Switch 最新一次为 HTTP 403 `blocked`。本阶段只输出原始候选和
 | --- | --- | --- |
 | 离线 Adapter | `UV_CACHE_DIR=/tmp/mynews-uv-cache uv run pytest tests/test_cc_switch.py tests/test_http_client.py tests/test_sources.py tests/test_hacker_news.py tests/test_feed.py tests/test_cli_sources.py -q` | PASS；32 passed |
 | 共享 HTTP/类型 | `uv run ruff check src tests`；`uv run mypy src` | PASS |
-| CC Switch | `uv run mynews probe --source cc-switch` | 04:38 Verified；healthy，退出码 0；04:57 重跑为 HTTP 403 blocked，退出码 1 |
+| CC Switch | `uv run mynews probe --source cc-switch` | 04:38 healthy；04:57 HTTP 403 blocked；05:03 重跑 healthy，退出码 0 |
 | Hacker News | `uv run mynews probe --source hacker-news` | Verified；healthy，退出码 0；已触达 topstories 与 item endpoint |
 | Qwen RSS | `uv run mynews probe --source qwen` | Verified；healthy，退出码 0 |
 

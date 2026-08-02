@@ -31,7 +31,7 @@ owner: project-maintainers
 | SRC-04 | 来源 | 知乎热榜实验 Adapter | Planned | live probe，可 blocked |
 | SRC-05 | 来源 | Bloomberg 实验 Adapter | Planned | live probe，可 blocked |
 | SRC-06 | 来源 | 国内外 AI 与重点科技官方来源 | Planned | 来源目录逐项 probe |
-| SRC-07 | 来源 | CC Switch 官方 Changelog 新功能监控 | Implemented | fixture；04:38 probe healthy，04:57 重跑 HTTP 403 blocked，需后续重试真实入口 |
+| SRC-07 | 来源 | CC Switch 官方 Changelog 新功能监控 | Verified | fixture；05:03 probe healthy、退出码 0；04:57 曾短暂 HTTP 403 blocked |
 | PIPE-01 | 处理 | 规范化、相关性、热度分离 | Planned | 领域测试 |
 | PIPE-02 | 处理 | 跨来源、跨日期、跨运行去重 | Planned | 一日/七日测试 |
 | VER-01 | 核验 | 第一方官方证据直接核验 | Planned | 证据策略测试 |
@@ -41,7 +41,7 @@ owner: project-maintainers
 | DATA-01 | 数据 | 每次运行独立 JSON | Planned | JSON Schema 测试 |
 | DATA-02 | 数据 | latest 原子更新和失败保护 | Planned | 文件系统测试 |
 | DATA-03 | 数据 | 去重状态与价格快照 JSON | Planned | 重启恢复测试 |
-| OPS-01 | 运维 | 已注册内置来源 `probe` | Implemented | 三项均有真实结构化结果；最新 HN/Qwen healthy、CC Switch blocked；目录中的未接入来源仍为 Planned |
+| OPS-01 | 运维 | 已注册内置来源 `probe` | Verified | 05:03 三项 `probe --source` 均 healthy；目录中的未接入来源仍为 Planned |
 | OPS-02 | 运维 | 09:30 launchd 安装脚本 | Planned | `plutil -lint` |
 | EXT-01 | 扩展 | built-in SourcePlugin registry | Implemented | registry 隔离、重复 ID 和选择测试 |
 | EXT-02 | 扩展 | 仓库外 Python entry-point 插件 | Future | 后续 ADR |
