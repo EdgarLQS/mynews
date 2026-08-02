@@ -1,7 +1,409 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-export UV_CACHE_DIR="${UV_CACHE_DIR:-${TMPDIR:-/tmp}/mynews-uv-cache}"
-cd "${PROJECT_ROOT}"
-exec uv run mynews collect "$@"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd -P)"
+COLLECT_SCRIPT="${PROJECT_ROOT}/scripts/collect.sh"
+LABEL="com.mynews.collect"
+PLIST_LOG_DIR="${PROJECT_ROOT}/logs"
+
+PROXY_VARIABLES=(
+  HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY
+  http_proxy https_proxy all_proxy no_proxy
+)
+SECRET_VARIABLES=(
+  OPENAI_API_KEY ANTHROPIC_API_KEY CODEX_API_KEY GITHUB_TOKEN
+  API_KEY ACCESS_TOKEN TOKEN
+  "${PROXY_VARIABLES[@]}"
+)
+
+usage() {
+  cat <<'EOF'
+用法：
+  scripts/collect.sh [collect 参数...]
+  scripts/collect.sh collect [collect 参数...]
+  scripts/collect.sh render-plist [--output 绝对路径]
+  scripts/collect.sh install
+  scripts/collect.sh status
+  scripts/collect.sh uninstall
+
+说明：
+  默认执行 uv run mynews collect，参数会原样安全透传。
+  运行目录固定为项目根目录，输出追加到项目 logs/collect.log。
+  render-plist 只渲染模板；install、status、uninstall 才会调用 launchctl。
+  launchd 任务固定为 Asia/Shanghai 每日 09:30，脚本不会修改系统时区。
+  代理变量仅继承当前环境，不会打印或写入 plist。
+
+示例：
+  scripts/collect.sh --days 7
+  scripts/collect.sh render-plist --output /tmp/com.mynews.collect.plist
+  scripts/collect.sh install
+EOF
+}
+
+error() {
+  printf '错误：%s\n' "$*" >&2
+}
+
+require_absolute() {
+  local name="$1"
+  local value="$2"
+  case "$value" in
+    /*) ;;
+    *)
+      error "${name} 必须是绝对路径：${value}"
+      return 2
+      ;;
+  esac
+}
+
+home_dir() {
+  local value="${HOME:-}"
+  if [[ -z "$value" ]]; then
+    error 'HOME 未设置'
+    return 2
+  fi
+  require_absolute HOME "$value" || return $?
+  printf '%s\n' "$value"
+}
+
+resolve_uv() {
+  local candidate="${MYNEWS_UV_BIN:-}"
+  if [[ -z "$candidate" ]]; then
+    candidate="$(command -v uv || true)"
+  fi
+  if [[ -z "$candidate" ]]; then
+    error '找不到 uv；请先准备 uv，不会自动安装依赖'
+    return 1
+  fi
+  require_absolute MYNEWS_UV_BIN "$candidate" || return $?
+  if [[ ! -x "$candidate" ]]; then
+    error "uv 不可执行：${candidate}"
+    return 1
+  fi
+  printf '%s\n' "$candidate"
+}
+
+resolve_launchctl() {
+  local candidate="${MYNEWS_LAUNCHCTL_BIN:-}"
+  if [[ -z "$candidate" ]]; then
+    candidate="$(command -v launchctl || true)"
+  fi
+  if [[ -z "$candidate" ]]; then
+    error '找不到 launchctl；不会自动安装或替换系统组件'
+    return 1
+  fi
+  require_absolute MYNEWS_LAUNCHCTL_BIN "$candidate" || return $?
+  if [[ ! -x "$candidate" ]]; then
+    error "launchctl 不可执行：${candidate}"
+    return 1
+  fi
+  printf '%s\n' "$candidate"
+}
+
+log_dir() {
+  local value="${MYNEWS_LOG_DIR:-${PROJECT_ROOT}/logs}"
+  require_absolute MYNEWS_LOG_DIR "$value" || return $?
+  printf '%s\n' "$value"
+}
+
+redact_line() {
+  local line="$1"
+  local key value
+  for key in "${SECRET_VARIABLES[@]}"; do
+    value="${!key-}"
+    if [[ -n "$value" ]]; then
+      line="${line//"$value"/[REDACTED_SECRET]}"
+    fi
+  done
+  printf '%s\n' "$line"
+}
+
+redact_file() {
+  local input="$1"
+  local line
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    redact_line "$line"
+  done < "$input"
+}
+
+run_collect() {
+  local uv_bin log_root log_file output_file redacted_file command_status temp_root
+  uv_bin="$(resolve_uv)"
+  log_root="$(log_dir)"
+  temp_root="${TMPDIR:-/tmp}"
+  require_absolute TMPDIR "$temp_root" || return $?
+  UV_CACHE_DIR="${UV_CACHE_DIR:-${temp_root}/mynews-uv-cache}"
+  require_absolute UV_CACHE_DIR "$UV_CACHE_DIR" || return $?
+  export UV_CACHE_DIR
+  cd -- "$PROJECT_ROOT"
+  /bin/mkdir -p -- "$log_root"
+  log_file="${log_root}/collect.log"
+  output_file="$(/usr/bin/mktemp "${temp_root}/mynews-collect.XXXXXX")"
+  redacted_file="${output_file}.redacted"
+
+  set +e
+  "$uv_bin" run mynews collect "$@" >"$output_file" 2>&1
+  command_status=$?
+  set -e
+
+  if ! redact_file "$output_file" >"$redacted_file"; then
+    /bin/rm -f -- "$output_file" "$redacted_file"
+    error '无法脱敏采集输出'
+    return 1
+  fi
+  if ! /bin/cat "$redacted_file" >>"$log_file"; then
+    /bin/rm -f -- "$output_file" "$redacted_file"
+    error "无法写入日志：${log_file}"
+    return 1
+  fi
+  /bin/cat "$redacted_file"
+  /bin/rm -f -- "$output_file" "$redacted_file"
+  return "$command_status"
+}
+
+xml_escape() {
+  local value="$1"
+  value="${value//&/&amp;}"
+  value="${value//</&lt;}"
+  value="${value//>/&gt;}"
+  value="${value//\"/&quot;}"
+  printf '%s' "$value"
+}
+
+plist_path() {
+  local home
+  home="$(home_dir)"
+  local value="${MYNEWS_PLIST_PATH:-${home}/Library/LaunchAgents/${LABEL}.plist}"
+  require_absolute MYNEWS_PLIST_PATH "$value" || return $?
+  printf '%s\n' "$value"
+}
+
+launchd_domain() {
+  local value="${MYNEWS_LAUNCHD_DOMAIN:-gui/$('/usr/bin/id' -u)}"
+  if [[ ! "$value" =~ ^gui/[0-9]+$ ]]; then
+    error "MYNEWS_LAUNCHD_DOMAIN 必须是 gui/<用户数字ID>：${value}"
+    return 2
+  fi
+  printf '%s\n' "$value"
+}
+
+render_plist_xml() {
+  local script_path project_root log_dir
+  script_path="$(xml_escape "$COLLECT_SCRIPT")"
+  project_root="$(xml_escape "$PROJECT_ROOT")"
+  log_dir="$(xml_escape "$PLIST_LOG_DIR")"
+  cat <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>${LABEL}</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>${script_path}</string>
+    <string>collect</string>
+    <string>--days</string>
+    <string>7</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>${project_root}</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>TZ</key>
+    <string>Asia/Shanghai</string>
+  </dict>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>9</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>StandardOutPath</key>
+  <string>${log_dir}/launchd.stdout.log</string>
+  <key>StandardErrorPath</key>
+  <string>${log_dir}/launchd.stderr.log</string>
+</dict>
+</plist>
+EOF
+}
+
+lint_plist() {
+  local path="$1"
+  if [[ ! -x /usr/bin/plutil ]]; then
+    error '找不到 /usr/bin/plutil，无法校验 plist'
+    return 1
+  fi
+  /usr/bin/plutil -lint "$path" >/dev/null
+}
+
+render_plist_file() {
+  local path="$1" parent temporary
+  parent="${path%/*}"
+  /bin/mkdir -p -- "$parent"
+  temporary="$(/usr/bin/mktemp "${parent}/.${LABEL}.XXXXXX")"
+  if ! render_plist_xml >"$temporary"; then
+    /bin/rm -f -- "$temporary"
+    return 1
+  fi
+  if ! lint_plist "$temporary"; then
+    /bin/rm -f -- "$temporary"
+    return 1
+  fi
+  /bin/mv -f -- "$temporary" "$path"
+}
+
+render_plist() {
+  local output=""
+  while (($# > 0)); do
+    case "$1" in
+      --help|-h)
+        usage
+        return 0
+        ;;
+      --output)
+        if (($# < 2)); then
+          error 'render-plist 的 --output 缺少路径'
+          return 2
+        fi
+        output="$2"
+        shift 2
+        ;;
+      *)
+        error "render-plist 不支持参数：$1"
+        return 2
+        ;;
+    esac
+  done
+  if [[ -n "$output" ]]; then
+    require_absolute render-plist-output "$output"
+    render_plist_file "$output"
+    printf '已渲染 plist：%s\n' "$output"
+  else
+    render_plist_xml
+  fi
+}
+
+launchctl_state() {
+  local launchctl_bin="$1" domain="$2" status
+  set +e
+  "$launchctl_bin" print "${domain}/${LABEL}" >/dev/null 2>&1
+  status=$?
+  set -e
+  return "$status"
+}
+
+launchctl_service_absent() {
+  [[ "$1" -eq 1 || "$1" -eq 113 ]]
+}
+
+install_launchd() {
+  local domain launchctl_bin path state
+  domain="$(launchd_domain)"
+  home_dir >/dev/null
+  launchctl_bin="$(resolve_launchctl)"
+  path="$(plist_path)"
+  render_plist_file "$path"
+  if launchctl_state "$launchctl_bin" "$domain"; then
+    "$launchctl_bin" bootout "${domain}/${LABEL}"
+  else
+    state=$?
+    if ! launchctl_service_absent "$state"; then
+      error "无法检查 launchd 任务状态，退出码：${state}"
+      return "$state"
+    fi
+  fi
+  "$launchctl_bin" bootstrap "$domain" "$path"
+  printf '已安装 launchd 任务：%s/%s\n' "$domain" "$LABEL"
+}
+
+status_launchd() {
+  local domain launchctl_bin state
+  domain="$(launchd_domain)"
+  home_dir >/dev/null
+  launchctl_bin="$(resolve_launchctl)"
+  if launchctl_state "$launchctl_bin" "$domain"; then
+    printf 'launchd 任务已加载：%s/%s\n' "$domain" "$LABEL"
+    return 0
+  else
+    state=$?
+    if launchctl_service_absent "$state"; then
+      printf 'launchd 任务未加载：%s/%s\n' "$domain" "$LABEL"
+      return 1
+    fi
+  fi
+  error "无法检查 launchd 任务状态，退出码：${state}"
+  return "$state"
+}
+
+uninstall_launchd() {
+  local domain launchctl_bin path state
+  domain="$(launchd_domain)"
+  home_dir >/dev/null
+  launchctl_bin="$(resolve_launchctl)"
+  path="$(plist_path)"
+  if launchctl_state "$launchctl_bin" "$domain"; then
+    "$launchctl_bin" bootout "${domain}/${LABEL}"
+  else
+    state=$?
+    if ! launchctl_service_absent "$state"; then
+      error "无法检查 launchd 任务状态，退出码：${state}"
+      return "$state"
+    fi
+  fi
+  if [[ -e "$path" ]]; then
+    /bin/rm -f -- "$path"
+  fi
+  printf '已卸载 launchd 任务：%s/%s\n' "$domain" "$LABEL"
+}
+
+main() {
+  local action="${1:-}"
+  case "$action" in
+    ''|--help|-h)
+      usage
+      ;;
+    collect)
+      shift
+      run_collect "$@"
+      ;;
+    render-plist)
+      shift
+      home_dir >/dev/null
+      render_plist "$@"
+      ;;
+    install)
+      shift
+      if (($# > 0)); then
+        error "install 不接受参数：$1"
+        return 2
+      fi
+      install_launchd
+      ;;
+    status)
+      shift
+      if (($# > 0)); then
+        error "status 不接受参数：$1"
+        return 2
+      fi
+      status_launchd
+      ;;
+    uninstall)
+      shift
+      if (($# > 0)); then
+        error "uninstall 不接受参数：$1"
+        return 2
+      fi
+      uninstall_launchd
+      ;;
+    *)
+      run_collect "$@"
+      ;;
+  esac
+}
+
+main "$@"
