@@ -28,8 +28,9 @@ owner: project-maintainers
 | 阶段 3 规范化、去重与 JSON Store | Implemented | Normalizer、跨运行 DedupState、原子 Run/latest、失败保护和 PriceSnapshot 已通过离线测试 |
 | 阶段 4 第一方证据核验 | Verified | 官方直验、Fake/Codex Verifier、预算/批次限制和二次 URL/域名/摘录/日期/哈希校验通过；G6-S/G6-V 已完成 |
 | 阶段 4.5 来源覆盖与价格监控 | Implemented | 已接入 3 个国内、3 个国外官方自动来源、2 个官方价格页和 2 个实验 Adapter；修复后至少一个新增来源通过真实 G6-V，实时限制仍如实记录 |
-| 自动定时 | Implemented | `scripts/collect.sh` 提供固定 label 的 plist 渲染、幂等安装/状态/卸载；未自动安装，真实 launchd 未加载 |
+| 自动定时 | Implemented | `scripts/collect.sh` 提供固定 label 的 plist 渲染、`--dry-run`、互斥采集、幂等安装/状态/卸载；未自动安装，真实 launchd 未加载 |
 | 新闻数据 | Implemented | 已在隔离临时目录完成首次七天回溯；运行数据不进入仓库，完整结果见阶段 5记录 |
+| 发布前校验 | Implemented | `mynews validate` 校验 RunReport/同源 Schema，可重新检查每条 verified 第一方证据；独立验收待执行 |
 
 实现状态必须使用以下口径：
 

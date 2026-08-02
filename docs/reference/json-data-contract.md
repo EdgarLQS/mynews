@@ -118,6 +118,19 @@ state/
 官方来源直验，再将其余候选交给可配置的 Codex Verifier。非 healthy 来源必须包含
 `error.code` 和 `error.message`，单个来源失败不会吞掉其他来源。
 
+发布前校验命令为：
+
+```bash
+uv run mynews validate --run output/latest.json \
+  --schema-out /tmp/mynews-run-report.schema.json
+uv run mynews validate --run output/latest.json --check-evidence
+```
+
+命令使用 `RunReport.model_validate_json()` 和 `RunReport.model_json_schema()` 的同一模型来源，
+输出 `status`、`schema_valid`、`verified_count`、`evidence_count`、`evidence_checked` 和
+`errors`。默认不访问网络；`--check-evidence` 会重新抓取每条 `verified` 的第一方证据，
+再次执行 HTTPS、精确官方域名、日期、可见正文逐字摘录和正文哈希校验，任一失败返回退出码 1。
+
 ## NewsItem
 
 ```json

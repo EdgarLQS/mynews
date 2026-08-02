@@ -6,9 +6,13 @@
 > 第一方核验已 Verified；阶段 5 脚本与真实七天回溯已 Implemented，v1 仍需独立验收。
 
 日常运行可使用 `scripts/collect.sh --days 7`。脚本固定在项目根目录运行，支持
-`render-plist`、`install`、`status` 和 `uninstall`；安装动作必须显式执行，任务 label 为
-`com.mynews.collect`，计划时间为 `Asia/Shanghai` 每日 09:30。运行数据写入 `output/`、
-`state/`，日志写入 `logs/`，这些目录不提交。
+`render-plist`、`install`、`status` 和 `uninstall`；这些 launchd 动作支持中文 help 和
+`--dry-run`，安装动作必须显式执行，任务 label 为 `com.mynews.collect`，计划时间为
+主机本地时间每日 09:30（采集进程使用 `TZ=Asia/Shanghai`）。采集脚本使用 `logs/collect.lock` 防止定时任务重叠，并保留
+底层 `collect` 退出码。运行数据写入 `output/`、`state/`，日志写入 `logs/`，这些目录不提交。
+
+发布前可重复执行 `uv run mynews validate --run output/latest.json --schema-out /tmp/mynews.schema.json`
+校验 RunReport 和同源 Schema；增加 `--check-evidence` 会重新抓取并校验每条 `verified` 证据。
 
 ## 文档入口
 

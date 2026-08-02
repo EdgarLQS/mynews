@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pytest
 
 from mynews.cli import build_collection_request, main
+from mynews.domain.models import RunReport
 
 NOW = datetime(2026, 8, 2, 12, 0, tzinfo=ZoneInfo("Asia/Shanghai"))
 
@@ -22,7 +25,9 @@ def test_collect_help_is_chinese(capsys: pytest.CaptureFixture[str]) -> None:
     assert "--verification-batch-size" in output
 
 
-@pytest.mark.parametrize("arguments", [["--help"], ["probe", "--help"]])
+@pytest.mark.parametrize(
+    "arguments", [["--help"], ["probe", "--help"], ["validate", "--help"]]
+)
 def test_global_and_probe_help_are_available(
     arguments: list[str], capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -96,3 +101,54 @@ def test_collect_script_exposes_help() -> None:
 
     assert result.returncode == 0
     assert "用法：" in result.stdout
+
+
+def test_validate_checks_run_report_schema_and_exports_the_same_schema(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fixture = Path(__file__).parent / "fixtures" / "run-report-v1.json"
+    run_path = tmp_path / "run.json"
+    schema_path = tmp_path / "run.schema.json"
+    run_path.write_text(fixture.read_text(encoding="utf-8"), encoding="utf-8")
+
+    result = main(
+        [
+            "validate",
+            "--run",
+            str(run_path),
+            "--schema-out",
+            str(schema_path),
+        ]
+    )
+
+    assert result == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output == {
+        "status": "passed",
+        "run": str(run_path),
+        "schema_valid": True,
+        "verified_count": 0,
+        "evidence_count": 0,
+        "evidence_checked": False,
+        "errors": [],
+    }
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    assert schema == RunReport.model_json_schema()
+
+
+def test_validate_rejects_unknown_schema_major(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fixture = Path(__file__).parent / "fixtures" / "run-report-v1.json"
+    payload = json.loads(fixture.read_text(encoding="utf-8"))
+    payload["schema_version"] = "2.0"
+    run_path = tmp_path / "run.json"
+    run_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = main(["validate", "--run", str(run_path)])
+
+    assert result == 1
+    output = json.loads(capsys.readouterr().out)
+    assert output["status"] == "failed"
+    assert output["schema_valid"] is False
+    assert output["errors"]

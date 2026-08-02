@@ -139,6 +139,8 @@ class SourcePlugin(Protocol):
 - `SourceMetadata.official_domains` 采用精确主机名匹配；GitHub URL 还必须匹配声明的组织，
   不能用形似官方名称的子域名替代。
 - Storage 接收完整 `RunReport`，不知道来源抓取细节。
+- `application/validation.py` 提供发布前校验 seam：离线检查 RunReport/同源 Schema；显式传入
+  `--check-evidence` 时复用 CodexVerifier 的程序二次校验逐条重抓已保存的第一方证据。
 
 ## 计划代码结构
 
@@ -146,7 +148,8 @@ class SourcePlugin(Protocol):
 src/mynews/
 ├── cli.py
 ├── application/
-│   └── collector.py
+│   ├── collector.py
+│   └── validation.py
 ├── domain/
 │   ├── models.py
 │   ├── normalization.py

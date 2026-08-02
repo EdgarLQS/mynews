@@ -97,3 +97,13 @@ UV_CACHE_DIR=/tmp/mynews-acceptance-cache uv run --project /Users/edgarlqs/Downl
 Codex 分支重验返回的逐字摘录为 Google 官方页面中的
 `The Interactions API is the best way to build with Gemini models and agents.`，程序二次抓取确认
 摘录、官方域名和可访问性均通过。
+
+## 发布收口 G6-V 复验（2026-08-02）
+
+在 `codex/v1-phase5-release-readiness` 的临时目录中，DeepSeek/Google Gemini 新增来源真实
+回溯均通过；随后将 Google Gemini 候选标记为 discovery 以禁用来源直验，强制执行真实
+`SubprocessCodexRunner`。默认 30 秒调用先如实返回 `codex_timeout`；仅为冷启动重试注入 120 秒后，
+返回 `verified/codex_primary_evidence`，官方 URL 为
+`https://ai.google.dev/gemini-api/docs/interactions-overview`，程序二次校验
+`reachable/official_domain/excerpt_matched=true`。生产默认 timeout、精确官方域名、日期规则和逐字
+可见正文摘录门槛均未放宽；该结果属于本轮开发验证，阶段 4.5 和 v1 状态仍为 `Implemented`/待独立验收。

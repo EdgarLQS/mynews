@@ -11,6 +11,7 @@ from typing import NoReturn
 from zoneinfo import ZoneInfo
 
 from mynews.application.collector import PipelineCollector, SourceCollector
+from mynews.application.validation import RunValidation, validate_run_file, write_schema
 from mynews.domain.models import CollectionRequest
 from mynews.sources.registry import SourceRegistry, built_in_registry
 from mynews.storage.json_store import JsonNewsStore, JsonStoreError
@@ -108,6 +109,37 @@ def build_parser() -> ChineseArgumentParser:
     probe.add_argument("-h", "--help", action="help", help="显示帮助并退出")
     probe.add_argument(
         "--source", dest="source_ids", action="append", help="只检查指定来源"
+    )
+
+    validate = commands.add_parser(
+        "validate",
+        help="校验 RunReport 和 verified 证据",
+        description=(
+            "按同一 Pydantic Schema 校验 RunReport，并可重新抓取 verified 证据。"
+        ),
+        add_help=False,
+    )
+    validate.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    validate.add_argument(
+        "--run",
+        default="output/latest.json",
+        metavar="路径",
+        help="要校验的 RunReport JSON，默认 output/latest.json",
+    )
+    validate.add_argument(
+        "--schema-out", metavar="路径", help="导出同源 RunReport JSON Schema"
+    )
+    validate.add_argument(
+        "--check-evidence",
+        action="store_true",
+        help="重新抓取并校验每条 verified 的第一方证据",
+    )
+    validate.add_argument(
+        "--timeout",
+        type=_positive_float,
+        default=30.0,
+        metavar="秒",
+        help="证据重抓取超时时间，默认 30 秒",
     )
     return parser
 
@@ -251,6 +283,28 @@ def main(
     args = parser.parse_args(argv)
     active_registry = registry or built_in_registry()
     collector = SourceCollector(active_registry)
+    if args.command == "validate":
+        if args.schema_out:
+            try:
+                write_schema(Path(args.schema_out))
+            except OSError as error:
+                failure = RunValidation.failed(args.run, f"无法写入 Schema：{error}")
+                print(
+                    json.dumps(failure.as_payload(), ensure_ascii=False, indent=2)
+                )
+                return 1
+        validation_result = validate_run_file(
+            Path(args.run),
+            check_evidence=args.check_evidence,
+            timeout=args.timeout,
+            registry=active_registry,
+        )
+        print(
+            json.dumps(
+                validation_result.as_payload(), ensure_ascii=False, indent=2
+            )
+        )
+        return 0 if validation_result.passed else 1
     if args.command == "collect":
         request = _request_from_namespace(args, parser, None)
         verification_config = _verification_config(args)

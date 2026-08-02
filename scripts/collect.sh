@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd -P)"
 COLLECT_SCRIPT="${PROJECT_ROOT}/scripts/collect.sh"
 LABEL="com.mynews.collect"
 PLIST_LOG_DIR="${PROJECT_ROOT}/logs"
+ACTIVE_LOCK_PATH=""
+ACTIVE_TEMP_PATH=""
 
 PROXY_VARIABLES=(
   HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY
@@ -22,16 +25,17 @@ usage() {
 用法：
   scripts/collect.sh [collect 参数...]
   scripts/collect.sh collect [collect 参数...]
-  scripts/collect.sh render-plist [--output 绝对路径]
-  scripts/collect.sh install
-  scripts/collect.sh status
-  scripts/collect.sh uninstall
+  scripts/collect.sh render-plist [--dry-run] [--output 绝对路径]
+  scripts/collect.sh install [--dry-run]
+  scripts/collect.sh status [--dry-run]
+  scripts/collect.sh uninstall [--dry-run]
 
 说明：
   默认执行 uv run mynews collect，参数会原样安全透传。
   运行目录固定为项目根目录，输出追加到项目 logs/collect.log。
   render-plist 只渲染模板；install、status、uninstall 才会调用 launchctl。
-  launchd 任务固定为 Asia/Shanghai 每日 09:30，脚本不会修改系统时区。
+  四个 launchd 动作都支持 --dry-run；预览不会调用 launchctl，也不会写入或删除文件。
+  launchd 按主机本地时间每日 09:30 触发；采集进程使用 TZ=Asia/Shanghai，脚本不会修改系统时区。
   代理变量仅继承当前环境，不会打印或写入 plist。
 
 示例：
@@ -43,6 +47,48 @@ EOF
 
 error() {
   printf '错误：%s\n' "$*" >&2
+}
+
+release_run_lock() {
+  if [[ -n "$ACTIVE_TEMP_PATH" ]]; then
+    /bin/rm -f -- "$ACTIVE_TEMP_PATH"
+    ACTIVE_TEMP_PATH=""
+  fi
+  if [[ -n "$ACTIVE_LOCK_PATH" ]]; then
+    /bin/rm -f -- "${ACTIVE_LOCK_PATH}/pid"
+    /bin/rmdir -- "$ACTIVE_LOCK_PATH" 2>/dev/null || true
+    ACTIVE_LOCK_PATH=""
+  fi
+}
+
+trap release_run_lock EXIT
+
+acquire_run_lock() {
+  local lock_path="$1" stale_path pid
+  if /bin/mkdir -- "$lock_path" 2>/dev/null; then
+    printf '%s\n' "$$" >"${lock_path}/pid"
+    ACTIVE_LOCK_PATH="$lock_path"
+    return 0
+  fi
+  if [[ -f "${lock_path}/pid" ]]; then
+    pid="$(/bin/cat "${lock_path}/pid" 2>/dev/null || true)"
+    if [[ "$pid" =~ ^[0-9]+$ ]] && /bin/kill -0 "$pid" 2>/dev/null; then
+      error "已有采集任务运行，跳过本次执行：${lock_path}"
+      return 3
+    fi
+    stale_path="${lock_path}.stale.$$"
+    if /bin/mv -- "$lock_path" "$stale_path" 2>/dev/null; then
+      /bin/rm -f -- "${stale_path}/pid"
+      /bin/rmdir -- "$stale_path" 2>/dev/null || true
+      if /bin/mkdir -- "$lock_path" 2>/dev/null; then
+        printf '%s\n' "$$" >"${lock_path}/pid"
+        ACTIVE_LOCK_PATH="$lock_path"
+        return 0
+      fi
+    fi
+  fi
+  error "已有采集任务运行，跳过本次执行：${lock_path}"
+  return 3
 }
 
 require_absolute() {
@@ -119,46 +165,49 @@ redact_line() {
   printf '%s\n' "$line"
 }
 
-redact_file() {
-  local input="$1"
+redact_stream() {
   local line
   while IFS= read -r line || [[ -n "$line" ]]; do
     redact_line "$line"
-  done < "$input"
+  done
 }
 
 run_collect() {
-  local uv_bin log_root log_file output_file redacted_file command_status temp_root
-  uv_bin="$(resolve_uv)"
+  local uv_bin log_root log_file redacted_file command_status filter_status temp_root
+  local lock_path pipeline_status
   log_root="$(log_dir)"
+  /bin/mkdir -p -- "$log_root"
+  lock_path="${log_root}/collect.lock"
+  acquire_run_lock "$lock_path" || return $?
+  uv_bin="$(resolve_uv)"
   temp_root="${TMPDIR:-/tmp}"
   require_absolute TMPDIR "$temp_root" || return $?
   UV_CACHE_DIR="${UV_CACHE_DIR:-${temp_root}/mynews-uv-cache}"
   require_absolute UV_CACHE_DIR "$UV_CACHE_DIR" || return $?
   export UV_CACHE_DIR
   cd -- "$PROJECT_ROOT"
-  /bin/mkdir -p -- "$log_root"
   log_file="${log_root}/collect.log"
-  output_file="$(/usr/bin/mktemp "${temp_root}/mynews-collect.XXXXXX")"
-  redacted_file="${output_file}.redacted"
+  redacted_file="$(/usr/bin/mktemp "${temp_root}/mynews-collect.XXXXXX")"
+  ACTIVE_TEMP_PATH="$redacted_file"
 
   set +e
-  "$uv_bin" run mynews collect "$@" >"$output_file" 2>&1
-  command_status=$?
+  "$uv_bin" run mynews collect "$@" 2>&1 | redact_stream >"$redacted_file"
+  pipeline_status=("${PIPESTATUS[@]}")
   set -e
+  command_status="${pipeline_status[0]}"
+  filter_status="${pipeline_status[1]}"
 
-  if ! redact_file "$output_file" >"$redacted_file"; then
-    /bin/rm -f -- "$output_file" "$redacted_file"
+  if [[ "$filter_status" -ne 0 ]]; then
     error '无法脱敏采集输出'
     return 1
   fi
   if ! /bin/cat "$redacted_file" >>"$log_file"; then
-    /bin/rm -f -- "$output_file" "$redacted_file"
     error "无法写入日志：${log_file}"
     return 1
   fi
   /bin/cat "$redacted_file"
-  /bin/rm -f -- "$output_file" "$redacted_file"
+  /bin/rm -f -- "$redacted_file"
+  ACTIVE_TEMP_PATH=""
   return "$command_status"
 }
 
@@ -258,7 +307,7 @@ render_plist_file() {
 }
 
 render_plist() {
-  local output=""
+  local output="" dry_run=false
   while (($# > 0)); do
     case "$1" in
       --help|-h)
@@ -273,12 +322,24 @@ render_plist() {
         output="$2"
         shift 2
         ;;
+      --dry-run)
+        dry_run=true
+        shift
+        ;;
       *)
         error "render-plist 不支持参数：$1"
         return 2
         ;;
     esac
   done
+  if [[ "$dry_run" == true ]]; then
+    if [[ -n "$output" ]]; then
+      require_absolute render-plist-output "$output"
+      printf 'dry-run：不会写入 plist：%s\n' "$output" >&2
+    fi
+    render_plist_xml
+    return 0
+  fi
   if [[ -n "$output" ]]; then
     require_absolute render-plist-output "$output"
     render_plist_file "$output"
@@ -302,11 +363,26 @@ launchctl_service_absent() {
 }
 
 install_launchd() {
-  local domain launchctl_bin path state
+  local domain launchctl_bin path state dry_run=false
+  if (($# > 0)); then
+    case "$1" in
+      --dry-run) dry_run=true ;;
+      --help|-h) usage; return 0 ;;
+      *) error "install 不支持参数：$1"; return 2 ;;
+    esac
+    if (($# > 1)); then
+      error "install 不支持多个参数"
+      return 2
+    fi
+  fi
   domain="$(launchd_domain)"
   home_dir >/dev/null
-  launchctl_bin="$(resolve_launchctl)"
   path="$(plist_path)"
+  if [[ "$dry_run" == true ]]; then
+    printf 'dry-run：将渲染并加载 %s/%s，不会调用 launchctl\n' "$domain" "$LABEL"
+    return 0
+  fi
+  launchctl_bin="$(resolve_launchctl)"
   render_plist_file "$path"
   if launchctl_state "$launchctl_bin" "$domain"; then
     "$launchctl_bin" bootout "${domain}/${LABEL}"
@@ -322,9 +398,24 @@ install_launchd() {
 }
 
 status_launchd() {
-  local domain launchctl_bin state
+  local domain launchctl_bin state dry_run=false
+  if (($# > 0)); then
+    case "$1" in
+      --dry-run) dry_run=true ;;
+      --help|-h) usage; return 0 ;;
+      *) error "status 不支持参数：$1"; return 2 ;;
+    esac
+    if (($# > 1)); then
+      error "status 不支持多个参数"
+      return 2
+    fi
+  fi
   domain="$(launchd_domain)"
   home_dir >/dev/null
+  if [[ "$dry_run" == true ]]; then
+    printf 'dry-run：将查询 %s/%s，不会调用 launchctl\n' "$domain" "$LABEL"
+    return 0
+  fi
   launchctl_bin="$(resolve_launchctl)"
   if launchctl_state "$launchctl_bin" "$domain"; then
     printf 'launchd 任务已加载：%s/%s\n' "$domain" "$LABEL"
@@ -341,11 +432,27 @@ status_launchd() {
 }
 
 uninstall_launchd() {
-  local domain launchctl_bin path state
+  local domain launchctl_bin path state dry_run=false
+  if (($# > 0)); then
+    case "$1" in
+      --dry-run) dry_run=true ;;
+      --help|-h) usage; return 0 ;;
+      *) error "uninstall 不支持参数：$1"; return 2 ;;
+    esac
+    if (($# > 1)); then
+      error "uninstall 不支持多个参数"
+      return 2
+    fi
+  fi
   domain="$(launchd_domain)"
   home_dir >/dev/null
-  launchctl_bin="$(resolve_launchctl)"
   path="$(plist_path)"
+  if [[ "$dry_run" == true ]]; then
+    printf 'dry-run：将卸载 %s/%s 并删除 %s，不会调用 launchctl\n' \
+      "$domain" "$LABEL" "$path"
+    return 0
+  fi
+  launchctl_bin="$(resolve_launchctl)"
   if launchctl_state "$launchctl_bin" "$domain"; then
     "$launchctl_bin" bootout "${domain}/${LABEL}"
   else
@@ -378,27 +485,15 @@ main() {
       ;;
     install)
       shift
-      if (($# > 0)); then
-        error "install 不接受参数：$1"
-        return 2
-      fi
-      install_launchd
+      install_launchd "$@"
       ;;
     status)
       shift
-      if (($# > 0)); then
-        error "status 不接受参数：$1"
-        return 2
-      fi
-      status_launchd
+      status_launchd "$@"
       ;;
     uninstall)
       shift
-      if (($# > 0)); then
-        error "uninstall 不接受参数：$1"
-        return 2
-      fi
-      uninstall_launchd
+      uninstall_launchd "$@"
       ;;
     *)
       run_collect "$@"

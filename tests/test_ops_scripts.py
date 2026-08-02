@@ -98,7 +98,48 @@ exit "${FAKE_UV_EXIT:-0}"
     assert "[REDACTED_SECRET]" in log_text
 
 
-def test_rendered_plist_is_absolute_and_scheduled_at_beijing_0930(
+def test_collect_skips_when_another_run_holds_the_lock(tmp_path: Path) -> None:
+    uv = _write_executable(
+        tmp_path / "fake-uv",
+        "touch \"$FAKE_UV_CALLED\"\nexit 0",
+    )
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    (log_dir / "collect.lock").mkdir()
+    called = tmp_path / "uv-called"
+
+    result = _run_script(
+        tmp_path,
+        "--days",
+        "7",
+        uv=uv,
+        extra_env={"FAKE_UV_CALLED": str(called)},
+    )
+
+    assert result.returncode == 3
+    assert "已有采集任务运行" in result.stderr
+    assert not called.exists()
+
+
+def test_collect_recovers_a_stale_lock(tmp_path: Path) -> None:
+    uv = _write_executable(
+        tmp_path / "fake-uv",
+        "printf 'recovered=true\\n'\\nexit 0",
+    )
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    stale_lock = log_dir / "collect.lock"
+    stale_lock.mkdir()
+    (stale_lock / "pid").write_text("999999", encoding="utf-8")
+
+    result = _run_script(tmp_path, "--days", "7", uv=uv)
+
+    assert result.returncode == 0
+    assert "recovered=true" in result.stdout
+    assert not stale_lock.exists()
+
+
+def test_rendered_plist_is_absolute_and_scheduled_at_local_0930(
     tmp_path: Path,
 ) -> None:
     plist = tmp_path / "home" / "Library" / "LaunchAgents" / "com.mynews.collect.plist"
@@ -188,6 +229,35 @@ esac
     assert "print gui/501/com.mynews.collect" in call_text
     assert "bootstrap gui/501 " in call_text
     assert "bootout gui/501/com.mynews.collect" in call_text
+
+
+@pytest.mark.parametrize("action", ["render-plist", "install", "status", "uninstall"])
+def test_launchd_dry_run_does_not_change_state_or_call_launchctl(
+    tmp_path: Path, action: str
+) -> None:
+    state = tmp_path / "launchd-state"
+    calls = tmp_path / "launchctl-calls"
+    launchctl = _write_executable(
+        tmp_path / "fake-launchctl",
+        "printf '%s\\n' \"$*\" >> \"$FAKE_LAUNCHCTL_CALLS\"\nexit 99",
+    )
+    environment = {
+        "FAKE_LAUNCHCTL_STATE": str(state),
+        "FAKE_LAUNCHCTL_CALLS": str(calls),
+    }
+    arguments = [action, "--dry-run"]
+    if action == "render-plist":
+        arguments += ["--output", str(tmp_path / "rendered.plist")]
+
+    result = _run_script(
+        tmp_path, *arguments, launchctl=launchctl, extra_env=environment
+    )
+
+    assert result.returncode == 0
+    assert "dry-run" in result.stdout + result.stderr
+    assert not calls.exists()
+    assert not state.exists()
+    assert not (tmp_path / "rendered.plist").exists()
 
 
 def test_collect_does_not_call_launchctl_implicitly(tmp_path: Path) -> None:

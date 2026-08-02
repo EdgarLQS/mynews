@@ -22,7 +22,7 @@ v1 成功要求：
 - 所有候选落盘；只有第一方证据通过程序复核的条目可标为 `verified`。
 - 每次运行写独立 JSON，历史不覆盖；失败不得污染 `latest.json`。
 - 所有来源可以单独 `probe`，实验来源失败不得伪装为正常。
-- 提供每天北京时间 09:30 的 launchd 安装脚本，但不自动安装。
+- 提供每天主机本地时间 09:30 的 launchd 安装脚本；采集进程使用 `TZ=Asia/Shanghai`，但不自动安装或修改系统时区。
 - 首次真实验收完成过去七天收集。
 
 ## v1 范围
@@ -251,7 +251,8 @@ Codex 提示要求返回逐字连续原文，不接受改写或归因性转述�
 
 - [x] `scripts/collect.sh` 固定项目 cwd、绝对 uv、代理继承和日志位置；参数使用数组安全透传，常见密钥和代理值不写入日志。
 - [x] 提供中文 help、launchd plist 渲染、安装、状态和卸载动作；label 固定为 `com.mynews.collect`，
-  `Asia/Shanghai` 每日 09:30，操作幂等；测试使用临时 HOME 和 Fake launchctl，不自动安装、不调用真实 launchctl、不修改系统时区。
+  主机本地时间每日 09:30（采集进程使用 `TZ=Asia/Shanghai`），操作幂等；四个动作支持 `--dry-run`，采集脚本使用绝对路径、互斥锁和安全日志；测试使用临时 HOME 和 Fake launchctl，不自动安装、不调用真实 launchctl、不修改系统时区。
+- [x] 提供 `mynews validate`，使用同源 RunReport/JSON Schema 校验；显式 `--check-evidence` 时逐条重抓并复核已保存的 `verified` 第一方证据。
 - [x] 执行隔离临时目录中的真实 `collect --days 7`，检查 Schema、12 个来源覆盖、35 条事件无重复、
   OpenAI/DeepSeek 价格快照和 5 条 verified 第一方证据。
 
@@ -259,8 +260,8 @@ Codex 提示要求返回逐字连续原文，不接受改写或归因性转述�
 
 #### 阶段 5 实现与真实回溯记录（2026-08-02）
 
-阶段 5 代码验证为 `Implemented`，运行数据均写入隔离 `/tmp` 目录，没有进入仓库。受影响测试 45
-passed；全量测试 107 passed。Fake launchctl 安装/状态/卸载幂等性、中文 help、参数/代理透传和
+阶段 5 代码验证为 `Implemented`，运行数据均写入隔离 `/tmp` 目录，没有进入仓库。受影响测试 31
+passed；全量测试 119 passed。Fake launchctl 安装/状态/卸载幂等性、中文 help、参数/代理透传和
 HTML 摘录回归测试通过；plist 渲染结果通过 `/usr/bin/plutil -lint`。全量真实回溯结果为
 `status=partial`、退出码 3：12 个来源
 均有结果，稳定来源中 CC Switch 为 `blocked/http_403`，知乎为 `blocked/http_403`，Bloomberg 为
@@ -284,6 +285,32 @@ passed，文档检查、ruff 和 mypy 均通过。
 摘录、日期字段和可见正文哈希均通过；新增 Google Gemini 来源再次完成真实 Codex
 `codex_primary_evidence` 核验。真实 launchd 仍未安装或调用。
 
+#### 阶段 5 发布收口实施补充（2026-08-02）
+
+本轮在与 origin/main 一致的干净基线创建 codex/v1-phase5-release-readiness，补齐了采集
+互斥锁、四个 launchd 动作的 --dry-run 和发布前 mynews validate 命令。新增命令默认只做离线
+RunReport/同源 Schema/verified 结构校验；--check-evidence 才执行真实网络重抓。当前状态仍为
+Implemented，独立 v1 验收和真实 launchd 加载继续待执行；本轮不自动安装、不修改系统时区、不记录密钥，
+运行数据只写临时输出目录。
+
+本轮真实实施门禁记录（2026-08-02）：
+
+- 新增 DeepSeek/Google Gemini 来源执行真实 `collect --days 7`，两者均 `healthy`，各 1 条候选、
+  `verified_count=2`，退出码 0；`mynews validate --check-evidence` 对 2 条证据逐条重抓通过。
+- 强制 Google Gemini 候选进入真实 `SubprocessCodexRunner` 分支时，首次按默认 30 秒超时返回
+  `unverified/codex_timeout`；仅为冷启动重试注入 120 秒后返回 `verified/codex_primary_evidence`，
+  程序二次校验 `reachable/official_domain/excerpt_matched=true`，没有放宽官方域名、日期或摘录规则。
+- 全量临时回溯第一轮 `status=partial`、退出码 3，12/12 来源有结果，8 个稳定新闻/价格入口
+  `healthy`，知乎 `blocked/http_403`、Bloomberg `blocked/public_metadata_unavailable`；
+  44 条唯一事件、5 条 verified、2 个价格快照。第二轮同样 `partial`、退出码 3，44 条候选中
+  43 条跨运行去重，1 条为滚动 `--days 7` 窗口内新出现事件；`state/dedup.json` 共 45 个事件键，
+  历史 run 2 个，`latest.json` 和首轮 RunReport Schema 均通过，5 条 verified 证据逐条复核通过。
+- 为验证严格相同窗口，又在同一临时目录重复执行两次
+  `mynews collect --from 2026-07-27 --to 2026-08-02`：两次均 `partial`、退出码 3；首轮 35 条事件、
+  次轮 35 条全部跨运行去重（`item_count=0`、`deduplicated_count=35`），`state/dedup.json` 保留
+  35 个事件键、2 个历史 run 和 2 个价格快照；首轮 5 条 verified 证据的 `--check-evidence` 复核通过。
+- 上述为本轮开发验证证据；真实 launchd 未加载，v1 状态保持 `Implemented`，独立验收仍待执行。
+
 ## 命令与语义
 
 ```bash
@@ -294,6 +321,8 @@ uv run mynews collect --date 2026-08-02
 uv run mynews collect --from 2026-07-27 --to 2026-08-02
 uv run mynews probe
 uv run mynews probe --source hacker-news
+uv run mynews validate --run output/latest.json --schema-out /tmp/mynews-run-report.schema.json
+uv run mynews validate --run output/latest.json --check-evidence
 ./scripts/collect.sh --help
 ```
 
@@ -301,6 +330,7 @@ uv run mynews probe --source hacker-news
 - 日期时区：`Asia/Shanghai`。
 - 日期选择器互斥；`--from` 与 `--to` 必须同时提供。
 - 退出码：`0` 完整成功，`3` 有可用 JSON 但部分失败，`1` 致命失败，`2` 参数错误。
+- `scripts/collect.sh` 在已有 `logs/collect.lock` 时跳过重叠采集并返回 `3`；底层 `collect` 退出码原样保留。
 
 ## 验证命令
 

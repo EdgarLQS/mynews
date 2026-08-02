@@ -25,6 +25,7 @@ owner: project-maintainers
 | CLI-02 | CLI | 默认最近 24 小时收集 | Implemented | 日期边界 + 流水线测试 |
 | CLI-03 | CLI | `--days`、`--date`、`--from/--to` 参数契约与时区校验 | Implemented | 日期参数测试 |
 | CLI-04 | CLI | 结构化退出码 0/1/2/3 | Implemented | 来源状态与流水线测试 |
+| CLI-05 | CLI | RunReport/Schema/verified 证据校验命令 | Implemented | `mynews validate`；离线 Schema/结构检查与可选逐条重抓 |
 | SRC-01 | 来源 | Hacker News 官方 API | Verified | fixture + `uv run mynews probe --source hacker-news` |
 | SRC-02 | 来源 | 官方 RSS/Atom/API、GitHub Release 与官方 HTML 更新页 | Implemented | Qwen RSS、CC Switch Release、OpenAI/Anthropic/Gemini/DeepSeek/TRAE fixtures 与 Adapter 测试 |
 | SRC-03 | 来源 | 官方价格页和更新日志监控 | Implemented | OpenAI API Pricing、DeepSeek 模型与价格页；首观快照、规范化差异与 `pricing_change` 测试 |
@@ -42,7 +43,7 @@ owner: project-maintainers
 | DATA-02 | 数据 | latest 原子更新和失败保护 | Implemented | 原子写入与 failed 保护测试 |
 | DATA-03 | 数据 | 去重状态与价格快照 JSON | Implemented | 重启恢复与 first_observed_at 测试 |
 | OPS-01 | 运维 | 已注册内置来源 `probe` | Implemented | 12 个 built-in 来源均可单独选择；健康、blocked、failed 证据见阶段 4.5 记录 |
-| OPS-02 | 运维 | 09:30 launchd 安装脚本 | Implemented | `scripts/collect.sh render-plist/install/status/uninstall`；Fake launchctl 幂等测试与 `plutil -lint`；真实 launchd 未加载 |
+| OPS-02 | 运维 | 主机本地 09:30 launchd 安装脚本 | Implemented | `scripts/collect.sh render-plist/install/status/uninstall --dry-run`；采集进程使用 `TZ=Asia/Shanghai`；互斥、Fake launchctl 幂等测试与 `plutil -lint`；真实 launchd 未加载 |
 | EXT-01 | 扩展 | built-in SourcePlugin registry | Implemented | registry 隔离、重复 ID 和选择测试 |
 | EXT-02 | 扩展 | 仓库外 Python entry-point 插件 | Future | 后续 ADR |
 | EXT-03 | 扩展 | 其他核验器 Adapter | Future | 后续需求 |
