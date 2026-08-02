@@ -4,9 +4,18 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from mynews.application.collector import PipelineCollector
-from mynews.domain.models import Candidate, CollectionRequest, SourceError
+from mynews.domain.models import (
+    Candidate,
+    CollectionRequest,
+    Evidence,
+    EvidenceValidation,
+    SourceError,
+)
+from mynews.domain.normalization import Normalizer
 from mynews.sources.protocol import SourceCollection, SourceHealth
 from mynews.storage.json_store import JsonNewsStore
+from mynews.verification.fake import FakeVerifier
+from mynews.verification.protocol import VerificationConfig, VerificationDecision
 
 
 class SequenceClock:
@@ -76,6 +85,7 @@ def test_pipeline_collects_normalizes_stores_and_never_verifies(
         FakeRegistry((health(),)),
         JsonNewsStore(tmp_path),
         clock=SequenceClock([now, now + timedelta(seconds=1)]),
+        verifier=FakeVerifier(),
     )
 
     report = collector.collect(request())
@@ -88,6 +98,50 @@ def test_pipeline_collects_normalizes_stores_and_never_verifies(
     assert (tmp_path / "output/latest.json").exists()
 
 
+def test_pipeline_applies_fake_verifier_and_injects_configured_budget(
+    tmp_path: Path,
+) -> None:
+    now = datetime(2026, 8, 2, 9, 30, tzinfo=UTC)
+    candidate = Candidate(
+        source_id="fixture",
+        title_original="Qwen update",
+        url="https://example.test/item",
+        published_at=datetime(2026, 8, 2, 1, 0, tzinfo=UTC),
+        excerpt="A factual update",
+    )
+    item = Normalizer(source_roles={"fixture": "primary"}).normalize(
+        [candidate], observed_at=now
+    )[0]
+    evidence = Evidence(
+        url="https://example.test/item",
+        publisher="Fixture",
+        title="Qwen update",
+        published_at=candidate.published_at,
+        retrieved_at=now,
+        excerpt="A factual update",
+        content_hash=item.content_hash,
+        validation=EvidenceValidation(
+            reachable=True, official_domain=True, excerpt_matched=True
+        ),
+    )
+    verifier = FakeVerifier(
+        {item.event_key: VerificationDecision.verified(item.event_key, evidence)}
+    )
+
+    report = PipelineCollector(
+        FakeRegistry((health(),)),
+        JsonNewsStore(tmp_path),
+        clock=SequenceClock([now, now + timedelta(seconds=1)]),
+        verifier=verifier,
+        verification_config=VerificationConfig(budget=7),
+    ).collect(request())
+
+    assert report.items[0].verification_status == "verified"
+    assert report.stats["verified_count"] == 1
+    assert report.stats["unverified_count"] == 0
+    assert report.requested_range.verification_budget == 7
+
+
 def test_pipeline_partial_is_stored_but_all_failed_does_not_replace_latest(
     tmp_path: Path,
 ) -> None:
@@ -97,6 +151,7 @@ def test_pipeline_partial_is_stored_but_all_failed_does_not_replace_latest(
         FakeRegistry((health(),)),
         store,
         clock=SequenceClock([now, now + timedelta(seconds=1)]),
+        verifier=FakeVerifier(),
     ).collect(request())
     latest_before = (tmp_path / "output/latest.json").read_bytes()
 
@@ -106,6 +161,7 @@ def test_pipeline_partial_is_stored_but_all_failed_does_not_replace_latest(
         clock=SequenceClock(
             [now + timedelta(days=1), now + timedelta(days=1, seconds=1)]
         ),
+        verifier=FakeVerifier(),
     ).collect(request())
 
     assert complete.status == "complete"
@@ -121,6 +177,7 @@ def test_pipeline_keeps_usable_items_when_one_source_is_partial(
         FakeRegistry((health("healthy", "good"), health("failed", "bad"))),
         JsonNewsStore(tmp_path),
         clock=SequenceClock([now, now + timedelta(seconds=1)]),
+        verifier=FakeVerifier(),
     ).collect(request())
 
     assert report.status == "partial"
@@ -137,11 +194,13 @@ def test_pipeline_recovers_dedup_state_across_runs(tmp_path: Path) -> None:
         FakeRegistry((health(),)),
         store,
         clock=SequenceClock([first_now, first_now + timedelta(seconds=1)]),
+        verifier=FakeVerifier(),
     ).collect(request())
     second = PipelineCollector(
         FakeRegistry((health(),)),
         store,
         clock=SequenceClock([second_now, second_now + timedelta(seconds=1)]),
+        verifier=FakeVerifier(),
     ).collect(request())
 
     assert len(first.items) == 1

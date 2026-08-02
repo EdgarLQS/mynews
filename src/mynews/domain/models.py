@@ -29,7 +29,7 @@ class CollectionRequest(ContractModel):
     to: datetime
     timezone: str = "Asia/Shanghai"
     source_ids: list[str] = Field(default_factory=list)
-    verification_budget: int = Field(default=30, ge=0)
+    verification_budget: int | None = Field(default=None, ge=0)
 
     @field_validator("from_", "to")
     @classmethod
@@ -238,4 +238,6 @@ class RunReport(ContractModel):
     def require_forward_run_time(self) -> RunReport:
         if self.started_at > self.finished_at:
             raise ValueError("运行开始时间不能晚于结束时间")
+        if self.requested_range.verification_budget is None:
+            raise ValueError("RunReport 必须记录实际核验预算")
         return self

@@ -174,6 +174,22 @@ live probe 输出中的 `fetched_count` 是探测窗口内实际读取的条目�
 
 验收：伪造子域名、媒体转述、搜索摘要和坏 JSON 不能进入 verified。
 
+#### 阶段 4 实现与离线验证记录（2026-08-02）
+
+结论：Implemented。EvidenceVerifier、FakeVerifier 和 CodexVerifier 已接入
+PipelineCollector；模型、预算、批大小和超时由 VerificationConfig 注入，计划默认模型
+为 gpt-5.6-luna、预算为 30，默认值不写入领域层。Codex 子进程使用 ephemeral、
+read-only、shell=False 和超时；Codex 只能产生结构化建议，程序重新抓取并检查最终 URL、
+精确官方域名/GitHub 组织、摘录、日期和规范化正文哈希。
+
+离线测试覆盖官方直验、预算/批次、坏 JSON、不可访问、伪造子域名、媒体 URL、异常重定向、
+摘录/日期/哈希不匹配和流水线 verified_count；离线测试只能证明 Implemented，不代表
+真实 Codex 可用。
+
+真实 Codex smoke（2026-08-02）已使用默认模型和 1 条候选执行，Codex CLI 与严格结构化
+输出 schema 调用成功，但返回空建议；程序结果为 unverified、原因 codex_no_suggestion。
+因此本次仅证明真实调用失败安全，G6-V 仍未完成，不能将阶段 4 标记为 Verified。
+
 ### 阶段 5：脚本、定时模板与真实验收
 
 - `scripts/collect.sh` 固定 cwd、uv、代理继承和日志位置。

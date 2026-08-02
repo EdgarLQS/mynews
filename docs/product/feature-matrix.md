@@ -34,9 +34,9 @@ owner: project-maintainers
 | SRC-07 | 来源 | CC Switch 官方 Changelog 新功能监控 | Verified | fixture；05:03 probe healthy、退出码 0；04:57 曾短暂 HTTP 403 blocked |
 | PIPE-01 | 处理 | 规范化、相关性、热度分离 | Implemented | Normalizer 领域测试 |
 | PIPE-02 | 处理 | 跨来源、跨日期、跨运行去重 | Implemented | 批内与跨运行状态恢复测试 |
-| VER-01 | 核验 | 第一方官方证据直接核验 | Planned | 证据策略测试 |
-| VER-02 | 核验 | 可配置 Codex Verifier 与单次候选预算 | Planned | Fake + live smoke |
-| VER-03 | 核验 | URL、域名、摘录二次校验 | Planned | 伪造来源测试 |
+| VER-01 | 核验 | 第一方官方证据直接核验 | Implemented | 官方直验测试；真实 Codex 另行验收 |
+| VER-02 | 核验 | 可配置 Codex Verifier 与单次候选预算 | Implemented | Fake + 批次/预算测试；真实 smoke 另行验收 |
+| VER-03 | 核验 | URL、域名、摘录二次校验 | Implemented | 伪造来源、重定向、日期和哈希测试 |
 | DATA-00 | 数据 | Pydantic v1 领域模型与 JSON Schema 兼容契约 | Implemented | `uv run pytest tests/test_models.py` |
 | DATA-01 | 数据 | 每次运行独立 JSON | Implemented | JSON Store 追加运行测试 |
 | DATA-02 | 数据 | latest 原子更新和失败保护 | Implemented | 原子写入与 failed 保护测试 |

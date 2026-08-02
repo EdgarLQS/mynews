@@ -175,6 +175,7 @@ class CcSwitchSourcePlugin:
         role="primary",
         homepage=CC_SWITCH_CHANGELOG_BASE,
         official_domains=("ccswitch.io", "github.com"),
+        official_github_organizations=("farion1231",),
         capabilities=("github-release", "changelog"),
         stability="adapter-planned",
         publication_time_semantics="github-published-at",

@@ -3,7 +3,7 @@ title: ADR-0001 严格第一方证据与模块 seam
 doc_type: adr
 status: current
 decision_status: accepted
-implementation_status: proposed
+implementation_status: implemented
 version: 1.0
 created: 2026-08-02
 updated: 2026-08-02
@@ -48,4 +48,5 @@ owner: project-maintainers
 
 ## 实现与验证
 
-当前为 Proposed。完成 [v1 实施计划](../planning/v1-implementation-plan.md) 中的来源契约、伪造来源测试和七天真实验收后，才能更新为 Verified。
+阶段 4 的离线实现和伪造来源测试已完成，当前为 Implemented；真实 Codex 和七天回溯仍需按
+[v1 实施计划](../planning/v1-implementation-plan.md) 的独立门禁验收后才能更新为 Verified。

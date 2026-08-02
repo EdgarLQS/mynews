@@ -32,6 +32,7 @@ class HttpResponse:
     headers: Mapping[str, str]
     body: bytes
     from_cache: bool = False
+    final_url: str | None = None
 
     def text(self, encoding: str | None = None) -> str:
         selected = encoding or _charset_from_headers(self.headers) or "utf-8"
@@ -111,8 +112,21 @@ class SharedHttpClient:
         )
         cached = self._cached(url)
         if response.status_code == 304 and cached is not None:
-            return HttpResponse(200, cached.headers, cached.body, from_cache=True)
+            return HttpResponse(
+                200,
+                cached.headers,
+                cached.body,
+                from_cache=True,
+                final_url=cached.final_url or url,
+            )
         if 200 <= response.status_code < 300:
+            response = response if response.final_url else HttpResponse(
+                response.status_code,
+                response.headers,
+                response.body,
+                response.from_cache,
+                url,
+            )
             self._save_cache(url, response)
             return response
         raise _http_status_error(response)
@@ -195,6 +209,7 @@ def _urlopen_transport(
                 status_code=response.status,
                 headers=dict(response.headers.items()),
                 body=response.read(),
+                final_url=response.geturl(),
             )
     except HTTPError as error:
         return HttpResponse(
