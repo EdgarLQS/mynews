@@ -11,7 +11,8 @@ owner: project-maintainers
 
 # mynews 功能矩阵
 
-本表是产品范围和实现状态的唯一真相来源。运行时 v1 能力仍为 Planned；文档治理和 AI 验收入口已经落地。
+本表是产品范围和实现状态的唯一真相来源。完整 v1 运行时仍为 Planned；阶段 2 已落地的
+来源与 registry 能力按行记录为 Implemented/Verified，文档治理和 AI 验收入口已经落地。
 
 状态：`Planned`、`In progress`、`Implemented`、`Verified`、`Future`、`Out`。
 

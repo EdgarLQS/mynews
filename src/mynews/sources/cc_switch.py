@@ -208,6 +208,7 @@ class CcSwitchSourcePlugin:
             role=self.metadata.role,
             fetched_count=len(candidates),
             accepted_count=len(candidates),
+            checked_at=context.clock.now(),
         )
 
 

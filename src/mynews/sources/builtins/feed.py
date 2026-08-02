@@ -46,12 +46,16 @@ class RssFeedPlugin:
 
     def probe(self, context: ProbeContext) -> SourceHealth:
         entries = self._entries(context.http.get_text(self.feed_url))
-        count = min(len(entries), context.limit)
+        selected = entries[: context.limit]
+        for entry in selected:
+            _candidate_from_entry(entry, self.metadata, self.feed_url)
+        count = len(selected)
         return SourceHealth.healthy_result(
             source_id=self.metadata.source_id,
             role=self.metadata.role,
             fetched_count=count,
             accepted_count=count,
+            checked_at=context.clock.now(),
         )
 
     @staticmethod

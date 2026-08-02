@@ -56,3 +56,13 @@ def test_qwen_feed_probe_reports_feed_entry_count() -> None:
 def test_qwen_feed_rejects_malformed_xml() -> None:
     with pytest.raises(SourcePluginError, match="有效 XML"):
         QwenFeedPlugin().probe(ProbeContext(http=FixtureHttp("<broken>")))
+
+
+def test_qwen_feed_probe_rejects_invalid_entry() -> None:
+    payload = FIXTURE.read_text(encoding="utf-8").replace(
+        "https://qwenlm.github.io/blog/official-update/",
+        "https://example.test/not-official/",
+    )
+
+    with pytest.raises(SourcePluginError, match="官方标题或链接"):
+        QwenFeedPlugin().probe(ProbeContext(http=FixtureHttp(payload)))

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Literal, Protocol, runtime_checkable
 
 from pydantic import Field, field_validator, model_validator
@@ -93,7 +93,7 @@ class SourceHealth(ContractModel):
     fetched_count: int = Field(ge=0)
     accepted_count: int = Field(ge=0)
     duration_ms: int = Field(ge=0)
-    checked_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    checked_at: datetime
     error: SourceError | None = None
 
     @field_validator("checked_at")
@@ -117,6 +117,7 @@ class SourceHealth(ContractModel):
         role: str,
         fetched_count: int,
         accepted_count: int,
+        checked_at: datetime,
         duration_ms: int = 0,
     ) -> SourceHealth:
         return cls(
@@ -126,6 +127,7 @@ class SourceHealth(ContractModel):
             fetched_count=fetched_count,
             accepted_count=accepted_count,
             duration_ms=duration_ms,
+            checked_at=checked_at,
         )
 
 

@@ -70,6 +70,7 @@ class HackerNewsPlugin:
                 role=self.metadata.role,
                 fetched_count=0,
                 accepted_count=0,
+                checked_at=context.clock.now(),
             )
         story_id = selected_ids[0]
         raw_item = context.http.get_json(HN_ITEM_URL.format(item_id=story_id))
@@ -81,6 +82,7 @@ class HackerNewsPlugin:
             role=self.metadata.role,
             fetched_count=1,
             accepted_count=1,
+            checked_at=context.clock.now(),
         )
 
 

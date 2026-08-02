@@ -40,7 +40,7 @@ flowchart LR
 
 | Module | Interface | 隐藏的实现复杂度 |
 | --- | --- | --- |
-| Collector | `collect(request) -> RunReport` | 来源并发、降级、归并、核验、提交 |
+| Collector | 阶段 2 `SourceCollector.collect(request) -> SourceCollection`；阶段 3+ `collect(request) -> RunReport` | 阶段 2 原始来源编排；后续规范化、降级、归并、核验、提交 |
 | SourceRegistry | `collect_all(context) -> SourceCollection`、`probe(...)` | 插件发现、隔离、超时和状态汇总 |
 | Normalizer | `normalize(batch) -> CandidateSet` | URL、日期、语言、事件键和去重 |
 | EvidenceVerifier | `verify(candidates) -> VerificationBatch` | Codex 批次、Schema、超时、证据匹配 |
