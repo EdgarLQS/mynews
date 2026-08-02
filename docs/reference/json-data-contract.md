@@ -83,6 +83,34 @@ state/
 
 `health` 为 `healthy`、`degraded`、`blocked` 或 `failed`。错误使用稳定 `code` 和可读 `message`，不得只保存堆栈。
 
+## 阶段 2 CLI 原始采集输出
+
+`mynews probe` 和 `mynews collect` 在阶段 2 已接入内置来源，但尚未进入阶段 3 的
+`RunReport`/JSON Store。它们输出临时 JSON 对象：
+
+```json
+{
+  "status": "complete",
+  "sources": [
+    {
+      "source_id": "qwen",
+      "role": "primary",
+      "health": "healthy",
+      "fetched_count": 1,
+      "accepted_count": 1,
+      "duration_ms": 20,
+      "checked_at": "2026-08-02T04:00:00Z",
+      "error": null
+    }
+  ],
+  "candidates": []
+}
+```
+
+`probe` 省略 `candidates`，`collect` 只增加来源 Adapter 的原始 `candidates`；两者都不
+生成 `run_id`、事件键、去重状态、`latest.json` 或 `verified` 证据。非 healthy 来源必须
+包含 `error.code` 和 `error.message`，单个来源失败不会吞掉其他来源。
+
 ## NewsItem
 
 ```json

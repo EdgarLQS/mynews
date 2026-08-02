@@ -24,13 +24,13 @@ owner: project-maintainers
 | CLI-02 | CLI | 默认最近 24 小时收集 | Planned | 日期边界测试 |
 | CLI-03 | CLI | `--days`、`--date`、`--from/--to` 参数契约与时区校验 | Implemented | 日期参数测试 |
 | CLI-04 | CLI | 结构化退出码 0/1/2/3 | Planned | 端到端测试 |
-| SRC-01 | 来源 | Hacker News 官方 API | Planned | fixture + live probe |
-| SRC-02 | 来源 | 官方 RSS/Atom/API 与 GitHub Release | Planned | Adapter 契约测试 |
+| SRC-01 | 来源 | Hacker News 官方 API | Verified | fixture + `uv run mynews probe --source hacker-news` |
+| SRC-02 | 来源 | 官方 RSS/Atom/API 与 GitHub Release | Implemented | Qwen RSS、CC Switch Release 和共享 Adapter 契约测试 |
 | SRC-03 | 来源 | 官方价格页和更新日志监控 | Planned | 快照差异测试 |
 | SRC-04 | 来源 | 知乎热榜实验 Adapter | Planned | live probe，可 blocked |
 | SRC-05 | 来源 | Bloomberg 实验 Adapter | Planned | live probe，可 blocked |
 | SRC-06 | 来源 | 国内外 AI 与重点科技官方来源 | Planned | 来源目录逐项 probe |
-| SRC-07 | 来源 | CC Switch 官方 Changelog 新功能监控 | In progress | `tests/test_cc_switch.py` fixture；live probe 待阶段 2 |
+| SRC-07 | 来源 | CC Switch 官方 Changelog 新功能监控 | Verified | fixture + `uv run mynews probe --source cc-switch` |
 | PIPE-01 | 处理 | 规范化、相关性、热度分离 | Planned | 领域测试 |
 | PIPE-02 | 处理 | 跨来源、跨日期、跨运行去重 | Planned | 一日/七日测试 |
 | VER-01 | 核验 | 第一方官方证据直接核验 | Planned | 证据策略测试 |
@@ -40,9 +40,9 @@ owner: project-maintainers
 | DATA-01 | 数据 | 每次运行独立 JSON | Planned | JSON Schema 测试 |
 | DATA-02 | 数据 | latest 原子更新和失败保护 | Planned | 文件系统测试 |
 | DATA-03 | 数据 | 去重状态与价格快照 JSON | Planned | 重启恢复测试 |
-| OPS-01 | 运维 | 所有来源 `probe` | Planned | live probe |
+| OPS-01 | 运维 | 已注册内置来源 `probe` | Verified | 三项 `probe --source` 均 healthy；目录中的未接入来源仍为 Planned |
 | OPS-02 | 运维 | 09:30 launchd 安装脚本 | Planned | `plutil -lint` |
-| EXT-01 | 扩展 | built-in SourcePlugin registry | Planned | 插件契约测试 |
+| EXT-01 | 扩展 | built-in SourcePlugin registry | Implemented | registry 隔离、重复 ID 和选择测试 |
 | EXT-02 | 扩展 | 仓库外 Python entry-point 插件 | Future | 后续 ADR |
 | EXT-03 | 扩展 | 其他核验器 Adapter | Future | 后续需求 |
 | UI-01 | 产品 | Web/桌面 UI | Out | 不属于 v1 |

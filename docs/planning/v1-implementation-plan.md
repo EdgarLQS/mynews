@@ -109,8 +109,25 @@ G5、G6-S、G6-V、G7：本阶段没有执行；真实来源、Codex、存储和
 - 实现 `probe` 和来源健康状态。
 - 所有响应设置超时、有限重试、User-Agent、并发上限和缓存头。
 
-当前进展：CC Switch 已完成独立的离线 Release “新功能”解析 Adapter 和 v3.19.1 fixture；
-SourcePlugin registry、共享 HTTP client、CLI 接线和真实 probe 尚未完成，因此该来源仍为 `In progress`，不能标记为 Verified。
+当前进展：阶段 2 的第一批稳定机器来源已完成：CC Switch 官方 GitHub Release、Hacker News
+官方 API 和 Qwen 官方 RSS 均有独立 fixture、SourcePlugin 接线、结构化健康状态和真实
+`probe --source` 证据。来源专用网页、其他未给出明确官方机器入口的来源，以及阶段 3/4
+能力仍未实现。
+
+#### 阶段 2 实现与真实 probe 记录（2026-08-02）
+
+结论：`Implemented`；三个内置来源的 live probe 为 `Verified`。本阶段只输出原始候选和
+健康快照，不执行阶段 3 的规范化、去重、JSON Store，也不执行阶段 4 的第一方核验。
+
+| 门禁 | 实际命令/检查 | 结果 |
+| --- | --- | --- |
+| 离线 Adapter | `UV_CACHE_DIR=/tmp/mynews-uv-cache uv run pytest tests/test_cc_switch.py tests/test_http_client.py tests/test_sources.py tests/test_hacker_news.py tests/test_feed.py tests/test_cli_sources.py -q` | PASS；29 passed |
+| 共享 HTTP/类型 | `uv run ruff check src tests`；`uv run mypy src` | PASS |
+| CC Switch | `uv run mynews probe --source cc-switch` | Verified；healthy，退出码 0 |
+| Hacker News | `uv run mynews probe --source hacker-news` | Verified；healthy，退出码 0 |
+| Qwen RSS | `uv run mynews probe --source qwen` | Verified；healthy，退出码 0 |
+
+live probe 输出中的 `fetched_count` 是探测窗口内实际读取的条目数，不是新闻真实性结论。
 
 验收：每个 Adapter 有离线 fixture；实时 probe 如实给出状态。
 
@@ -168,7 +185,8 @@ uv run mypy src
 git diff --check
 ```
 
-真实网络 probe 和七天回溯是独立验收门槛，不得用离线测试通过代替。
+真实网络 probe 和七天回溯是独立验收门槛，不得用离线测试通过代替；本轮仅完成阶段 2
+内置来源 probe，七天回溯留给阶段 5/后续流水线。
 每个阶段开发完成后，按 [项目验收规则](../testing/acceptance-rules.md) 选择门禁并输出独立验收结论。
 
 ## 文档联动

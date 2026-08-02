@@ -2,7 +2,7 @@
 title: mynews 系统架构与代码结构
 doc_type: architecture
 status: current
-implementation_status: proposed
+implementation_status: in_progress
 version: 1.0
 created: 2026-08-02
 updated: 2026-08-02
@@ -82,6 +82,17 @@ class SourcePlugin(Protocol):
 - 插件 fixture 测试与真实 probe 使用同一个 interface。
 
 ## 插件扩展策略
+
+### 阶段 2 已实现的来源 seam
+
+- `src/mynews/sources/protocol.py` 定义 `SourcePlugin`、`SourceContext`、`ProbeContext`、
+  `SourceBatch` 和 `SourceHealth`；领域候选仍使用阶段 1 的 `Candidate`，不引入 Store 或核验依赖。
+- `src/mynews/sources/registry.py` 只加载显式 built-in 插件，检查重复 ID，按 `--source` 选择，
+  并在并发执行时将单个 Adapter 异常转换为自身的结构化健康错误。
+- `src/mynews/infrastructure/http.py` 提供可注入的共享 HTTP client：超时、有限重试、User-Agent、
+  并发上限和 ETag/Last-Modified 缓存协商集中在一个边界内。
+- 阶段 2 CLI 输出的是原始候选与健康快照；它不是 `RunReport`，不写 `output/`，不做规范化、
+  去重、第一方核验或 JSON Store。
 
 ### v1
 
