@@ -2,7 +2,7 @@
 
 面向个人使用的 AI 与科技热点收集器，v1 优先覆盖模型、AI 编程工具、开发者平台及相关重大科技动态。项目目标是从热点渠道发现线索，回溯并验证第一方原始信息，再以结构化 JSON 保存，供后续筛选、分析和产品开发使用。
 
-> 当前状态：阶段 1 契约与阶段 2 原始来源采集已 Implemented；三项内置来源的真实 probe 已 Verified。阶段 3 去重/JSON Store 和阶段 4 第一方核验仍未实现。
+> 当前状态：阶段 1 契约与阶段 2 原始来源采集已 Implemented；Hacker News/Qwen 最新 probe healthy，CC Switch 有历史 healthy 证据但最新 probe 被 HTTP 403 阻断。阶段 3 去重/JSON Store 和阶段 4 第一方核验仍未实现。
 
 ## 文档入口
 
