@@ -2,10 +2,10 @@
 title: mynews 文档总览与当前状态
 doc_type: index
 status: current
-implementation_status: in_progress
+implementation_status: verified
 version: 1.0
 created: 2026-08-02
-updated: 2026-08-02
+updated: 2026-08-03
 owner: project-maintainers
 ---
 
@@ -18,7 +18,7 @@ owner: project-maintainers
 | 项目 | 状态 | 说明 |
 | --- | --- | --- |
 | 产品范围 | Current | 聚焦 AI 与科技，v1 优先模型、AI 编程工具和开发者平台 |
-| v1 计划 | Current / In progress | 阶段 0 至阶段 5 已完成实现；v1 仍需独立验收 |
+| v1 计划 | Current / Verified | 阶段 0 至阶段 5 已完成实现；独立 v1 验收通过，真实 launchd 按边界未加载 |
 | 系统架构 | Current / In progress | SourcePlugin、registry、规范化/去重、EvidenceVerifier 和 NewsStore seam 已 Implemented |
 | AI 开发说明 | Current / Implemented | Codex 与 Claude Code 共用一套项目规则 |
 | 验收流程 | Current / Implemented | 统一验收规则与 Claude `/acceptance` 入口已建立 |
@@ -27,9 +27,10 @@ owner: project-maintainers
 | 阶段 2 原始采集运行时 | Implemented | 内置 registry、共享 HTTP 策略、来源隔离、`probe`/原始采集 seam 和三项 Adapter 已完成 |
 | 阶段 3 规范化、去重与 JSON Store | Implemented | Normalizer、跨运行 DedupState、原子 Run/latest、失败保护和 PriceSnapshot 已通过离线测试 |
 | 阶段 4 第一方证据核验 | Verified | 官方直验、Fake/Codex Verifier、预算/批次限制和二次 URL/域名/摘录/日期/哈希校验通过；G6-S/G6-V 已完成 |
-| 阶段 4.5 来源覆盖与价格监控 | Implemented | 已接入 3 个国内、3 个国外官方自动来源、2 个官方价格页和 2 个实验 Adapter；修复后至少一个新增来源通过真实 G6-V，实时限制仍如实记录 |
-| 自动定时 | Implemented | `scripts/collect.sh` 提供固定 label 的 plist 渲染、幂等安装/状态/卸载；未自动安装，真实 launchd 未加载 |
-| 新闻数据 | Implemented | 已在隔离临时目录完成首次七天回溯；运行数据不进入仓库，完整结果见阶段 5记录 |
+| 阶段 4.5 来源覆盖与价格监控 | Verified | 12 个内置来源完成实时 probe；稳定来源 healthy，知乎/Bloomberg 如实 blocked；至少一个新增来源通过真实 G6-V |
+| 自动定时 | Implemented | `scripts/collect.sh` 提供固定 label 的 plist 渲染、`--dry-run`、互斥采集、幂等安装/状态/卸载；未自动安装，真实 launchd 未加载 |
+| 新闻数据 | Verified | 隔离临时目录同一七天窗口重复运行通过；历史 run、latest、跨运行去重、价格快照和 verified 证据均已复核 |
+| 发布前校验 | Verified | `mynews validate` 的 RunReport/同源 Schema 和全部 verified 第一方证据复核通过 |
 
 实现状态必须使用以下口径：
 
@@ -67,9 +68,9 @@ owner: project-maintainers
 
 | 文档 | 状态 | 实现状态 |
 | --- | --- | --- |
-| [v1 实施计划](planning/v1-implementation-plan.md) | Current | In progress |
+| [v1 实施计划](planning/v1-implementation-plan.md) | Current | Verified |
 | [系统架构](architecture/system-architecture.md) | Current | In progress |
-| [功能矩阵](product/feature-matrix.md) | Current | In progress |
+| [功能矩阵](product/feature-matrix.md) | Current | Verified |
 | [项目验收规则](testing/acceptance-rules.md) | Current | Implemented |
 | [阶段 1 功能验收说明](testing/phase1-functional-acceptance.md) | Current | Implemented |
 | [信息来源目录](reference/source-catalog.md) | Current | In progress |

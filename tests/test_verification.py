@@ -135,6 +135,28 @@ def test_codex_revalidation_ignores_dynamic_html_shell() -> None:
     assert result[0].status == "verified"
 
 
+def test_codex_verification_matches_timezone_aware_page_date() -> None:
+    body = (
+        '<meta property="article:published_time" '
+        'content="2026-08-02T00:30:00+08:00">'
+        "Official launch of Model 5."
+    )
+    candidate = target(url="https://news.example/story")
+    payload = json.loads(suggestion(candidate.item.event_key))
+    payload["suggestions"][0]["published_at"] = "2026-08-02T00:30:00+08:00"
+    payload["suggestions"][0]["content_hash"] = body_hash(body)
+    verifier = CodexVerifier(
+        FakeHttp({"https://official.example/news": response(body)}),
+        runner=StaticCodex([json.dumps(payload)]),
+    )
+
+    result = verifier.verify(
+        [candidate], config=VerificationConfig(budget=1, batch_size=1)
+    )
+
+    assert result[0].status == "verified"
+
+
 def suggestion(item_id: str, *, url: str = "https://official.example/news") -> str:
     return json.dumps(
         {

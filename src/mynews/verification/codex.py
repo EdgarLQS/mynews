@@ -368,6 +368,25 @@ class CodexVerifier:
             "",
         )
 
+    def revalidate_evidence(
+        self,
+        target: VerificationTarget,
+        evidence: Evidence,
+        *,
+        timeout: float,
+    ) -> tuple[Evidence | None, str]:
+        """重新抓取已保存证据，供发布前逐条复查使用。"""
+        return self._fetch_and_validate(
+            target,
+            str(evidence.url),
+            excerpt=evidence.excerpt,
+            expected_date=evidence.published_at,
+            expected_hash=evidence.content_hash,
+            publisher=evidence.publisher,
+            title=evidence.title,
+            timeout=timeout,
+        )
+
     def _can_directly_verify(self, candidate: VerificationTarget) -> bool:
         return (
             candidate.source_role in {"primary", "monitor"}
@@ -520,6 +539,8 @@ def _body_dates(body: str) -> list[date]:
                 parsed = datetime.fromisoformat(value)
             except ValueError:
                 continue
+        if parsed.tzinfo is not None and parsed.utcoffset() is not None:
+            parsed = parsed.astimezone(UTC)
         dates.append(parsed.date())
     return dates
 

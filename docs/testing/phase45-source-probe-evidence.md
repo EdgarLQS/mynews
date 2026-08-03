@@ -2,10 +2,10 @@
 title: mynews v1 阶段 4.5 来源 probe 证据
 doc_type: test
 status: current
-implementation_status: implemented
+implementation_status: verified
 version: 1.0
 created: 2026-08-02
-updated: 2026-08-02
+updated: 2026-08-03
 owner: project-maintainers
 ---
 
@@ -97,3 +97,29 @@ UV_CACHE_DIR=/tmp/mynews-acceptance-cache uv run --project /Users/edgarlqs/Downl
 Codex 分支重验返回的逐字摘录为 Google 官方页面中的
 `The Interactions API is the best way to build with Gemini models and agents.`，程序二次抓取确认
 摘录、官方域名和可访问性均通过。
+
+## 发布收口 G6-V 复验（2026-08-02）
+
+在 `codex/v1-phase5-release-readiness` 的临时目录中，DeepSeek/Google Gemini 新增来源真实
+回溯均通过；随后将 Google Gemini 候选标记为 discovery 以禁用来源直验，强制执行真实
+`SubprocessCodexRunner`。默认 30 秒调用先如实返回 `codex_timeout`；仅为冷启动重试注入 120 秒后，
+返回 `verified/codex_primary_evidence`，官方 URL 为
+`https://ai.google.dev/gemini-api/docs/interactions-overview`，程序二次校验
+`reachable/official_domain/excerpt_matched=true`。生产默认 timeout、精确官方域名、日期规则和逐字
+可见正文摘录门槛均未放宽；该结果属于验收前开发验证，当时阶段 4.5 和 v1 状态仍为
+验收前状态为 `Implemented`，最终复验见下节。
+
+## 独立验收最终复验（2026-08-03）
+
+实时执行全部 12 个内置来源 probe：CC Switch、Hacker News、Qwen、OpenAI、Anthropic、Google
+Gemini、DeepSeek、TRAE、OpenAI pricing、DeepSeek pricing 为 `healthy`；知乎为
+`blocked/http_403`，Bloomberg 为 `blocked/public_metadata_unavailable`。本次未绕过登录、付费墙、
+robots 或验证码；CC Switch 使用的 GitHub Releases API 当前返回 `33/33` 条。
+
+Google Gemini 阶段 4.5 候选再次强制进入真实 `SubprocessCodexRunner`，结果为
+`verified/codex_primary_evidence`。官方 URL 为
+`https://ai.google.dev/gemini-api/docs/interactions-overview`，程序二次校验
+`reachable=true`、`official_domain=true`、`excerpt_matched=true`，可见正文 SHA-256 为
+`sha256:57fb9f83233a2014d885ce018026b95be14124aa5ba6cf1a7751f1d264e3be14`。
+
+阶段 4.5 的历史失败记录保留用于追溯；修复后实时 G6-S/G6-V 复验通过，当前状态为 `Verified`。

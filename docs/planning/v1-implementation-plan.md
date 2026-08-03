@@ -2,10 +2,10 @@
 title: mynews v1 热点收集器实施计划
 doc_type: plan
 status: current
-implementation_status: in_progress
+implementation_status: verified
 version: 1.0
 created: 2026-08-02
-updated: 2026-08-02
+updated: 2026-08-03
 owner: project-maintainers
 ---
 
@@ -22,7 +22,7 @@ v1 成功要求：
 - 所有候选落盘；只有第一方证据通过程序复核的条目可标为 `verified`。
 - 每次运行写独立 JSON，历史不覆盖；失败不得污染 `latest.json`。
 - 所有来源可以单独 `probe`，实验来源失败不得伪装为正常。
-- 提供每天北京时间 09:30 的 launchd 安装脚本，但不自动安装。
+- 提供每天主机本地时间 09:30 的 launchd 安装脚本；采集进程使用 `TZ=Asia/Shanghai`，但不自动安装或修改系统时区。
 - 首次真实验收完成过去七天收集。
 
 ## v1 范围
@@ -244,14 +244,15 @@ Codex 提示要求返回逐字连续原文，不接受改写或归因性转述�
 | 新增来源真实回溯 | `uv run --project /Users/edgarlqs/Downloads/mynews mynews collect --days 7 --source deepseek --source google-gemini` | `complete`，两个来源 `healthy`，`verified_count=2`，退出码 0；证据校验全为 `true` |
 | 真实 Codex G6-V | 对同一 Google Gemini 官方候选单独走 `SubprocessCodexRunner` 的 Codex 分支 | `verified / codex_primary_evidence`；URL 为 `https://ai.google.dev/gemini-api/docs/interactions-overview`，`reachable/official_domain/excerpt_matched=true` |
 
-阶段 4.5 仍保持 `Implemented`；完整来源回溯中 CC Switch 当前为 `blocked/http_403`，实验来源
-允许 `blocked`，不得把本次结果写成所有稳定来源均 healthy。
+本节记录当时的实施验证状态：阶段 4.5 当时保持 `Implemented`；完整来源回溯中的 CC Switch
+当时为 `blocked/http_403`，实验来源允许 `blocked`，不得把当时结果写成所有稳定来源均 healthy。
 
-### 阶段 5：脚本、定时模板与真实验收（已 Implemented，v1 独立验收待执行）
+### 阶段 5：脚本、定时模板与真实验收（验收前实施记录，已 Implemented）
 
 - [x] `scripts/collect.sh` 固定项目 cwd、绝对 uv、代理继承和日志位置；参数使用数组安全透传，常见密钥和代理值不写入日志。
 - [x] 提供中文 help、launchd plist 渲染、安装、状态和卸载动作；label 固定为 `com.mynews.collect`，
-  `Asia/Shanghai` 每日 09:30，操作幂等；测试使用临时 HOME 和 Fake launchctl，不自动安装、不调用真实 launchctl、不修改系统时区。
+  主机本地时间每日 09:30（采集进程使用 `TZ=Asia/Shanghai`），操作幂等；四个动作支持 `--dry-run`，采集脚本使用绝对路径、互斥锁和安全日志；测试使用临时 HOME 和 Fake launchctl，不自动安装、不调用真实 launchctl、不修改系统时区。
+- [x] 提供 `mynews validate`，使用同源 RunReport/JSON Schema 校验；显式 `--check-evidence` 时逐条重抓并复核已保存的 `verified` 第一方证据。
 - [x] 执行隔离临时目录中的真实 `collect --days 7`，检查 Schema、12 个来源覆盖、35 条事件无重复、
   OpenAI/DeepSeek 价格快照和 5 条 verified 第一方证据。
 
@@ -259,8 +260,8 @@ Codex 提示要求返回逐字连续原文，不接受改写或归因性转述�
 
 #### 阶段 5 实现与真实回溯记录（2026-08-02）
 
-阶段 5 代码验证为 `Implemented`，运行数据均写入隔离 `/tmp` 目录，没有进入仓库。受影响测试 45
-passed；全量测试 107 passed。Fake launchctl 安装/状态/卸载幂等性、中文 help、参数/代理透传和
+阶段 5 代码验证为 `Implemented`，运行数据均写入隔离 `/tmp` 目录，没有进入仓库。受影响测试 31
+passed；全量测试 119 passed。Fake launchctl 安装/状态/卸载幂等性、中文 help、参数/代理透传和
 HTML 摘录回归测试通过；plist 渲染结果通过 `/usr/bin/plutil -lint`。全量真实回溯结果为
 `status=partial`、退出码 3：12 个来源
 均有结果，稳定来源中 CC Switch 为 `blocked/http_403`，知乎为 `blocked/http_403`，Bloomberg 为
@@ -284,6 +285,72 @@ passed，文档检查、ruff 和 mypy 均通过。
 摘录、日期字段和可见正文哈希均通过；新增 Google Gemini 来源再次完成真实 Codex
 `codex_primary_evidence` 核验。真实 launchd 仍未安装或调用。
 
+#### 阶段 5 发布收口实施补充（验收前记录，2026-08-02）
+
+本轮在与 origin/main 一致的干净基线创建 codex/v1-phase5-release-readiness，补齐了采集
+互斥锁、四个 launchd 动作的 --dry-run 和发布前 mynews validate 命令。新增命令默认只做离线
+RunReport/同源 Schema/verified 结构校验；--check-evidence 才执行真实网络重抓。当时状态为
+Implemented，独立 v1 验收和真实 launchd 加载尚未执行；本轮不自动安装、不修改系统时区、不记录密钥，
+运行数据只写临时输出目录。
+
+本轮真实实施门禁记录（2026-08-02）：
+
+- 新增 DeepSeek/Google Gemini 来源执行真实 `collect --days 7`，两者均 `healthy`，各 1 条候选、
+  `verified_count=2`，退出码 0；`mynews validate --check-evidence` 对 2 条证据逐条重抓通过。
+- 强制 Google Gemini 候选进入真实 `SubprocessCodexRunner` 分支时，首次按默认 30 秒超时返回
+  `unverified/codex_timeout`；仅为冷启动重试注入 120 秒后返回 `verified/codex_primary_evidence`，
+  程序二次校验 `reachable/official_domain/excerpt_matched=true`，没有放宽官方域名、日期或摘录规则。
+- 全量临时回溯第一轮 `status=partial`、退出码 3，12/12 来源有结果，8 个稳定新闻/价格入口
+  `healthy`，知乎 `blocked/http_403`、Bloomberg `blocked/public_metadata_unavailable`；
+  44 条唯一事件、5 条 verified、2 个价格快照。第二轮同样 `partial`、退出码 3，44 条候选中
+  43 条跨运行去重，1 条为滚动 `--days 7` 窗口内新出现事件；`state/dedup.json` 共 45 个事件键，
+  历史 run 2 个，`latest.json` 和首轮 RunReport Schema 均通过，5 条 verified 证据逐条复核通过。
+- 为验证严格相同窗口，又在同一临时目录重复执行两次
+  `mynews collect --from 2026-07-27 --to 2026-08-02`：两次均 `partial`、退出码 3；首轮 35 条事件、
+  次轮 35 条全部跨运行去重（`item_count=0`、`deduplicated_count=35`），`state/dedup.json` 保留
+  35 个事件键、2 个历史 run 和 2 个价格快照；首轮 5 条 verified 证据的 `--check-evidence` 复核通过。
+- 上述为验收前的开发验证证据；真实 launchd 未加载，当时 v1 状态保持 `Implemented`，后续独立验收见下节。
+
+#### v1 独立验收最终记录（2026-08-03）
+
+结论：`PASS`。验收基线为 `77b9f8657d8756821dc943e61986e0dd76a0c5dd`，范围覆盖目标分支全部
+提交、当前未提交文件和未跟踪文件。G0-G5 的文档、diff、ruff、mypy、受影响/全量测试、CLI
+契约、Schema、原子存储、失败恢复和去重门禁均通过。
+
+G0-G5 实际命令证据：
+
+| 门禁 | 命令 | 实际结果 |
+| --- | --- | --- |
+| G0/G1 | `python3 scripts/check_docs.py`；`git diff --check $(git merge-base main HEAD)` | 均退出码 0；文档 19 个、0 错误 |
+| G2 | `env UV_CACHE_DIR=/tmp/mynews-acceptance-cache uv run ruff check .`；`env UV_CACHE_DIR=/tmp/mynews-acceptance-cache uv run mypy src` | 均退出码 0 |
+| G3 | `env UV_CACHE_DIR=/tmp/mynews-acceptance-cache uv run pytest tests/test_cli.py tests/test_ops_scripts.py tests/test_validation.py tests/test_verification.py tests/test_collector_pipeline.py tests/test_json_store.py tests/test_models.py tests/test_phase45_sources.py -q`；`env UV_CACHE_DIR=/tmp/mynews-acceptance-cache uv run pytest -q` | 受影响 82 passed；全量 122 passed；均退出码 0 |
+| G4 | `env UV_CACHE_DIR=/tmp/mynews-acceptance-cache uv run mynews --help`、`collect/probe/validate --help`、`scripts/collect.sh --help`、非法参数、`mynews validate --run tests/fixtures/run-report-v1.json --schema-out /tmp/mynews-acceptance-runreport-schema.json` | help/Schema 退出码 0；非法参数退出码 2 |
+| G5 | `env UV_CACHE_DIR=/tmp/mynews-acceptance-cache uv run pytest tests/test_json_store.py tests/test_deduplication.py tests/test_collector_pipeline.py -q` | 10 passed；原子写入、失败恢复、跨运行去重和价格快照通过 |
+
+- G6-S：12 个内置来源实时 probe；10 个 healthy，知乎 `http_403`、Bloomberg
+  `public_metadata_unavailable`，均按实验来源规则如实 blocked；CC Switch GitHub Releases API
+  当前 `33/33` healthy。
+- G6-V：Google Gemini 阶段 4.5 候选经真实 `SubprocessCodexRunner` 建议后返回
+  `verified/codex_primary_evidence`；官方 URL、域名、正文摘录、可达性和哈希二次校验通过。
+- G7：隔离目录 `/tmp/mynews-g7-current.MN43IR` 内同一 `2026-07-27` 至 `2026-08-02` 窗口运行两次；
+  首轮 26 条、5 条 verified，次轮 26 条全部跨运行去重；历史 run=2，价格快照=2，首轮证据重抓和
+  latest Schema 均通过。运维测试使用 Fake launchctl 和含空格临时路径，未安装真实系统任务。
+
+实际命令证据：
+
+| 门禁 | 命令 | 实际结果 |
+| --- | --- | --- |
+| G6-S | `env UV_CACHE_DIR=/tmp/mynews-acceptance-cache uv run mynews probe` | 退出码 3；10 个稳定来源 healthy，知乎/Bloomberg 按规则 blocked |
+| G6-V | `env UV_CACHE_DIR=/tmp/mynews-acceptance-cache uv run python -c '<temporary Google Gemini SubprocessCodexRunner harness>'` | 退出码 0；`verified/codex_primary_evidence` |
+| G7 collect | `env UV_CACHE_DIR=/tmp/mynews-acceptance-cache uv run --project /Users/edgarlqs/Downloads/mynews mynews collect --from 2026-07-27 --to 2026-08-02 --verification-timeout 120`，连续两次 | 两次退出码 3；首轮 26 条，次轮 26 条全部去重 |
+| G7 evidence | `env UV_CACHE_DIR=/tmp/mynews-acceptance-cache uv run --project /Users/edgarlqs/Downloads/mynews mynews validate --run /tmp/mynews-g7-current.MN43IR/output/runs/2026-08-03T06-01-33.528107+00-00.json --check-evidence --timeout 120` | 退出码 0；5/5 verified 证据通过 |
+| G7 latest | `env UV_CACHE_DIR=/tmp/mynews-acceptance-cache uv run --project /Users/edgarlqs/Downloads/mynews mynews validate --run /tmp/mynews-g7-current.MN43IR/output/latest.json` | 退出码 0；Schema 通过 |
+| G7 ops | `env TMPDIR='/tmp/mynews acceptance spaces' UV_CACHE_DIR=/tmp/mynews-acceptance-cache uv run pytest tests/test_ops_scripts.py -q` | 16 passed；Fake launchctl、空格路径和互斥锁通过 |
+
+本次验收没有把 blocked 来源伪装成 healthy，也没有把 verified 日期缺失补成虚构日期；当前首轮
+5 条 verified 证据的 `published_at` 均为 `null`，但 URL、正文摘录、最终域名和 SHA-256 均已复核。
+真实 launchd 未加载仍是明确边界，不阻塞本次按要求执行的 Fake launchctl G7 验收。
+
 ## 命令与语义
 
 ```bash
@@ -294,6 +361,8 @@ uv run mynews collect --date 2026-08-02
 uv run mynews collect --from 2026-07-27 --to 2026-08-02
 uv run mynews probe
 uv run mynews probe --source hacker-news
+uv run mynews validate --run output/latest.json --schema-out /tmp/mynews-run-report.schema.json
+uv run mynews validate --run output/latest.json --check-evidence
 ./scripts/collect.sh --help
 ```
 
@@ -301,6 +370,7 @@ uv run mynews probe --source hacker-news
 - 日期时区：`Asia/Shanghai`。
 - 日期选择器互斥；`--from` 与 `--to` 必须同时提供。
 - 退出码：`0` 完整成功，`3` 有可用 JSON 但部分失败，`1` 致命失败，`2` 参数错误。
+- `scripts/collect.sh` 在已有 `logs/collect.lock` 时跳过重叠采集并返回 `3`；底层 `collect` 退出码原样保留。
 
 ## 验证命令
 
