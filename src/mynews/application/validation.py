@@ -7,6 +7,7 @@ import os
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from mynews.domain.models import NewsItem, RunReport
 from mynews.sources.protocol import SourceMetadata
@@ -84,20 +85,20 @@ def _validate_verified_evidence(
 ) -> list[str]:
     errors: list[str] = []
     for item in items:
-        metadata = _metadata_for_item(item, registry)
-        if metadata is None:
-            errors.append(f"{item.event_key}: 找不到第一方来源元数据")
-            continue
-        target = VerificationTarget(
-            item=item,
-            source_id=metadata.source_id,
-            publisher=metadata.name,
-            excerpt=None,
-            official_domains=metadata.official_domains,
-            official_github_organizations=metadata.official_github_organizations,
-            source_role=metadata.role,
-        )
         for evidence in item.primary_evidence:
+            metadata = _metadata_for_evidence(item, evidence, registry)
+            if metadata is None:
+                errors.append(f"{item.event_key}: 找不到第一方来源元数据")
+                continue
+            target = VerificationTarget(
+                item=item,
+                source_id=metadata.source_id,
+                publisher=metadata.name,
+                excerpt=None,
+                official_domains=metadata.official_domains,
+                official_github_organizations=metadata.official_github_organizations,
+                source_role=metadata.role,
+            )
             _, reason = verifier.revalidate_evidence(
                 target, evidence, timeout=timeout
             )
@@ -112,6 +113,30 @@ def _metadata_for_item(
     for source_id in item.discovery_sources:
         metadata = registry.source_metadata.get(source_id)
         if metadata is not None and metadata.role in {"primary", "monitor"}:
+            return metadata
+    return None
+
+
+def _metadata_for_evidence(
+    item: NewsItem, evidence: object, registry: SourceRegistry
+) -> SourceMetadata | None:
+    """根据证据 URL 在合并来源中选择对应的官方边界。"""
+    evidence_url = str(getattr(evidence, "url", ""))
+    try:
+        parsed = urlsplit(evidence_url)
+    except ValueError:
+        return None
+    host = (parsed.hostname or "").casefold()
+    organization = parsed.path.strip("/").split("/", 1)[0].casefold()
+    for source_id in item.discovery_sources:
+        metadata = registry.source_metadata.get(source_id)
+        if metadata is None or metadata.role not in {"primary", "monitor"}:
+            continue
+        domains = {domain.casefold().strip(".") for domain in metadata.official_domains}
+        organizations = {
+            value.casefold() for value in metadata.official_github_organizations
+        }
+        if host in domains or (host == "github.com" and organization in organizations):
             return metadata
     return None
 

@@ -139,6 +139,18 @@ def test_collect_recovers_a_stale_lock(tmp_path: Path) -> None:
     assert not stale_lock.exists()
 
 
+def test_collect_releases_lock_when_uv_setup_fails(tmp_path: Path) -> None:
+    result = _run_script(
+        tmp_path,
+        "--days",
+        "7",
+        extra_env={"MYNEWS_UV_BIN": str(tmp_path / "missing-uv")},
+    )
+
+    assert result.returncode == 1
+    assert not (tmp_path / "logs" / "collect.lock").exists()
+
+
 def test_rendered_plist_is_absolute_and_scheduled_at_local_0930(
     tmp_path: Path,
 ) -> None:

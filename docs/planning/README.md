@@ -2,10 +2,10 @@
 title: mynews 规划文档状态索引
 doc_type: index
 status: current
-implementation_status: in_progress
+implementation_status: verified
 version: 1.0
 created: 2026-08-02
-updated: 2026-08-02
+updated: 2026-08-03
 owner: project-maintainers
 ---
 
@@ -17,7 +17,7 @@ owner: project-maintainers
 
 | 计划 | 文档状态 | 实现状态 | 下一门槛 |
 | --- | --- | --- | --- |
-| [v1 热点收集器实施计划](v1-implementation-plan.md) | Current | In progress | 阶段 5 脚本、定时模板与七天回溯 |
+| [v1 热点收集器实施计划](v1-implementation-plan.md) | Current | Verified | 独立 v1 验收已通过；真实 launchd 按边界不加载 |
 
 ## 已完成计划
 

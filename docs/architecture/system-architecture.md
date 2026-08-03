@@ -13,7 +13,7 @@ owner: project-maintainers
 
 ## 架构目标
 
-- 调用者只需要理解 `collect` 和 `probe`，复杂度留在深 Module 内部。
+- 调用者只需要理解 `collect`、`probe` 和 `validate`，复杂度留在深 Module 内部。
 - 来源、核验器和存储放在真实 seam 上，通过 Adapter 替换。
 - 新增来源不修改 Collector 主流程。
 - 热点、真实性和中文摘要彼此独立，避免一个模型判断决定全部结果。
@@ -23,7 +23,8 @@ owner: project-maintainers
 
 ```mermaid
 flowchart LR
-    CLI["CLI: collect / probe"] --> COL["Collector Module"]
+    CLI["CLI: collect / probe / validate"] --> COL["Collector Module"]
+    CLI --> VAL["Validation Module"]
     COL --> REG["Source Registry"]
     REG --> SRC["SourcePlugin Adapters"]
     SRC --> NOR["Normalize + Filter + Deduplicate"]
@@ -32,6 +33,7 @@ flowchart LR
     POST --> SUM["Chinese factual summary"]
     SUM --> STORE["NewsStore"]
     STORE --> JSON["Run JSON + latest + state"]
+    VAL --> CONTRACT["RunReport / Schema / Evidence"]
 ```
 
 `Collector` 是应用层唯一主 Module。CLI 不编排来源、不拼 JSON、不直接调用 Codex。

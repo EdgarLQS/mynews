@@ -63,10 +63,20 @@ release_run_lock() {
 
 trap release_run_lock EXIT
 
+write_lock_pid() {
+  local lock_path="$1"
+  if ! printf '%s\n' "$$" >"${lock_path}/pid"; then
+    /bin/rm -f -- "${lock_path}/pid"
+    /bin/rmdir -- "$lock_path" 2>/dev/null || true
+    error "无法写入采集锁：${lock_path}"
+    return 1
+  fi
+}
+
 acquire_run_lock() {
   local lock_path="$1" stale_path pid
   if /bin/mkdir -- "$lock_path" 2>/dev/null; then
-    printf '%s\n' "$$" >"${lock_path}/pid"
+    write_lock_pid "$lock_path" || return $?
     ACTIVE_LOCK_PATH="$lock_path"
     return 0
   fi
@@ -81,7 +91,7 @@ acquire_run_lock() {
       /bin/rm -f -- "${stale_path}/pid"
       /bin/rmdir -- "$stale_path" 2>/dev/null || true
       if /bin/mkdir -- "$lock_path" 2>/dev/null; then
-        printf '%s\n' "$$" >"${lock_path}/pid"
+        write_lock_pid "$lock_path" || return $?
         ACTIVE_LOCK_PATH="$lock_path"
         return 0
       fi

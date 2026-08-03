@@ -4,6 +4,8 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+from pydantic import AnyHttpUrl
+
 from mynews.application.validation import validate_run_file
 from mynews.domain.models import (
     CollectionRequest,
@@ -14,7 +16,10 @@ from mynews.domain.models import (
     SourceResult,
 )
 from mynews.infrastructure.http import HttpResponse
-from mynews.sources.builtins.official_pages import OpenAiNewsPlugin
+from mynews.sources.builtins.official_pages import (
+    AnthropicNewsPlugin,
+    OpenAiNewsPlugin,
+)
 from mynews.sources.registry import SourceRegistry
 from mynews.verification.codex import _content_hash
 
@@ -110,3 +115,52 @@ def test_validate_can_recheck_every_verified_evidence(tmp_path: Path) -> None:
     assert result.verified_count == 1
     assert result.evidence_count == 1
     assert result.evidence_checked
+
+
+def test_validate_matches_each_evidence_to_its_official_source(
+    tmp_path: Path,
+) -> None:
+    report = _report()
+    item = report.items[0]
+    evidence = item.primary_evidence[0].model_copy(
+        update={
+            "url": AnyHttpUrl("https://www.anthropic.com/news"),
+            "publisher": "Anthropic",
+        }
+    )
+    merged_item = item.model_copy(
+        update={
+            "discovery_sources": ["openai", "anthropic"],
+            "source_roles": ["primary", "primary"],
+            "primary_evidence": [evidence],
+        }
+    )
+    merged_report = report.model_copy(
+        update={
+            "sources": [
+                report.sources[0],
+                SourceResult(
+                    source_id="anthropic",
+                    role="primary",
+                    health="healthy",
+                    fetched_count=1,
+                    accepted_count=1,
+                    duration_ms=1,
+                ),
+            ],
+            "items": [merged_item],
+        }
+    )
+    path = tmp_path / "merged-run.json"
+    path.write_text(
+        json.dumps(merged_report.model_dump(mode="json", by_alias=True)),
+        encoding="utf-8",
+    )
+    registry = SourceRegistry(
+        [OpenAiNewsPlugin(), AnthropicNewsPlugin()], http=FakeHttp()
+    )
+
+    result = validate_run_file(path, check_evidence=True, registry=registry)
+
+    assert result.passed
+    assert result.errors == ()

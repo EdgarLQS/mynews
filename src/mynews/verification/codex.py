@@ -539,6 +539,8 @@ def _body_dates(body: str) -> list[date]:
                 parsed = datetime.fromisoformat(value)
             except ValueError:
                 continue
+        if parsed.tzinfo is not None and parsed.utcoffset() is not None:
+            parsed = parsed.astimezone(UTC)
         dates.append(parsed.date())
     return dates
 
