@@ -8,7 +8,10 @@ from dataclasses import replace
 from datetime import datetime
 from typing import Literal
 
-from mynews.application.verification import VerificationCoordinator
+from mynews.application.verification import (
+    CoordinatedVerification,
+    VerificationCoordinator,
+)
 from mynews.domain.deduplication import Deduplicator, DedupState
 from mynews.domain.models import (
     Candidate,
@@ -323,14 +326,19 @@ class PipelineCollector:
 Collector = PipelineCollector
 
 
-def _coordinated_items(coordinated: object) -> tuple[NewsItem, ...]:
-    targets = getattr(coordinated, "targets")
-    decisions = getattr(coordinated, "decisions")
-    pending = getattr(coordinated, "pending")
-    pending_by_key = {entry.event_key: entry for entry in pending}
+def _coordinated_items(
+    coordinated: CoordinatedVerification,
+) -> tuple[NewsItem, ...]:
+    pending_by_key = {
+        entry.event_key: entry for entry in coordinated.pending
+    }
     items: list[NewsItem] = []
     seen: set[str] = set()
-    for target, decision in zip(targets, decisions, strict=True):
+    for target, decision in zip(
+        coordinated.targets,
+        coordinated.decisions,
+        strict=True,
+    ):
         entry = pending_by_key.get(target.item.event_key)
         if entry is not None:
             items.append(_pending_item(entry))
@@ -339,7 +347,7 @@ def _coordinated_items(coordinated: object) -> tuple[NewsItem, ...]:
         seen.add(target.item.event_key)
     items.extend(
         _pending_item(entry)
-        for entry in pending
+        for entry in coordinated.pending
         if entry.event_key not in seen
     )
     return tuple(items)
@@ -551,11 +559,14 @@ def _apply_decision(
                 "verification_retry": None,
             }
         )
+    evidence = decision.evidence
+    if evidence is None:
+        raise ValueError("verified 判定缺少证据")
     return item.model_copy(
         update={
             "verification_status": "verified",
             "verification_reason": decision.reason,
-            "primary_evidence": [decision.evidence],
+            "primary_evidence": [evidence],
             "verification_retry": None,
         }
     )
