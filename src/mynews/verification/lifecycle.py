@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 from mynews.domain.models import Evidence, EvidenceValidation
 from mynews.domain.normalization import normalize_url
@@ -22,7 +23,7 @@ from mynews.verification.security import (
 
 @dataclass(frozen=True, slots=True)
 class EvidenceReviewResult:
-    status: str
+    status: Literal["current", "changed_supporting", "failed"]
     reason: str
     evidence: Evidence | None = None
     warning: str | None = None
