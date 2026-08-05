@@ -3,22 +3,23 @@ title: mynews JSON 数据契约
 doc_type: reference
 status: current
 implementation_status: implemented
-version: 1.1
+version: 1.2
 created: 2026-08-02
-updated: 2026-08-02
+updated: 2026-08-05
 owner: project-maintainers
 ---
 
 # mynews JSON 数据契约
 
-## 目标
+## 目标与兼容策略
 
-JSON 是 v1 的持久化和后续开发 interface。UI、数据库导入或分析脚本应读取本契约，不依赖内部 Python 对象或日志文本。
+JSON 是持久化和后续开发的稳定 interface。运行时校验和导出 Schema 的唯一来源是 `mynews.domain.models.RunReport`。
 
-阶段 1 已由 Pydantic 模型固定运行报告 schema；代码和 schema 的唯一来源是
-`mynews.domain.models.RunReport.model_json_schema()`。阶段 3 增加规范化事件、去重状态和
-价格快照模型；`tests/fixtures/run-report-v1.json` 仍是兼容性 fixture。阶段 3 的实现和
-JSON Store 和阶段 4.5 价格来源由离线测试及阶段 5 隔离临时目录回溯证明；定时模板与管理脚本已 Implemented，但未自动安装或加载真实 launchd。
+- 新运行输出 `schema_version: "1.2"`。
+- 读取器继续接受 `1.0`、`1.1` 和 `1.2`，并忽略未知 minor 字段。
+- 未知 major 必须拒绝。
+- 1.0/1.1 的历史 verified 条目按原契约读取；1.2 的 verified 条目强制完整新门槛。
+- 删除字段、重命名或改变既有语义需要升级 major。
 
 ## 文件布局
 
@@ -26,124 +27,61 @@ JSON Store 和阶段 4.5 价格来源由离线测试及阶段 5 隔离临时目�
 output/
 ├── latest.json
 └── runs/
-    └── <ISO-8601-run-id>.json
+    └── <run-id>.json
 state/
 ├── dedup.json
+├── pending_verifications.json
 ├── price_snapshots/
-│   └── <source-id>.json
 └── source_snapshots/
-    └── <source-id>.json
+logs/
 ```
 
-- Run 文件追加保存，不覆盖历史；文件名中的 `:` 会替换为 `-` 以便跨平台读取。
-- `latest.json` 是最近一次 complete 或 partial Run 的原子副本。
-- failed Run 保存诊断文件，但不能覆盖 latest，也不能更新 dedup 状态。
-- state 是可重建的运行状态，不是新闻结果的唯一副本。
+- 历史 run 追加保存。
+- `latest.json` 只指向最近一次 complete 或 partial Run。
+- failed Run 不覆盖 latest，也不推进 dedup 或 pending。
+- 一次成功提交中的 run、latest、dedup 和 pending 具有同一逻辑事务边界。
+- `output/`、`state/`、`logs/` 必须被 Git 忽略。
 
-## Run 顶层结构
+## RunReport 1.2
 
 ```json
 {
-  "schema_version": "1.0",
-  "run_id": "2026-08-02T09:30:00+08:00",
+  "schema_version": "1.2",
+  "run_id": "2026-08-05T09:30:00+08:00",
   "status": "complete",
   "requested_range": {
-    "from": "2026-08-01T09:30:00+08:00",
-    "to": "2026-08-02T09:30:00+08:00",
+    "from": "2026-07-29T09:30:00+08:00",
+    "to": "2026-08-05T09:30:00+08:00",
     "timezone": "Asia/Shanghai",
     "source_ids": [],
     "verification_budget": 30
   },
-  "started_at": "2026-08-02T09:30:00+08:00",
-  "finished_at": "2026-08-02T09:31:10+08:00",
+  "started_at": "2026-08-05T09:30:00+08:00",
+  "finished_at": "2026-08-05T09:31:00+08:00",
   "sources": [],
   "stats": {},
+  "reason_counts": {},
+  "verification_stats": {
+    "attempted": 0,
+    "retried": 0,
+    "pending": 0,
+    "expired": 0,
+    "revalidated": 0,
+    "changed_supporting": 0,
+    "revalidation_failed": 0
+  },
+  "evidence_reviews": [],
   "items": []
 }
 ```
 
-必填字段：`schema_version`、`run_id`、`status`、`requested_range`、`started_at`、`finished_at`、`sources`、`stats`、`items`。
-
 `status`：
 
-- `complete`：所有启用的 stable 来源健康完成，阶段 3 流水线已提交；条目仍可全部为 `unverified`。
-- `partial`：已有可用结果，但 stable 来源部分失败。
-- `failed`：没有可用来源、配置无效、Schema 无效或无法提交结果。
+- `complete`：stable 来源全部健康；条目仍可全部 unverified。
+- `partial`：已有可用结果，但至少一个 stable 来源异常。
+- `failed`：没有可用 stable 来源或无法完成运行。
 
-`requested_range.verification_budget` 是应用层生效的 Codex 候选预算。输入请求可以省略它，
-此时由 `VerificationConfig` 注入计划默认值 30；持久化的 `RunReport` 始终记录本次实际预算。
-
-## SourceResult
-
-```json
-{
-  "source_id": "hacker-news",
-  "role": "discovery",
-  "stability": "stable-planned",
-  "health": "healthy",
-  "fetched_count": 30,
-  "accepted_count": 5,
-  "duration_ms": 420,
-  "error": null
-}
-```
-
-`health` 为 `healthy`、`degraded`、`blocked` 或 `failed`。`stability` 保存来源详细等级；
-`experimental` 来源的异常不参与 Run `status` 聚合，其余当前内置等级按稳定来源处理。
-错误使用稳定 `code` 和可读 `message`，不得只保存堆栈。
-
-## 采集输出与阶段 2 原始 seam
-
-生产命令 `mynews collect` 现在输出并持久化 `RunReport`；`mynews probe` 仍输出来源健康
-快照。阶段 2 的 `SourceCollector.collect()` 保留为可替换的原始来源 seam，输出临时 JSON
-对象供 Adapter 测试和兼容调用：
-
-```json
-{
-  "status": "complete",
-  "sources": [
-    {
-      "source_id": "qwen",
-      "role": "primary",
-      "health": "healthy",
-      "fetched_count": 1,
-      "accepted_count": 1,
-      "duration_ms": 20,
-      "checked_at": "2026-08-02T04:00:00Z",
-      "error": null
-    }
-  ],
-  "candidates": []
-}
-```
-
-`probe` 省略 `candidates`，原始 `collect` 增加来源 Adapter 的 `candidates`、可选
-`price_snapshots` 和 `source_snapshots`；生产
-`collect` 才生成 `run_id`、事件键、去重状态和 `latest.json`。阶段 4 生产流水线会先尝试
-官方来源直验，再将其余候选交给可配置的 Codex Verifier。非 healthy 来源必须包含
-`error.code` 和 `error.message`，单个来源失败不会吞掉其他来源。
-
-发布前校验命令为：
-
-```bash
-uv run mynews validate --run output/latest.json \
-  --schema-out /tmp/mynews-run-report.schema.json
-uv run mynews validate --run output/latest.json --check-evidence
-```
-
-命令使用 `RunReport.model_validate_json()` 和 `RunReport.model_json_schema()` 的同一模型来源，
-输出 `status`、`schema_valid`、`verified_count`、`evidence_count`、`evidence_checked` 和
-`errors`。默认不访问网络；`--check-evidence` 会重新抓取每条 `verified` 的第一方证据，
-再次执行 HTTPS、精确官方域名、日期、可见正文逐字摘录和正文哈希校验，任一失败返回退出码 1。
-
-离线可读报告命令为：
-
-```bash
-uv run mynews report --run output/latest.json --out output/report.md
-```
-
-`report` 只读取 RunReport，不访问网络或调用 Codex；未提供 `--out` 时把同一 Markdown 内容
-打印到标准输出。
+`requested_range.verification_budget` 必须记录本次实际预算。输入可以省略，由应用配置注入；持久化报告不能省略。
 
 ## NewsItem
 
@@ -151,140 +89,151 @@ uv run mynews report --run output/latest.json --out output/report.md
 {
   "id": "evt_<stable-hash>",
   "event_key": "<dedup-key>",
-  "event_type": "pricing_change",
-  "title_original": "Original title",
+  "event_type": "product_update",
+  "title_original": "Official product update",
   "language_original": "en",
-  "canonical_url": "https://official.example/news/item",
-  "entities": ["official"],
-  "source_roles": ["primary"],
-  "title_zh": "中文事实标题",
-  "summary_zh": "只归纳证据明确支持的事实。",
-  "published_at": "2026-08-02T01:00:00Z",
-  "first_seen_at": "2026-08-02T09:30:15+08:00",
-  "heat_score": 72,
-  "relevance_score": 91,
-  "discovery_sources": [],
+  "title_zh": "官方产品更新",
+  "summary_zh": "只归纳证据支持的事实。",
+  "published_at": "2026-08-04T00:00:00Z",
+  "first_seen_at": "2026-08-05T09:30:00+08:00",
+  "heat_score": 50,
+  "relevance_score": 90,
+  "discovery_sources": ["hacker-news"],
+  "source_roles": ["discovery"],
+  "canonical_url": "https://media.example/story",
   "verification_status": "unverified",
-  "verification_reason": "missing_primary_evidence",
+  "verification_reason": "codex_timeout",
+  "verification_retry": null,
   "primary_evidence": [],
-  "content_hash": "sha256:..."
+  "content_hash": "sha256:...",
+  "entities": []
 }
 ```
-
-规范化规则：
-
-- `canonical_url` 使用小写协议/主机名，移除片段、默认端口、常见跟踪参数和非根路径尾斜线；业务查询参数保留并排序。
-- 时间字段必须带时区；`published_at` 统一保存为 UTC，来源未知时为 `null`；`first_seen_at` 是本次运行首次观察时间。
-- `language_original` 使用 `zh`、`en`、`mixed` 或 `und`；来源角色只允许 `discovery`、`primary`、`monitor`、`manual`。
-- `event_type` 是规范化事件类别，当前包括 `model_release`、`pricing_change`、`product_update`、`research`、`security`、`funding` 和 `other`。
-- `event_key` 由规范 URL、规范实体、规范标题、发布日期和内容指纹组成的稳定哈希生成；来源 ID 不参与事件键，因此允许跨来源合并。
-- `heat_score`、`relevance_score` 和 `verification_status` 分别表示热度、相关性和真实性状态，不能相互推导或合并为单一分数。
 
 规则：
 
 - `verification_status` 只有 `verified` 和 `unverified`。
-- `verified` 至少包含一条通过程序复核的 `primary_evidence`；该证据的 `reachable`、`official_domain` 和 `excerpt_matched` 必须都为 `true`。
-- `primary_evidence.content_hash` 是程序重新抓取 HTML 后，去除 `script`、`style`、`noscript`、
-  `template` 内容，提取可见正文并做 NFKC、大小写和空白规范化后计算的 SHA-256；Codex 若返回哈希，
-  必须与同一可见正文规范化结果一致。
-- 证据访问失败、官方域名或 GitHub 组织不匹配、异常重定向、正文摘录/日期/哈希不匹配、
-  Codex 超时或坏 JSON 都必须保持 `verification_status: "unverified"`，并写入稳定
-  `verification_reason`。
-- `published_at` 不确定时必须为 `null`，不能使用抓取时间。
-- 中文摘要不能添加证据之外的性能、价格或发布时间判断。
-- `heat_score` 和 `relevance_score` 不参与真实性判定。
+- 不相关 discovery 不产生 NewsItem。
+- `published_at` 不确定时为 `null`，不能使用抓取时间冒充。
+- 热度和相关性不能推导真实性。
+- 1.2 verified 条目必须至少有一条满足完整严格门槛的 Evidence。
 
-v1.1 生产 RunReport 使用 schema `1.1`，新增可选 `reason_counts`。`stats` 至少记录
-`filtered`、`verification_attempted`、`discovery_verification_attempted` 和 `no_primary_evidence`；`filtered_irrelevant`
-用于明确 AI/科技相关性筛选原因。`reason_counts` 的键使用稳定前缀，例如
-`filtered:irrelevant_ai_technology`、`verification:evidence_unreachable` 和
-`no_primary_evidence`。旧 `1.0` RunReport 没有这些字段时仍可读取。
-
-## Evidence
+## Evidence 与生命周期
 
 ```json
 {
-  "url": "https://official.example/news/item",
-  "publisher": "Official Publisher",
+  "url": "https://openai.com/index/example",
+  "publisher": "OpenAI",
   "title": "Official announcement",
-  "published_at": "2026-08-02T01:00:00Z",
-  "retrieved_at": "2026-08-02T09:30:20+08:00",
-  "excerpt": "Short supporting excerpt",
-  "content_hash": "sha256:...",
+  "published_at": "2026-08-04T00:00:00Z",
+  "retrieved_at": "2026-08-05T09:30:10+08:00",
+  "reviewed_at": "2026-08-06T09:30:10+08:00",
+  "excerpt": "Exact visible supporting text",
+  "content_hash": "sha256:new",
+  "previous_content_hash": "sha256:old",
   "validation": {
     "reachable": true,
     "official_domain": true,
-    "excerpt_matched": true
+    "redirect_safe": true,
+    "excerpt_matched": true,
+    "date_matched": true,
+    "content_hash_matched": false,
+    "lifecycle_status": "changed_supporting"
   }
 }
 ```
 
-## 兼容规则
+首次核验要求：
 
-- `schema_version` 使用 `major.minor`。
-- 新增可选字段只增加 minor；删除、重命名、改变语义或必填性增加 major。
-- 消费者必须忽略未知字段，但不得忽略未知 major 版本。
-- 稳定枚举新增值属于兼容风险，必须同步契约测试和变更记录。
-- Python Model 和导出的 JSON Schema 必须由同一处定义生成，避免运行时与文档漂移。
+- `reachable`、`official_domain`、`redirect_safe`、`excerpt_matched`、`date_matched` 和 `content_hash_matched` 全部为 `true`；
+- `published_at` 必须存在；
+- `lifecycle_status` 为 `current`。
 
-## 阶段 1 已实现的模型边界
+复核允许：
 
-- `CollectionRequest` 要求带时区且前后顺序正确的时间范围；`from_` 以 JSON 别名 `from` 序列化。
-- `Candidate` 表示来源 Adapter 的未经规范化候选，不直接作为 Run JSON 顶层字段。
-- `Evidence` 的校验结果默认显式为 `false`，避免未执行校验时产生成功暗示。
-- `NewsItem` 的 `verified` 状态必须包含至少一条通过三项 validation 的 `primary_evidence`。
-- `SourceResult` 的非 `healthy` 状态必须包含结构化 `error`。
-- 当前模型接受 `1.x` minor 版本和未知字段，并拒绝未知 major `schema_version`；阶段 3 的持久化和原子写入已由 `JsonNewsStore` 实现。
+- `current`：正文哈希未变化，`content_hash_matched` 为 `true`；
+- `changed_supporting`：哈希变化，但原摘录、日期和安全边界仍成立；`previous_content_hash` 必须存在，并产生 warning；
+- `failed`：支持文本、日期、访问或安全边界失效，条目不得继续 verified。
 
-## DedupState 与 PriceSnapshot
+`content_hash` 基于可见正文进行 NFKC、大小写和空白规范化后计算 SHA-256。`script`、`style`、`noscript` 和 `template` 内容不参与哈希或摘录匹配。
 
-`state/dedup.json` 保存可恢复的事件键及其 `first_seen_at`、`last_seen_at`：
+## PendingVerificationState
 
 ```json
 {
   "schema_version": "1.0",
-  "events": {
-    "evt_stable_hash": {
-      "first_seen_at": "2026-08-02T09:30:00Z",
-      "last_seen_at": "2026-08-02T09:30:00Z"
+  "entries": {
+    "event-key": {
+      "event_key": "event-key",
+      "item": {},
+      "source_id": "hacker-news",
+      "publisher": "Hacker News",
+      "excerpt": "Candidate excerpt",
+      "official_domains": ["openai.com"],
+      "official_github_organizations": ["openai"],
+      "source_role": "discovery",
+      "attempt_count": 1,
+      "last_reason": "codex_timeout",
+      "terminal_reason": null,
+      "next_retry_at": "2026-08-05T09:31:00+08:00",
+      "max_attempts": 5,
+      "created_at": "2026-08-05T09:30:00+08:00",
+      "updated_at": "2026-08-05T09:30:00+08:00",
+      "expires_at": "2026-08-12T09:30:00+08:00",
+      "status": "pending"
     }
   }
 }
 ```
 
-阶段 4.5 已接入 OpenAI 官方模型/价格页和 DeepSeek 模型与价格页。价格快照先写入状态，只有
-后续运行的规范化 URL 或内容哈希发生差异时，Pipeline 才生成 `event_type: pricing_change`
-的候选；首次观察不会生成新闻事件。官方页面没有发布日期时，`published_at` 保持 `null`：
+- pending 独立于 dedup。
+- `status` 为 `pending` 或 `expired`。
+- 次数上限终止原因是 `verification_attempt_limit_reached`。
+- TTL 终止原因是 `verification_ttl_expired`。
+- 成功核验后删除对应 entry。
+
+RunReport 中的 `verification_retry` 只复制已经持久化的重试事实：状态、尝试次数、最后原因、终止原因、下次重试、上限和到期时间，不推断其他事实。
+
+## EvidenceReview
 
 ```json
 {
-  "source_id": "provider",
-  "url": "https://official.example/pricing",
-  "observed_at": "2026-08-02T09:30:00Z",
-  "first_observed_at": "2026-08-02T09:30:00Z",
-  "published_at": null,
-  "content_hash": "sha256:...",
-  "values": {"model": "1.00"}
+  "event_key": "event-key",
+  "evidence_url": "https://openai.com/index/example",
+  "status": "changed_supporting",
+  "reason": "",
+  "warning": "evidence_body_changed_support_still_present"
 }
 ```
 
-同一来源和 URL 的后续快照保留最早的 `first_observed_at`；规范化内容哈希不变时不生成
-`pricing_change`。价格变化事件的来源角色为 `monitor`，仍须经过统一证据流程，不能因价格
-页本身而直接标为 `verified`。
+`status` 为 `current`、`changed_supporting` 或 `failed`。失败复核必须记录稳定原因并使条目降级。
 
-## SourceSnapshot
+## SourceResult 与统计
 
-官方 HTML 目录页没有任何同时具备标题和发布日期的事件时，Adapter 不生成新闻候选，只返回并
-由 Pipeline 写入以下快照：
+SourceResult 保留 `source_id`、`role`、`stability`、`health`、抓取/接受数量、耗时和结构化错误。非 healthy 来源必须提供 `error.code` 和 `error.message`。
 
-```json
-{
-  "source_id": "openai",
-  "url": "https://developers.openai.com/api/docs/models",
-  "observed_at": "2026-08-03T09:30:00+08:00",
-  "content_hash": "sha256:...",
-  "values": {"title": "OpenAI directory", "entry_count": 2}
-}
+`stats` 保留兼容的扁平统计；1.2 新消费者优先读取 `verification_stats`。重要字段包括：
+
+- `attempted`：本次实际进入核验的唯一目标；
+- `retried`：来自到期 pending 的目标；
+- `pending`、`expired`：提交后的 pending 状态数量；
+- `changed_supporting`、`revalidation_failed`：证据复核结果。
+
+## validate 和 report
+
+```bash
+uv run mynews validate --run output/latest.json
+uv run mynews validate --run output/latest.json --check-evidence
+uv run mynews report --run output/latest.json --out output/report.md
 ```
 
-快照是来源状态，不是新闻事件，也不产生 `verified` 或 `pricing_change`。
+- 默认 validate 只做离线 Schema 检查。
+- `--check-evidence` 重抓 verified 证据；`changed_supporting` 写入 `warnings`，真正失效写入 `errors` 并返回失败。
+- warnings 为空时，为兼容旧 CLI 消费者可省略该字段。
+- report 不访问网络或调用 Codex，只展示 RunReport 已有事实。
+
+## 事务规则
+
+一次 complete/partial 提交同时包含历史 run、latest、dedup 和 pending。每个文件先写同目录临时文件并 `fsync`。任一替换失败时恢复提交前内容，删除本次历史 run。
+
+failed Run 可以保存诊断历史，但不能覆盖 latest，也不能提交本次 dedup/pending 演进结果。
