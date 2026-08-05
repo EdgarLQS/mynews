@@ -107,7 +107,7 @@ class EvidenceResolver:
             and is_official_url(candidate_url, domains, organizations)
             and not is_search_url(candidate_url)
         ):
-            result = self._validate(
+            return self._validate(
                 candidate_url,
                 excerpt=target.excerpt,
                 expected_date=target.item.published_at,
@@ -120,9 +120,6 @@ class EvidenceResolver:
                 organizations=organizations,
                 source="candidate_official_url",
             )
-            if result.evidence is not None:
-                return result
-            last_reason = result.reason
 
         if candidate_url and is_safe_candidate_url(candidate_url):
             result = self._resolve_page_link(
