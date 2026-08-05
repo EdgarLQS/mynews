@@ -1,0 +1,43 @@
+name: v1.2 evidence lifecycle validation
+
+on:
+  push:
+    branches:
+      - codex/v1.2-evidence-lifecycle
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --all-groups
+      - name: Check documentation
+        run: python3 scripts/check_docs.py
+      - name: Check diff whitespace
+        run: git diff --check origin/main...HEAD
+      - name: Ruff
+        run: uv run ruff check .
+      - name: Mypy
+        run: uv run mypy src
+      - name: Full test suite
+        run: uv run pytest -q
+      - name: Chinese CLI help
+        run: |
+          uv run mynews --help
+          uv run mynews collect --help
+          uv run mynews probe --help
+          uv run mynews validate --help
+          uv run mynews report --help
