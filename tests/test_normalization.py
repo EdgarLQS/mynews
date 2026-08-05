@@ -42,6 +42,22 @@ def test_normalizer_builds_stable_normalized_news_item() -> None:
     assert item.content_hash.startswith("sha256:")
 
 
+def test_normalizer_keeps_long_summary_without_changing_content_evidence() -> None:
+    candidate = Candidate(
+        source_id="fixture",
+        title_original="API update",
+        url="https://example.test/update",
+        content="事实 " * 400,
+    )
+
+    item = Normalizer(source_roles={"fixture": "primary"}).normalize(
+        [candidate], observed_at=datetime(2026, 8, 2, tzinfo=UTC)
+    )[0]
+
+    assert len(item.summary_zh) > 500
+    assert item.content_hash.startswith("sha256:")
+
+
 def test_normalizer_event_key_is_stable_for_equivalent_candidates() -> None:
     first = Candidate(
         source_id="one",

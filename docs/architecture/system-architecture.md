@@ -2,8 +2,8 @@
 title: mynews 系统架构与代码结构
 doc_type: architecture
 status: current
-implementation_status: in_progress
-version: 1.0
+implementation_status: implemented
+version: 1.1
 created: 2026-08-02
 updated: 2026-08-02
 owner: project-maintainers
@@ -23,17 +23,19 @@ owner: project-maintainers
 
 ```mermaid
 flowchart LR
-    CLI["CLI: collect / probe / validate"] --> COL["Collector Module"]
+    CLI["CLI: collect / probe / validate / report"] --> COL["Collector Module"]
     CLI --> VAL["Validation Module"]
     COL --> REG["Source Registry"]
     REG --> SRC["SourcePlugin Adapters"]
-    SRC --> NOR["Normalize + Filter + Deduplicate"]
+    SRC --> NOR["Normalize + Relevance Filter + Deduplicate"]
     NOR --> VER["EvidenceVerifier"]
     VER --> POST["First-party post-validation"]
     POST --> SUM["Chinese factual summary"]
     SUM --> STORE["NewsStore"]
     STORE --> JSON["Run JSON + latest + state"]
+    JSON --> REPORT["Offline Markdown report"]
     VAL --> CONTRACT["RunReport / Schema / Evidence"]
+    CLI --> REPORT
 ```
 
 `Collector` 是应用层唯一主 Module。CLI 不编排来源、不拼 JSON、不直接调用 Codex。
@@ -63,6 +65,7 @@ flowchart LR
 - `Evidence`：第一方 URL、发布者、日期、摘录、内容哈希和检索时间。
 - `NewsItem`：规范化事件、中文事实摘要、核验状态和证据集合。
 - `SourceResult`：来源状态、数量、耗时和结构化错误。
+- `SourceSnapshot`：没有日期事件的官方目录页内容指纹和有限元数据快照。
 - `RunReport`：一次执行的完整可序列化结果。
 - `PriceSnapshot`：官方价格页快照、规范化内容指纹、`first_observed_at` 和可选 `published_at`。
 - `VerificationConfig`：Verifier 的模型、预算、批大小、超时和 Codex 可执行文件配置，不属于
@@ -90,6 +93,8 @@ class SourcePlugin(Protocol):
 - 价格 Adapter 可在 `SourceBatch.price_snapshot` 返回快照，但不得自行写 `state`；只有
   Pipeline 发现已有快照且规范化 URL/内容哈希变化时，才生成 `pricing_change` 候选。
 - 插件失败只影响自身，必须返回结构化错误。
+- `SourceMetadata.stability` 会进入健康快照；`experimental` 来源异常不参与 Run 状态聚合，
+  其余当前内置等级按稳定来源处理。
 - 所有网络调用使用注入的共享 HTTP client、Clock 和配置。
 - 插件 fixture 测试与真实 probe 使用同一个 interface。
 
@@ -109,7 +114,7 @@ class SourcePlugin(Protocol):
 - `official_pages.py` 提供 OpenAI、Anthropic、Google Gemini、DeepSeek、TRAE 的官方更新页，
   OpenAI/DeepSeek 的价格页，以及只读取公开元数据的知乎/Bloomberg 实验 Adapter。
 - `SourceBlockedError` 将登录、付费墙或实验入口不可公开访问转换为 `blocked`；Adapter 不尝试
-  绕过访问控制。`discovery` 候选保持 `unverified`，不会由来源直接决定真实性。
+  绕过访问控制。`discovery` 候选先经确定性相关性筛选，再进入统一第一方核验。
 - 阶段 2 的原始 `SourceCollector` seam 输出候选与健康快照；生产 `PipelineCollector`/CLI
   `collect` 已接入 `RunReport`、规范化、跨运行去重、JSON Store 和阶段 4 核验。
 
@@ -135,9 +140,13 @@ class SourcePlugin(Protocol):
 - 官方 HTML Adapter 将稳定页面标题作为逐字证据摘录、完整卡片文本保留在 `content`；核验时只在
   可见文本中做逐字匹配，忽略 HTML 标签、脚本内容和零宽格式字符；正文哈希也基于同一可见正文规范化结果，
   同时保持精确官方域名和日期规则。
+- 官方 HTML 只有同时存在标题和日期才生成单个事件；没有日期事件时返回 SourceSnapshot，
+  候选摘要最多 500 字。
 - Codex 提示明确要求返回页面中逐字连续的原文片段和可见正文规范化哈希；模型改写、翻译、拼接或归因性
   转述仍会保持 `unverified`，并记录 `evidence_excerpt_mismatch`。
 - Codex 模型、候选预算和批大小由配置注入，不在领域层或 Collector 中写死。
+- `AiTechnologyRelevanceFilter` 使用固定规则筛选 discovery；Codex 只能在程序提供的精确官方
+  域名/GitHub 组织范围内建议，不能扩大白名单。
 - `SourceMetadata.official_domains` 采用精确主机名匹配；GitHub URL 还必须匹配声明的组织，
   不能用形似官方名称的子域名替代。
 - Storage 接收完整 `RunReport`，不知道来源抓取细节。
@@ -151,12 +160,13 @@ src/mynews/
 ├── cli.py
 ├── application/
 │   ├── collector.py
+│   ├── report.py
 │   └── validation.py
 ├── domain/
 │   ├── models.py
 │   ├── normalization.py
 │   ├── deduplication.py
-│   └── policies.py
+│   └── relevance.py
 ├── sources/
 │   ├── protocol.py
 │   ├── registry.py
@@ -187,6 +197,8 @@ src/mynews/
 - URL 规范化后仍要验证协议、官方域名、重定向目标和 GitHub 组织。
 - 禁止绕过验证码、付费墙和 robots；来源状态如实标为 blocked。
 - 全部来源失败时写失败诊断但不更新 latest；部分失败返回可用 report 和退出码 3。
+- 实验来源全部失败但稳定来源没有异常时，Run 仍为 complete；稳定来源异常仍按原规则影响
+  Run 状态。
 - 价格页只有差异证据和 first_observed_at，没有官方日期就不推断。
 
 ## 架构演进门槛

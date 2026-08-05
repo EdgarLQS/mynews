@@ -55,6 +55,18 @@ def metadata(source_id: str) -> SourceMetadata:
     )
 
 
+def experimental_metadata(source_id: str) -> SourceMetadata:
+    return SourceMetadata(
+        source_id=source_id,
+        name=source_id,
+        role="discovery",
+        homepage="https://example.test/",
+        official_domains=("example.test",),
+        capabilities=("fixture",),
+        stability="experimental",
+    )
+
+
 @dataclass
 class StubPlugin:
     metadata: SourceMetadata
@@ -117,6 +129,19 @@ def test_registry_uses_injected_clock_for_health_snapshot() -> None:
     )
 
     assert result.health[0].checked_at == clock.value
+
+
+def test_experimental_source_failure_does_not_make_collection_partial() -> None:
+    registry = SourceRegistry(
+        [StubPlugin(metadata("stable")), StubPlugin(experimental_metadata("lab"), True)]
+    )
+
+    result = registry.collect_all(
+        SourceContext(request=REQUEST, http=NullHttpClient())
+    )
+
+    assert result.health[1].stability == "experimental"
+    assert result.health[1].health == "failed"
 
 
 def test_registry_rejects_unsupported_plugin_protocol_version() -> None:

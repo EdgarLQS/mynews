@@ -1,12 +1,13 @@
 ---
 title: mynews v1 热点收集器实施计划
 doc_type: plan
-status: current
+status: archived
 implementation_status: verified
 version: 1.0
 created: 2026-08-02
 updated: 2026-08-03
 owner: project-maintainers
+superseded_by: ../../../planning/v1.1-information-quality-plan.md
 ---
 
 # mynews v1 热点收集器实施计划
@@ -51,7 +52,7 @@ v1 成功要求：
 
 - 建立 docs 总入口、计划、架构、功能矩阵、来源目录、JSON 契约、ADR 与 archive 机制。
 - 以根 `AGENTS.md` 统一项目 AI 开发规则，`CLAUDE.md` 只负责 Claude Code 导入和入口说明。
-- 建立 [项目验收规则](../testing/acceptance-rules.md) 和 Claude Code `/acceptance` 项目技能。
+- 建立 [项目验收规则](../../../testing/acceptance-rules.md) 和 Claude Code `/acceptance` 项目技能。
 - 提供零依赖 `scripts/check_docs.py`，固定文档头、内部链接、JSON 示例和 AI 入口检查。
 
 验收：文档头、内部链接和状态同步检查通过；技能 frontmatter 验证通过；运行时代码仍保持 Proposed。
@@ -84,7 +85,7 @@ G2 至 G7：本阶段没有采集运行时代码，按门禁矩阵不适用；�
 
 结论：`PASS`（G0–G4）。验收范围为当前分支相对 `main` 的全部提交和工作树变更；基线为
 `main=8acafc2`，验收时工作树无未提交或未跟踪变更。本记录与完整证据见
-[阶段 1 功能验收说明](../testing/phase1-functional-acceptance.md)。
+[阶段 1 功能验收说明](../../../testing/phase1-functional-acceptance.md)。
 
 本阶段完成工程骨架、CLI 参数契约和离线 JSON 模型兼容测试；当前分支另包含 CC Switch
 官方 Release 的离线解析 Adapter 增量。两者都不代表来源采集运行时、Codex 核验、JSON
@@ -214,7 +215,7 @@ launchd、真实价格源和七天回溯仍未实现或验收。
 
 结论：离线能力为 `Implemented`，本次独立完整验收结论为 `FAIL`。离线 Adapter、registry
 隔离、价格首观/差异和 discovery 保持 `unverified` 测试通过；真实 probe 的逐项命令、原始状态和访问限制见
-[阶段 4.5 probe 证据](../testing/phase45-source-probe-evidence.md)。`healthy` 只表示入口和
+[阶段 4.5 probe 证据](../../../testing/phase45-source-probe-evidence.md)。`healthy` 只表示入口和
 解析器可用，不表示新闻已 `verified`。
 
 OpenAI 原 `https://openai.com/news/` 与 `https://openai.com/api/pricing/` 首次 probe 返回
@@ -383,11 +384,11 @@ git diff --check
 
 真实网络 probe 和七天回溯是独立验收门槛，不得用离线测试通过代替；阶段 3 的离线检查
 只能证明 `Implemented`，不升级为真实来源、真实价格或阶段 4 的 `Verified`。
-每个阶段开发完成后，按 [项目验收规则](../testing/acceptance-rules.md) 选择门禁并输出独立验收结论。
+每个阶段开发完成后，按 [项目验收规则](../../../testing/acceptance-rules.md) 选择门禁并输出独立验收结论。
 
 ## 文档联动
 
-- 每完成一个阶段，同步本计划、[功能矩阵](../product/feature-matrix.md) 和 [文档总览](../README.md)。
-- CLI/JSON 变化同步 [JSON 数据契约](../reference/json-data-contract.md)。
-- 来源变化同步 [信息来源目录](../reference/source-catalog.md)。
-- seam、插件协议或核验门槛变化同步 [系统架构](../architecture/system-architecture.md)，必要时新增 ADR。
+- 每完成一个阶段，同步本计划、[功能矩阵](../../../product/feature-matrix.md) 和 [文档总览](../../../README.md)。
+- CLI/JSON 变化同步 [JSON 数据契约](../../../reference/json-data-contract.md)。
+- 来源变化同步 [信息来源目录](../../../reference/source-catalog.md)。
+- seam、插件协议或核验门槛变化同步 [系统架构](../../../architecture/system-architecture.md)，必要时新增 ADR。

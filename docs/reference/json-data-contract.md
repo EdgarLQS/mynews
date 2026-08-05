@@ -3,7 +3,7 @@ title: mynews JSON 数据契约
 doc_type: reference
 status: current
 implementation_status: implemented
-version: 1.0
+version: 1.1
 created: 2026-08-02
 updated: 2026-08-02
 owner: project-maintainers
@@ -29,7 +29,9 @@ output/
     └── <ISO-8601-run-id>.json
 state/
 ├── dedup.json
-└── price_snapshots/
+├── price_snapshots/
+│   └── <source-id>.json
+└── source_snapshots/
     └── <source-id>.json
 ```
 
@@ -77,6 +79,7 @@ state/
 {
   "source_id": "hacker-news",
   "role": "discovery",
+  "stability": "stable-planned",
   "health": "healthy",
   "fetched_count": 30,
   "accepted_count": 5,
@@ -85,7 +88,9 @@ state/
 }
 ```
 
-`health` 为 `healthy`、`degraded`、`blocked` 或 `failed`。错误使用稳定 `code` 和可读 `message`，不得只保存堆栈。
+`health` 为 `healthy`、`degraded`、`blocked` 或 `failed`。`stability` 保存来源详细等级；
+`experimental` 来源的异常不参与 Run `status` 聚合，其余当前内置等级按稳定来源处理。
+错误使用稳定 `code` 和可读 `message`，不得只保存堆栈。
 
 ## 采集输出与阶段 2 原始 seam
 
@@ -112,8 +117,8 @@ state/
 }
 ```
 
-`probe` 省略 `candidates`，原始 `collect` 增加来源 Adapter 的 `candidates` 和可选
-`price_snapshots`；生产
+`probe` 省略 `candidates`，原始 `collect` 增加来源 Adapter 的 `candidates`、可选
+`price_snapshots` 和 `source_snapshots`；生产
 `collect` 才生成 `run_id`、事件键、去重状态和 `latest.json`。阶段 4 生产流水线会先尝试
 官方来源直验，再将其余候选交给可配置的 Codex Verifier。非 healthy 来源必须包含
 `error.code` 和 `error.message`，单个来源失败不会吞掉其他来源。
@@ -130,6 +135,15 @@ uv run mynews validate --run output/latest.json --check-evidence
 输出 `status`、`schema_valid`、`verified_count`、`evidence_count`、`evidence_checked` 和
 `errors`。默认不访问网络；`--check-evidence` 会重新抓取每条 `verified` 的第一方证据，
 再次执行 HTTPS、精确官方域名、日期、可见正文逐字摘录和正文哈希校验，任一失败返回退出码 1。
+
+离线可读报告命令为：
+
+```bash
+uv run mynews report --run output/latest.json --out output/report.md
+```
+
+`report` 只读取 RunReport，不访问网络或调用 Codex；未提供 `--out` 时把同一 Markdown 内容
+打印到标准输出。
 
 ## NewsItem
 
@@ -179,6 +193,12 @@ uv run mynews validate --run output/latest.json --check-evidence
 - `published_at` 不确定时必须为 `null`，不能使用抓取时间。
 - 中文摘要不能添加证据之外的性能、价格或发布时间判断。
 - `heat_score` 和 `relevance_score` 不参与真实性判定。
+
+v1.1 生产 RunReport 使用 schema `1.1`，新增可选 `reason_counts`。`stats` 至少记录
+`filtered`、`verification_attempted`、`discovery_verification_attempted` 和 `no_primary_evidence`；`filtered_irrelevant`
+用于明确 AI/科技相关性筛选原因。`reason_counts` 的键使用稳定前缀，例如
+`filtered:irrelevant_ai_technology`、`verification:evidence_unreachable` 和
+`no_primary_evidence`。旧 `1.0` RunReport 没有这些字段时仍可读取。
 
 ## Evidence
 
@@ -251,3 +271,20 @@ uv run mynews validate --run output/latest.json --check-evidence
 同一来源和 URL 的后续快照保留最早的 `first_observed_at`；规范化内容哈希不变时不生成
 `pricing_change`。价格变化事件的来源角色为 `monitor`，仍须经过统一证据流程，不能因价格
 页本身而直接标为 `verified`。
+
+## SourceSnapshot
+
+官方 HTML 目录页没有任何同时具备标题和发布日期的事件时，Adapter 不生成新闻候选，只返回并
+由 Pipeline 写入以下快照：
+
+```json
+{
+  "source_id": "openai",
+  "url": "https://developers.openai.com/api/docs/models",
+  "observed_at": "2026-08-03T09:30:00+08:00",
+  "content_hash": "sha256:...",
+  "values": {"title": "OpenAI directory", "entry_count": 2}
+}
+```
+
+快照是来源状态，不是新闻事件，也不产生 `verified` 或 `pricing_change`。

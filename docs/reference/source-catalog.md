@@ -2,8 +2,8 @@
 title: mynews 信息来源目录
 doc_type: reference
 status: current
-implementation_status: in_progress
-version: 1.0
+implementation_status: implemented
+version: 1.1
 created: 2026-08-02
 updated: 2026-08-02
 owner: project-maintainers
@@ -23,7 +23,11 @@ owner: project-maintainers
 不把 probe 通过解释为候选已 `verified`，候选核验仍由阶段 4 的统一流程负责。
 
 阶段 2 的 Hacker News、Qwen 和 CC Switch 既有真实 probe 证据继续保留；阶段 4.5 的每个
-新增来源 probe 命令和当次状态见 [阶段 4.5 记录](../planning/v1-implementation-plan.md#阶段-45来源覆盖与价格监控)。
+新增来源 probe 命令和当次状态见 v1 归档计划；本目录只描述策略，不代替实时 probe。
+
+v1.1 将来源详细等级写入 `SourceHealth`/`SourceResult`。`experimental` 是不影响 Run
+状态的实验等级；`stable-planned`、`adapter-planned` 等其余当前内置等级按稳定来源处理，
+其异常仍会使 Run 变为 `partial` 或 `failed`。这使来源质量和 Run 状态在 JSON 与 report 中可解释。
 
 ## 阶段 4.5 来源覆盖
 
@@ -47,7 +51,8 @@ owner: project-maintainers
 TRAE 的入口由实现前的公开页面检查确认。若 live probe 受本机网络、登录、付费墙
 或 robots 限制，记录为 `blocked`/`failed`，不改用媒体、搜索摘要或非官方 API。
 
-价格来源首次观察只保存 `state/price_snapshots/<source-id>.json`；只有后续运行规范化快照
+价格来源首次观察只保存 `state/price_snapshots/<source-id>.json`；官方 HTML 目录页没有任何
+可确认日期时只保存 `state/source_snapshots/<source-id>.json`。只有后续运行规范化快照
 的 URL 或内容哈希变化时，才产生 `pricing_change` 候选。实验来源只保留公开标题、链接、
 日期等元数据，不能采集登录后正文或付费墙内容。
 
@@ -62,7 +67,7 @@ TRAE 的入口由实现前的公开页面检查确认。若 live probe 受本机
 
 - `stable-planned`：有 RSS、Atom、API 或明确结构化入口，仍需 live probe。
 - `adapter-planned`：需要来源专用 HTML Adapter 和日期验证。
-- `experimental`：可能受 robots、登录、地区或页面结构影响，失败允许标记 blocked。
+- `experimental`：可能受 robots、登录、地区或页面结构影响，失败允许标记 blocked，且不影响 Run 状态。
 - `manual`：v1 仅保留链接或由 Codex 搜索发现。
 
 ## 发现与媒体渠道
@@ -113,6 +118,13 @@ TRAE 的入口由实现前的公开页面检查确认。若 live probe 受本机
 - 实现使用精确官方主机名匹配；GitHub 证据还必须匹配配置的官方组织，伪造子域名、
   跨域异常重定向和不可访问页面均保持 unverified。
 - `windsurf.com/changelog` 当前会跳转到 Devin Docs；实现前必须确认产品归属、历史连续性和新的官方域名白名单，因此暂列 experimental。
+
+## v1.1 discovery 与 HTML 规则
+
+- discovery 候选先经过确定性的 AI/科技相关性词表；词表只匹配候选可读文本，URL 和 HTML 标记不计为命中；不相关候选只记录 `filtered` 原因，不进入规范化或核验。
+- 通过筛选的 discovery 候选允许进入统一 Codex 第一方证据查找；模型只能在程序提供的官方域名/GitHub 组织范围内建议，不能扩大白名单。
+- 程序白名单对当前已确认入口使用精确主机名，例如 `developers.openai.com`、`www.anthropic.com` 和 `www.trae.cn`；主域名相似或未经配置的 host 不会因为模型建议而获信任。
+- 官方 HTML Adapter 只用同时存在的标题和页面日期生成单个事件；候选摘要最多 500 字。目录页没有日期事件时保存页面内容哈希快照，不伪造事件日期。
 
 ## CC Switch 更新日志监控约定
 

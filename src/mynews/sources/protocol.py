@@ -15,6 +15,7 @@ from mynews.domain.models import (
     ContractModel,
     PriceSnapshot,
     SourceError,
+    SourceSnapshot,
 )
 from mynews.infrastructure.clock import Clock, SystemClock
 from mynews.infrastructure.http import HttpClient
@@ -85,6 +86,7 @@ class SourceBatch:
     candidates: tuple[Candidate, ...]
     fetched_count: int | None = None
     price_snapshot: PriceSnapshot | None = None
+    snapshot: SourceSnapshot | None = None
 
     def __post_init__(self) -> None:
         if self.fetched_count is not None and self.fetched_count < len(self.candidates):
@@ -96,6 +98,7 @@ class SourceHealth(ContractModel):
 
     source_id: str
     role: str
+    stability: str = "stable"
     health: Literal["healthy", "degraded", "blocked", "failed"]
     fetched_count: int = Field(ge=0)
     accepted_count: int = Field(ge=0)
@@ -152,6 +155,7 @@ class SourceCollection:
     candidates: tuple[Candidate, ...]
     health: tuple[SourceHealth, ...]
     price_snapshots: tuple[PriceSnapshot, ...] = ()
+    snapshots: tuple[SourceSnapshot, ...] = ()
 
 
 def ensure_unique_source_ids(

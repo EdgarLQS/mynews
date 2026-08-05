@@ -22,7 +22,11 @@ archive/
 └── reference/<year>/
 ```
 
-当前暂无归档文档。
+## 已归档文档
+
+| 原路径 | 归档路径 | 日期 | 原因 | 替代文档 |
+| --- | --- | --- | --- | --- |
+| `docs/planning/v1-implementation-plan.md` | `plan/2026/v1-implementation-plan.md` | 2026-08-03 | v1 完成并由信息质量闭环 v1.1 替代 | [v1.1 计划](../planning/v1.1-information-quality-plan.md) |
 
 ## 归档要求
 

@@ -2,8 +2,8 @@
 
 面向个人使用的 AI 与科技热点收集器，v1 优先覆盖模型、AI 编程工具、开发者平台及相关重大科技动态。项目目标是从热点渠道发现线索，回溯并验证第一方原始信息，再以结构化 JSON 保存，供后续筛选、分析和产品开发使用。
 
-> 当前状态：阶段 1 契约、阶段 2 原始来源采集、阶段 3 规范化/去重/JSON Store、阶段 4
-> 第一方核验和阶段 4.5 来源覆盖已 Verified；阶段 5 发布候选独立验收通过。真实 launchd
+> 当前状态：v1 来源采集、规范化/去重、第一方核验和阶段 4.5 来源覆盖已 Verified；v1.1
+> 信息质量闭环和离线可读报告已 Implemented，discovery 证据不足仍保持 unverified。真实 launchd
 > 按验收边界未加载。
 
 日常运行可使用 `scripts/collect.sh --days 7`。脚本固定在项目根目录运行，支持
@@ -12,13 +12,14 @@
 主机本地时间每日 09:30（采集进程使用 `TZ=Asia/Shanghai`）。采集脚本使用 `logs/collect.lock` 防止定时任务重叠，并保留
 底层 `collect` 退出码。运行数据写入 `output/`、`state/`，日志写入 `logs/`，这些目录不提交。
 
-发布前可重复执行 `uv run mynews validate --run output/latest.json --schema-out /tmp/mynews.schema.json`
+发布前可重复执行 `uv run mynews validate --run output/latest.json --schema-out /tmp/mynews.schema.json`；
+离线报告可执行 `uv run mynews report --run output/latest.json --out output/report.md`
 校验 RunReport 和同源 Schema；增加 `--check-evidence` 会重新抓取并校验每条 `verified` 证据。
 
 ## 文档入口
 
 - [文档总览与当前状态](docs/README.md)
-- [v1 实施计划](docs/planning/v1-implementation-plan.md)
+- [v1.1 当前计划](docs/planning/v1.1-information-quality-plan.md)
 - [系统架构与代码结构](docs/architecture/system-architecture.md)
 - [功能矩阵](docs/product/feature-matrix.md)
 - [项目验收规则](docs/testing/acceptance-rules.md)

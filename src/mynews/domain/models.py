@@ -185,6 +185,23 @@ class PriceSnapshot(ContractModel):
         return self
 
 
+class SourceSnapshot(ContractModel):
+    """没有可确认日期的来源目录页快照。"""
+
+    source_id: str = Field(min_length=1)
+    url: str = Field(min_length=1)
+    observed_at: datetime
+    content_hash: str = Field(min_length=1)
+    values: dict[str, object] = Field(default_factory=dict)
+
+    @field_validator("observed_at")
+    @classmethod
+    def validate_snapshot_datetime(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("来源快照时间必须包含时区")
+        return value
+
+
 class SourceError(ContractModel):
     """来源失败的稳定机器可读错误。"""
 
@@ -197,6 +214,7 @@ class SourceResult(ContractModel):
 
     source_id: str = Field(min_length=1)
     role: str = Field(min_length=1)
+    stability: str = Field(default="stable", min_length=1)
     health: Literal["healthy", "degraded", "blocked", "failed"]
     fetched_count: int = Field(ge=0)
     accepted_count: int = Field(ge=0)
@@ -213,7 +231,7 @@ class SourceResult(ContractModel):
 class RunReport(ContractModel):
     """一次运行的完整可序列化报告。"""
 
-    schema_version: str = Field(default="1.0", pattern=r"^[0-9]+\.[0-9]+$")
+    schema_version: str = Field(default="1.1", pattern=r"^[0-9]+\.[0-9]+$")
     run_id: str = Field(min_length=1)
     status: Literal["complete", "partial", "failed"]
     requested_range: CollectionRequest
@@ -221,6 +239,7 @@ class RunReport(ContractModel):
     finished_at: datetime
     sources: list[SourceResult] = Field(default_factory=list)
     stats: dict[str, int] = Field(default_factory=dict)
+    reason_counts: dict[str, int] = Field(default_factory=dict)
     items: list[NewsItem] = Field(default_factory=list)
 
     @field_validator("schema_version")

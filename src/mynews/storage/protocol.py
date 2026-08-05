@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Protocol
 
 from mynews.domain.deduplication import DedupState
-from mynews.domain.models import PriceSnapshot, RunReport
+from mynews.domain.models import PriceSnapshot, RunReport, SourceSnapshot
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,3 +28,7 @@ class NewsStore(Protocol):
     def save_dedup_state(self, state: DedupState) -> Path: ...
 
     def save_price_snapshot(self, snapshot: PriceSnapshot) -> PriceSnapshot: ...
+
+    def load_source_snapshot(self, source_id: str) -> SourceSnapshot | None: ...
+
+    def save_source_snapshot(self, snapshot: SourceSnapshot) -> SourceSnapshot: ...

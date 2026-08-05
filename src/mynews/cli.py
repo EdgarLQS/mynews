@@ -11,6 +11,7 @@ from typing import NoReturn
 from zoneinfo import ZoneInfo
 
 from mynews.application.collector import PipelineCollector, SourceCollector
+from mynews.application.report import load_report, render_report, write_report
 from mynews.application.validation import RunValidation, validate_run_file, write_schema
 from mynews.domain.models import CollectionRequest
 from mynews.sources.registry import SourceRegistry, built_in_registry
@@ -140,6 +141,24 @@ def build_parser() -> ChineseArgumentParser:
         default=30.0,
         metavar="秒",
         help="证据重抓取超时时间，默认 30 秒",
+    )
+    report = commands.add_parser(
+        "report",
+        help="从 RunReport 生成中文 Markdown 报告",
+        description="离线读取 RunReport，生成已核验、待核验、价格变化和来源状态报告。",
+        add_help=False,
+    )
+    report.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    report.add_argument(
+        "--run",
+        default="output/latest.json",
+        metavar="路径",
+        help="要读取的 RunReport JSON，默认 output/latest.json",
+    )
+    report.add_argument(
+        "--out",
+        metavar="路径",
+        help="Markdown 输出路径；不提供时打印到标准输出",
     )
     return parser
 
@@ -283,6 +302,18 @@ def main(
     args = parser.parse_args(argv)
     active_registry = registry or built_in_registry()
     collector = SourceCollector(active_registry)
+    if args.command == "report":
+        try:
+            report = load_report(Path(args.run))
+            if args.out:
+                write_report(report, Path(args.out))
+                print(f"报告已写入：{args.out}")
+            else:
+                print(render_report(report), end="")
+        except (OSError, ValueError) as error:
+            print(f"报告生成失败：{error}")
+            return 1
+        return 0
     if args.command == "validate":
         if args.schema_out:
             try:

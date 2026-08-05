@@ -18,6 +18,7 @@ from mynews.domain.models import (
     SourceResult,
 )
 from mynews.domain.normalization import Normalizer, normalize_source_role
+from mynews.domain.relevance import AiTechnologyRelevanceFilter
 from mynews.infrastructure.clock import Clock, SystemClock
 from mynews.sources.protocol import (
     ProbeContext,
@@ -70,6 +71,9 @@ class SourceCollector:
             "price_snapshots": [
                 item.model_dump(mode="json") for item in result.price_snapshots
             ],
+            "source_snapshots": [
+                item.model_dump(mode="json") for item in result.snapshots
+            ],
         }
         return json.dumps(payload, ensure_ascii=False, indent=2)
 
@@ -116,15 +120,37 @@ class PipelineCollector:
         finished_at = self._clock.now()
         status = _health_status(raw.health)
         raw = self._observe_price_snapshots(raw, status)
+        self._observe_source_snapshots(raw, status)
         verification_config = _config_for_request(
             request, self._verification_config
         )
         effective_request = _request_with_sources(
             request, source_ids, verification_config
         )
-        items, dedup_state, normalized_count = self._process_items(
-            raw, started_at, status, verification_config
+        filtered_raw, filtered_count, filter_reasons = _filter_discovery(
+            raw, getattr(self._registry, "source_roles", {})
         )
+        (
+            items,
+            dedup_state,
+            normalized_count,
+            verification_attempted,
+            discovery_verification_attempted,
+        ) = (
+            self._process_items(
+                filtered_raw, started_at, status, verification_config
+            )
+        )
+        no_primary_evidence = sum(
+            item.verification_status == "unverified" and not item.primary_evidence
+            for item in items
+        )
+        reason_counts = dict(filter_reasons)
+        reason_counts["no_primary_evidence"] = no_primary_evidence
+        for item in items:
+            if item.verification_status == "unverified":
+                key = f"verification:{item.verification_reason}"
+                reason_counts[key] = reason_counts.get(key, 0) + 1
         report = RunReport(
             run_id=started_at.isoformat(),
             status=status,
@@ -137,6 +163,11 @@ class PipelineCollector:
                 "normalized_count": normalized_count,
                 "item_count": len(items),
                 "deduplicated_count": normalized_count - len(items),
+                "filtered": filtered_count,
+                "filtered_irrelevant": filtered_count,
+                "verification_attempted": verification_attempted,
+                "discovery_verification_attempted": discovery_verification_attempted,
+                "no_primary_evidence": no_primary_evidence,
                 "verified_count": sum(
                     item.verification_status == "verified" for item in items
                 ),
@@ -144,6 +175,7 @@ class PipelineCollector:
                     item.verification_status == "unverified" for item in items
                 ),
             },
+            reason_counts=reason_counts,
             items=list(items),
         )
         self._store.commit(
@@ -165,15 +197,23 @@ class PipelineCollector:
                 changes.append(_pricing_candidate(previous, stored))
         return replace(raw, candidates=raw.candidates + tuple(changes))
 
+    def _observe_source_snapshots(
+        self, raw: SourceCollection, status: str
+    ) -> None:
+        if status == "failed":
+            return
+        for snapshot in raw.snapshots:
+            self._store.save_source_snapshot(snapshot)
+
     def _process_items(
         self,
         raw: SourceCollection,
         observed_at: datetime,
         status: str,
         verification_config: VerificationConfig,
-    ) -> tuple[tuple[NewsItem, ...], DedupState | None, int]:
+    ) -> tuple[tuple[NewsItem, ...], DedupState | None, int, int, int]:
         if status == "failed":
-            return (), None, 0
+            return (), None, 0, 0, 0
         roles = getattr(self._registry, "source_roles", {})
         normalizer = self._normalizer or Normalizer(roles)
         normalized = normalizer.normalize(raw.candidates, observed_at=observed_at)
@@ -187,13 +227,18 @@ class PipelineCollector:
             candidates_by_key,
             getattr(self._registry, "source_metadata", {}),
         )
-        verified = _verify_items(
+        discovery_attempted = sum(
+            target.source_role == "discovery" for target in targets
+        )
+        verified, verification_attempted = _verify_items(
             deduplicated, targets, self._verifier, verification_config
         )
         return (
             verified,
             deduplicator.state,
             len(normalized),
+            verification_attempted,
+            discovery_attempted,
         )
 
 
@@ -203,9 +248,14 @@ Collector = PipelineCollector
 def _health_status(
     health: Sequence[SourceHealth],
 ) -> Literal["complete", "partial", "failed"]:
-    if health and all(item.health == "healthy" for item in health):
+    stable_health = tuple(
+        item for item in health if item.stability != "experimental"
+    )
+    if not stable_health:
         return "complete"
-    if any(item.health in {"healthy", "degraded"} for item in health):
+    if all(item.health == "healthy" for item in stable_health):
+        return "complete"
+    if any(item.health in {"healthy", "degraded"} for item in stable_health):
         return "partial"
     return "failed"
 
@@ -240,6 +290,7 @@ def _source_result(health: SourceHealth) -> SourceResult:
     return SourceResult(
         source_id=health.source_id,
         role=normalize_source_role(health.role),
+        stability=health.stability,
         health=health.health,
         fetched_count=health.fetched_count,
         accepted_count=health.accepted_count,
@@ -329,12 +380,10 @@ def _verify_items(
     targets: Sequence[VerificationTarget],
     verifier: EvidenceVerifier,
     config: VerificationConfig,
-) -> tuple[NewsItem, ...]:
-    eligible_targets = tuple(
-        target for target in targets if target.source_role != "discovery"
-    )
+) -> tuple[tuple[NewsItem, ...], int]:
+    eligible_targets = tuple(targets)
     if not eligible_targets:
-        return tuple(_apply_decision(item, None) for item in items)
+        return tuple(_apply_decision(item, None) for item in items), 0
     try:
         decisions = verifier.verify(eligible_targets, config=config)
     except Exception:
@@ -347,14 +396,40 @@ def _verify_items(
                 }
             )
             for item in items
-        )
+        ), len(eligible_targets)
     by_id = {decision.item_id: decision for decision in decisions}
     return tuple(
-        _apply_decision(item, None)
-        if target.source_role == "discovery"
-        else _apply_decision(item, by_id.get(item.event_key))
-        for item, target in zip(items, targets, strict=True)
-    )
+        _apply_decision(item, by_id.get(item.event_key))
+        for item in items
+    ), len(eligible_targets)
+
+
+def _filter_discovery(
+    raw: SourceCollection,
+    source_roles: Mapping[str, str] | object,
+) -> tuple[SourceCollection, int, dict[str, int]]:
+    roles = source_roles if isinstance(source_roles, Mapping) else {}
+    policy = AiTechnologyRelevanceFilter()
+    kept: list[Candidate] = []
+    reasons: dict[str, int] = {}
+    filtered = 0
+    for candidate in raw.candidates:
+        role = normalize_source_role(
+            candidate.source_role or roles.get(candidate.source_id)
+        )
+        if role != "discovery":
+            kept.append(candidate)
+            continue
+        decision = policy.evaluate(candidate)
+        if decision.relevant:
+            kept.append(
+                candidate.model_copy(update={"relevance_score": decision.score})
+            )
+            continue
+        filtered += 1
+        key = f"filtered:{decision.reason}"
+        reasons[key] = reasons.get(key, 0) + 1
+    return replace(raw, candidates=tuple(kept)), filtered, reasons
 
 
 def _apply_decision(

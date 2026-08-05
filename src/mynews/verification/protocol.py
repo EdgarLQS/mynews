@@ -14,7 +14,9 @@ DEFAULT_VERIFICATION_BATCH_SIZE = 5
 DEFAULT_VERIFICATION_TIMEOUT = 30.0
 DEFAULT_PRIMARY_DOMAINS = (
     "openai.com",
+    "developers.openai.com",
     "anthropic.com",
+    "www.anthropic.com",
     "ai.google.dev",
     "github.blog",
     "cursor.com",
@@ -27,6 +29,7 @@ DEFAULT_PRIMARY_DOMAINS = (
     "bigmodel.cn",
     "lingma.aliyun.com",
     "trae.cn",
+    "www.trae.cn",
     "codebuddy.cn",
     "cloud.baidu.com",
     "minimaxi.com",

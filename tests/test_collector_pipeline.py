@@ -185,6 +185,44 @@ def test_pipeline_keeps_usable_items_when_one_source_is_partial(
     assert {item.source_id for item in report.sources} == {"good", "bad"}
 
 
+def test_pipeline_filters_irrelevant_discovery_candidates_and_records_reason(
+    tmp_path: Path,
+) -> None:
+    class IrrelevantRegistry(FakeRegistry):
+        def collect_all(
+            self, context: object, source_ids: object = None
+        ) -> SourceCollection:
+            return SourceCollection(
+                (
+                    Candidate(
+                        source_id="fixture",
+                        title_original="A recipe for soup",
+                        url="https://example.test/soup",
+                    ),
+                ),
+                self.health,
+            )
+
+    discovery_health = health(source_id="fixture").model_copy(
+        update={"role": "discovery"}
+    )
+    report = PipelineCollector(
+        IrrelevantRegistry((discovery_health,)),
+        JsonNewsStore(tmp_path),
+        clock=SequenceClock(
+            [datetime(2026, 8, 2, 9, 30, tzinfo=UTC),
+             datetime(2026, 8, 2, 9, 30, 1, tzinfo=UTC)]
+        ),
+        verifier=FakeVerifier(),
+    ).collect(request())
+
+    assert report.items == []
+    assert report.stats["filtered"] == 1
+    assert report.stats["filtered_irrelevant"] == 1
+    assert report.stats["verification_attempted"] == 0
+    assert report.reason_counts["filtered:irrelevant_ai_technology"] == 1
+
+
 def test_pipeline_recovers_dedup_state_across_runs(tmp_path: Path) -> None:
     store = JsonNewsStore(tmp_path)
     first_now = datetime(2026, 8, 2, 9, 30, tzinfo=UTC)

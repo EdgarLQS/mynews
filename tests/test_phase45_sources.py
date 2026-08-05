@@ -105,12 +105,58 @@ def test_official_pages_collect_fixture_entries(
 
     assert batch.source_id == plugin.metadata.source_id
     assert batch.candidates[0].title_original == expected_title
-    assert batch.candidates[0].excerpt == expected_title
+    assert expected_title in (batch.candidates[0].excerpt or "")
     assert batch.candidates[0].content is not None
     assert batch.candidates[0].published_at is not None
     assert health.health == "healthy"
     assert health.accepted_count == 1
     assert http.requested == [plugin.page_url, plugin.page_url]
+
+
+def test_official_html_requires_date_and_title_for_events_and_saves_directory_snapshot(
+) -> None:
+    plugin = OpenAiNewsPlugin()
+    payload = """<html><head><title>OpenAI directory</title></head><body>
+    <main><article><a href='/one'><h2>First item</h2></a></article>
+    <article><a href='/two'><h2>Second item</h2></a></article></main>
+    </body></html>"""
+    http = FixtureHttp({plugin.page_url: payload})
+
+    batch = plugin.collect(SourceContext(request=REQUEST, http=http))
+
+    assert batch.candidates == ()
+    assert batch.snapshot is not None
+    assert batch.snapshot.source_id == "openai"
+    health = plugin.probe(ProbeContext(http=http))
+    assert health.accepted_count == 0
+
+
+def test_official_html_summary_is_limited_to_500_characters() -> None:
+    plugin = OpenAiNewsPlugin()
+    long_text = "事实 " * 400
+    payload = f"""<html><body><article>
+    <a href='/one'><h2>Long update</h2></a>
+    <time datetime='2026-08-02'>2026-08-02</time><p>{long_text}</p>
+    </article></body></html>"""
+    http = FixtureHttp({plugin.page_url: payload})
+
+    batch = plugin.collect(SourceContext(request=REQUEST, http=http))
+
+    assert len(batch.candidates) == 1
+    assert len(batch.candidates[0].summary_zh or "") <= 500
+
+
+def test_official_html_page_time_without_article_is_snapshot_only() -> None:
+    plugin = OpenAiNewsPlugin()
+    payload = """<html><head><title>OpenAI models</title></head><body>
+    <main><h1>OpenAI models</h1><time datetime="2026-08-03">Updated</time>
+    <p>Public API directory metadata without an event card.</p></main></body></html>"""
+    http = FixtureHttp({plugin.page_url: payload})
+
+    batch = plugin.collect(SourceContext(request=REQUEST, http=http))
+
+    assert batch.candidates == ()
+    assert batch.snapshot is not None
 
 
 @pytest.mark.parametrize(
@@ -131,8 +177,12 @@ def test_experimental_pages_keep_public_metadata_and_discovery_role(
 
     assert plugin.metadata.role == "discovery"
     assert plugin.metadata.stability == "experimental"
-    assert batch.candidates[0].source_role == "discovery"
-    assert batch.candidates[0].content is None
+    if plugin_type is ZhihuHotPlugin:
+        assert batch.candidates == ()
+        assert batch.snapshot is not None
+    else:
+        assert batch.candidates[0].source_role == "discovery"
+        assert batch.candidates[0].content is None
     assert health.health == "healthy"
 
 
@@ -215,9 +265,9 @@ def test_official_page_rejects_unofficial_redirect() -> None:
         plugin.probe(ProbeContext(http=RedirectHttp({plugin.page_url: payload})))
 
 
-def test_discovery_candidate_never_enters_verifier(tmp_path: Path) -> None:
-    plugin = ZhihuHotPlugin()
-    http = FixtureHttp({plugin.page_url: (FIXTURES / "zhihu-hot.html").read_text()})
+def test_relevant_discovery_candidate_enters_verifier(tmp_path: Path) -> None:
+    plugin = BloombergAiPlugin()
+    http = FixtureHttp({plugin.page_url: (FIXTURES / "bloomberg-ai.html").read_text()})
     verifier = CountingVerifier()
     report = PipelineCollector(
         SourceRegistry([plugin], http=http),
@@ -228,7 +278,10 @@ def test_discovery_candidate_never_enters_verifier(tmp_path: Path) -> None:
 
     assert len(report.items) == 1
     assert report.items[0].verification_status == "unverified"
-    assert verifier.calls == 0
+    assert verifier.calls == 1
+    assert report.stats["verification_attempted"] == 1
+    assert report.stats["discovery_verification_attempted"] == 1
+    assert report.stats["no_primary_evidence"] == 1
 
 
 def test_price_page_first_observation_only_writes_snapshot(tmp_path: Path) -> None:

@@ -152,3 +152,20 @@ def test_validate_rejects_unknown_schema_major(
     assert output["status"] == "failed"
     assert output["schema_valid"] is False
     assert output["errors"]
+
+
+def test_report_command_writes_chinese_markdown_offline(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fixture = Path(__file__).parent / "fixtures" / "run-report-v1.json"
+    output = tmp_path / "report.md"
+
+    result = main(["report", "--run", str(fixture), "--out", str(output)])
+
+    assert result == 0
+    assert "报告已写入" in capsys.readouterr().out
+    text = output.read_text(encoding="utf-8")
+    assert "## 已核验" in text
+    assert "## 待核验" in text
+    assert "## 价格变化" in text
+    assert "## 来源状态" in text

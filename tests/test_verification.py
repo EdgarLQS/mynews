@@ -274,6 +274,8 @@ def test_codex_prompt_requires_verbatim_evidence_excerpt() -> None:
 
     assert "逐字连续的原文片段" in prompt
     assert "不能改写" in prompt
+    assert "allowed_official_domains" in prompt
+    assert "不能自行扩大白名单" in prompt
 
 
 @pytest.mark.parametrize(

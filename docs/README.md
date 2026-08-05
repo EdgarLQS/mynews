@@ -17,20 +17,20 @@ owner: project-maintainers
 
 | 项目 | 状态 | 说明 |
 | --- | --- | --- |
-| 产品范围 | Current | 聚焦 AI 与科技，v1 优先模型、AI 编程工具和开发者平台 |
-| v1 计划 | Current / Verified | 阶段 0 至阶段 5 已完成实现；独立 v1 验收通过，真实 launchd 按边界未加载 |
-| 系统架构 | Current / In progress | SourcePlugin、registry、规范化/去重、EvidenceVerifier 和 NewsStore seam 已 Implemented |
+| 产品范围 | Current | 聚焦 AI 与科技，v1.1 继续覆盖模型、AI 编程工具和开发者平台 |
+| v1.1 计划 | Current / Implemented | 来源等级、相关性筛选、证据统计和离线 Markdown 报告已完成；discovery 真实证据不足保持 unverified |
+| 系统架构 | Current / Implemented | SourcePlugin、registry、规范化/去重、EvidenceVerifier、快照和 NewsStore seam 已 Implemented |
 | AI 开发说明 | Current / Implemented | Codex 与 Claude Code 共用一套项目规则 |
 | 验收流程 | Current / Implemented | 统一验收规则与 Claude `/acceptance` 入口已建立 |
 | 工程骨架与 JSON 契约 | Implemented | 阶段 1 已建立 Python 3.12 + uv、CLI 入口、Pydantic 模型和兼容测试 |
 | CC Switch 更新日志 Adapter | Verified | fixture 与运行时接线已完成；2026-08-02 15:34 probe healthy，33/33 条，退出码 0 |
 | 阶段 2 原始采集运行时 | Implemented | 内置 registry、共享 HTTP 策略、来源隔离、`probe`/原始采集 seam 和三项 Adapter 已完成 |
 | 阶段 3 规范化、去重与 JSON Store | Implemented | Normalizer、跨运行 DedupState、原子 Run/latest、失败保护和 PriceSnapshot 已通过离线测试 |
-| 阶段 4 第一方证据核验 | Verified | 官方直验、Fake/Codex Verifier、预算/批次限制和二次 URL/域名/摘录/日期/哈希校验通过；G6-S/G6-V 已完成 |
+| 阶段 4 第一方证据核验 | Verified | 官方直验、Fake/Codex Verifier、预算/批次限制和二次 URL/域名/摘录/日期/哈希校验通过；v1.1 discovery 闭环待真实复核 |
 | 阶段 4.5 来源覆盖与价格监控 | Verified | 12 个内置来源完成实时 probe；稳定来源 healthy，知乎/Bloomberg 如实 blocked；至少一个新增来源通过真实 G6-V |
 | 自动定时 | Implemented | `scripts/collect.sh` 提供固定 label 的 plist 渲染、`--dry-run`、互斥采集、幂等安装/状态/卸载；未自动安装，真实 launchd 未加载 |
-| 新闻数据 | Verified | 隔离临时目录同一七天窗口重复运行通过；历史 run、latest、跨运行去重、价格快照和 verified 证据均已复核 |
-| 发布前校验 | Verified | `mynews validate` 的 RunReport/同源 Schema 和全部 verified 第一方证据复核通过 |
+| 新闻数据 | Implemented | v1.1 质量统计、来源目录快照和隔离七天回溯已完成；discovery 本轮无 verified 证据 |
+| 发布前校验 | Verified | `mynews validate` 的 RunReport/同源 Schema 已通过；现有 `output/latest.json` 的 5 条 verified 证据中 2 条因上游正文哈希漂移未通过复核 |
 
 实现状态必须使用以下口径：
 
@@ -43,7 +43,7 @@ owner: project-maintainers
 1. [功能矩阵](product/feature-matrix.md)：确认 v1、未来和明确不做的范围。
 2. [项目验收规则](testing/acceptance-rules.md)：了解每次开发完成后的统一质量门禁。
 3. [阶段 1 功能验收说明](testing/phase1-functional-acceptance.md)：确认已验收能力和下一计划边界。
-4. [v1 实施计划](planning/v1-implementation-plan.md)：查看实施顺序和验收门槛。
+4. [v1.1 当前计划](planning/v1.1-information-quality-plan.md)：查看当前实施顺序和验收门槛。
 5. [系统架构](architecture/system-architecture.md)：理解模块、数据流、代码结构和插件策略。
 6. [信息来源目录](reference/source-catalog.md)：查看渠道角色、稳定等级和核验规则。
 7. [JSON 数据契约](reference/json-data-contract.md)：查看后续开发可依赖的数据格式。
@@ -68,11 +68,11 @@ owner: project-maintainers
 
 | 文档 | 状态 | 实现状态 |
 | --- | --- | --- |
-| [v1 实施计划](planning/v1-implementation-plan.md) | Current | Verified |
-| [系统架构](architecture/system-architecture.md) | Current | In progress |
+| [v1.1 当前计划](planning/v1.1-information-quality-plan.md) | Current | Implemented |
+| [系统架构](architecture/system-architecture.md) | Current | Implemented |
 | [功能矩阵](product/feature-matrix.md) | Current | Verified |
 | [项目验收规则](testing/acceptance-rules.md) | Current | Implemented |
 | [阶段 1 功能验收说明](testing/phase1-functional-acceptance.md) | Current | Implemented |
-| [信息来源目录](reference/source-catalog.md) | Current | In progress |
+| [信息来源目录](reference/source-catalog.md) | Current | Implemented |
 | [JSON 数据契约](reference/json-data-contract.md) | Current | Implemented |
 | [ADR-0001](decisions/ADR-0001-strict-evidence-and-module-seams.md) | Accepted | Implemented |

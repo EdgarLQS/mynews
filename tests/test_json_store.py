@@ -11,6 +11,7 @@ from mynews.domain.models import (
     RunReport,
     SourceError,
     SourceResult,
+    SourceSnapshot,
 )
 from mynews.storage.json_store import JsonNewsStore
 
@@ -121,3 +122,20 @@ def test_store_recovers_dedup_state_and_tracks_first_price_observation(
         json.loads((tmp_path / "state/price_snapshots/provider.json").read_text()),
         dict,
     )
+
+
+def test_store_persists_source_directory_snapshot(tmp_path: Path) -> None:
+    snapshot = SourceSnapshot(
+        source_id="openai",
+        url="https://developers.openai.com/api/docs/models/",
+        observed_at=NOW,
+        content_hash="sha256:directory",
+        values={"entry_count": 2},
+    )
+
+    store = JsonNewsStore(tmp_path)
+    stored = store.save_source_snapshot(snapshot)
+
+    assert stored.url == "https://developers.openai.com/api/docs/models"
+    assert store.load_source_snapshot("openai") == stored
+    assert (tmp_path / "state/source_snapshots/openai.json").exists()

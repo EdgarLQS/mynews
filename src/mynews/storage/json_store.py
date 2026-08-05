@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 
 from mynews.domain.deduplication import DedupState
-from mynews.domain.models import PriceSnapshot, RunReport
+from mynews.domain.models import PriceSnapshot, RunReport, SourceSnapshot
 from mynews.domain.normalization import normalize_url
 from mynews.storage.protocol import StoredRun
 
@@ -26,6 +26,7 @@ class JsonNewsStore:
         self._runs = self._output / "runs"
         self._state = self._root / "state"
         self._prices = self._state / "price_snapshots"
+        self._snapshots = self._state / "source_snapshots"
 
     @property
     def root(self) -> Path:
@@ -81,6 +82,21 @@ class JsonNewsStore:
         return self._load_price_snapshot(
             self._prices / f"{_safe_filename(source_id)}.json"
         )
+
+    def save_source_snapshot(self, snapshot: SourceSnapshot) -> SourceSnapshot:
+        path = self._snapshots / f"{_safe_filename(snapshot.source_id)}.json"
+        stored = snapshot.model_copy(update={"url": normalize_url(snapshot.url)})
+        _atomic_write_json(path, stored.model_dump(mode="json"))
+        return stored
+
+    def load_source_snapshot(self, source_id: str) -> SourceSnapshot | None:
+        path = self._snapshots / f"{_safe_filename(source_id)}.json"
+        if not path.exists():
+            return None
+        try:
+            return SourceSnapshot.model_validate(self._read_json(path))
+        except (OSError, ValueError) as error:
+            raise JsonStoreError(f"无法恢复来源快照：{path.name}") from error
 
     @staticmethod
     def _read_json(path: Path) -> object:

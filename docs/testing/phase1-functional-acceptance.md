@@ -81,7 +81,7 @@ v1 发布验收，也不把离线通过写成真实来源或定时能力的 `Ver
 
 ## 后续开发交接
 
-后续工作进入 [v1 实施计划](../planning/v1-implementation-plan.md) 的阶段 2，优先顺序为：
+后续工作进入 [v1.1 当前计划](../planning/v1.1-information-quality-plan.md)，优先顺序为：
 
 1. 建立 built-in `SourcePlugin` registry 和稳定内部接口。
 2. 增加共享 HTTP client、超时、有限重试、User-Agent、并发上限和缓存头。

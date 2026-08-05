@@ -8,7 +8,7 @@ from datetime import UTC, date, datetime, time
 from html.parser import HTMLParser
 from urllib.parse import urljoin, urlsplit
 
-from mynews.domain.models import Candidate, PriceSnapshot
+from mynews.domain.models import Candidate, PriceSnapshot, SourceSnapshot
 from mynews.infrastructure.http import HttpClient
 from mynews.sources.protocol import (
     ProbeContext,
@@ -39,6 +39,13 @@ class _RawEntry:
     url: str = ""
     text: list[str] | None = None
     published_at: datetime | None = None
+
+
+@dataclass(slots=True)
+class _ParsedPage:
+    entries: list[_RawEntry]
+    title: str
+    text: list[str]
 
 
 class _PublicHtmlParser(HTMLParser):
@@ -147,30 +154,38 @@ class OfficialHtmlPlugin:
         self._public_metadata_only = public_metadata_only
 
     def collect(self, context: SourceContext) -> SourceBatch:
-        entries = self._parse(_get_page(context.http, self.page_url, self.metadata))
+        page = self._parse(_get_page(context.http, self.page_url, self.metadata))
         candidates = tuple(
             candidate
-            for candidate in self._candidates(entries, context.limit)
+            for candidate in self._candidates(page.entries, context.limit)
             if _in_requested_range(candidate, context)
+        )
+        snapshot = (
+            _page_snapshot(
+                self.metadata.source_id, self.page_url, page, context.clock.now()
+            )
+            if not _has_dated_event(page.entries)
+            else None
         )
         return SourceBatch(
             self.metadata.source_id,
             candidates,
-            fetched_count=min(len(entries), context.limit),
+            fetched_count=min(len(page.entries), context.limit),
+            snapshot=snapshot,
         )
 
     def probe(self, context: ProbeContext) -> SourceHealth:
-        entries = self._parse(_get_page(context.http, self.page_url, self.metadata))
-        selected = self._candidates(entries, context.limit)
+        page = self._parse(_get_page(context.http, self.page_url, self.metadata))
+        selected = self._candidates(page.entries, context.limit)
         return SourceHealth.healthy_result(
             source_id=self.metadata.source_id,
             role=self.metadata.role,
-            fetched_count=len(entries),
+            fetched_count=len(page.entries),
             accepted_count=len(selected),
             checked_at=context.clock.now(),
         )
 
-    def _parse(self, payload: str) -> list[_RawEntry]:
+    def _parse(self, payload: str) -> _ParsedPage:
         parser = _PublicHtmlParser()
         try:
             parser.feed(payload)
@@ -189,7 +204,7 @@ class OfficialHtmlPlugin:
             )
         ]
         if entries:
-            return entries
+            return _ParsedPage(entries, parser.document_title, parser.document_text)
         if any(
             _is_http_url(urljoin(self.page_url, entry.url))
             and not _is_official_url(
@@ -212,20 +227,25 @@ class OfficialHtmlPlugin:
             raise SourcePluginError(
                 "unexpected_page", "官方页面没有匹配的公开来源标识"
             )
-        return [
-            _RawEntry(
-                title=title,
-                url=self.page_url,
-                text=[excerpt],
-                published_at=parser.first_published_at,
-            )
-        ]
+        return _ParsedPage(
+            [
+                _RawEntry(
+                    title=title,
+                    url=self.page_url,
+                    text=[excerpt],
+                )
+            ],
+            title,
+            parser.document_text,
+        )
 
     def _candidates(
         self, entries: list[_RawEntry], limit: int
     ) -> list[Candidate]:
         candidates: list[Candidate] = []
         for entry in entries[:limit]:
+            if not entry.title or entry.published_at is None:
+                continue
             url = urljoin(self.page_url, entry.url or self.page_url)
             if not _is_official_url(url, self.metadata.official_domains):
                 raise SourcePluginError(
@@ -242,8 +262,9 @@ class OfficialHtmlPlugin:
                         "title_original": title,
                         "url": url,
                         "published_at": entry.published_at,
-                        "excerpt": title,
+                        "excerpt": content or title,
                         "content": content,
+                        "summary_zh": _limit_summary(content or title),
                         "heat_signals": {"official_page": 1.0},
                         "event_type": self._event_type,
                         "source_role": self.metadata.role,
@@ -493,6 +514,31 @@ def _normalize_snapshot_text(values: list[str]) -> str:
     lines = [_clean_text(value) for value in values]
     lines = [line for line in lines if line]
     return "\n".join(dict.fromkeys(lines))
+
+
+def _page_snapshot(
+    source_id: str, url: str, page: _ParsedPage, observed_at: datetime
+) -> SourceSnapshot:
+    normalized = _normalize_snapshot_text([page.title, *page.text])
+    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+    return SourceSnapshot(
+        source_id=source_id,
+        url=url,
+        observed_at=observed_at,
+        content_hash=f"sha256:{digest}",
+        values={"title": page.title, "entry_count": len(page.entries)},
+    )
+
+
+def _has_dated_event(entries: list[_RawEntry]) -> bool:
+    return any(
+        entry.title.strip() and entry.published_at is not None for entry in entries
+    )
+
+
+def _limit_summary(value: str, limit: int = 500) -> str:
+    cleaned = _clean_text(value)
+    return cleaned if len(cleaned) <= limit else cleaned[:limit]
 
 
 def _parse_datetime(value: str) -> datetime:

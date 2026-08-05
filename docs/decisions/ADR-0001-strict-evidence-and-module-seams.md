@@ -4,9 +4,9 @@ doc_type: adr
 status: current
 decision_status: accepted
 implementation_status: implemented
-version: 1.0
+version: 1.1
 created: 2026-08-02
-updated: 2026-08-02
+updated: 2026-08-03
 owner: project-maintainers
 ---
 
@@ -24,6 +24,15 @@ owner: project-maintainers
 4. 来源插件只采集和解释本来源，不写存储、不调用 Codex、不决定 verified。
 5. v1 使用 built-in 插件注册表；仓库外动态插件等出现真实需求后再发布稳定 interface。
 6. JSON 是 v1 稳定输出 interface，内部 Python 结构不作为外部契约。
+
+### v1.1 约束补充
+
+7. 来源保留详细稳定等级；`experimental` 的异常不影响 Run 状态，稳定来源异常仍必须显式
+   反映在 RunReport 中。
+8. discovery 候选先经过确定性的 AI/科技相关性过滤；通过的候选可以进入 Codex 第一方证据
+   查找，但 Codex 不能扩大程序提供的精确官方域名或 GitHub 组织白名单。
+9. 官方 HTML 目录页只有同时具备标题和日期才产生事件；无日期目录只保存 SourceSnapshot，
+   摘要上限为 500 字。质量统计和离线 Markdown report 由 RunReport/NewsStore seam 提供。
 
 ## 被否决的方案
 
@@ -48,5 +57,6 @@ owner: project-maintainers
 
 ## 实现与验证
 
-阶段 4 的离线实现、伪造来源测试和真实 Codex G6-V 已完成，当前为 Verified；真实价格源
-和七天回溯仍需按 [v1 实施计划](../planning/v1-implementation-plan.md) 的独立门禁验收。
+阶段 4 的离线实现、伪造来源测试和真实 Codex G6-V 已完成，当前为 Verified；v1.1 的离线
+实现已完成，真实来源 probe、discovery Codex 核验和七天回溯按
+[v1.1 当前计划](../planning/v1.1-information-quality-plan.md) 的独立门禁记录。

@@ -103,7 +103,12 @@ class SourceRegistry:
             for batch, _ in results
             if batch.price_snapshot is not None
         )
-        return SourceCollection(candidates, health, price_snapshots)
+        snapshots = tuple(
+            batch.snapshot
+            for batch, _ in results
+            if batch.snapshot is not None
+        )
+        return SourceCollection(candidates, health, price_snapshots, snapshots)
 
     def probe(
         self, context: ProbeContext, source_ids: Sequence[str] | None = None
@@ -148,7 +153,8 @@ class SourceRegistry:
             health = self._healthy(
                 plugin,
                 fetched_count,
-                len(batch.candidates) + int(batch.price_snapshot is not None),
+                len(batch.candidates)
+                + int(batch.price_snapshot is not None),
                 started,
                 context,
             )
@@ -168,6 +174,7 @@ class SourceRegistry:
                 )
             return health.model_copy(
                 update={
+                    "stability": plugin.metadata.stability,
                     "checked_at": context.clock.now(),
                     "duration_ms": _duration(started),
                 }
@@ -186,6 +193,7 @@ class SourceRegistry:
         return SourceHealth(
             source_id=plugin.metadata.source_id,
             role=plugin.metadata.role,
+            stability=plugin.metadata.stability,
             health="healthy",
             fetched_count=fetched_count,
             accepted_count=accepted_count,
@@ -200,6 +208,7 @@ class SourceRegistry:
         return SourceHealth(
             source_id=plugin.metadata.source_id,
             role=plugin.metadata.role,
+            stability=plugin.metadata.stability,
             health=health,
             fetched_count=0,
             accepted_count=0,

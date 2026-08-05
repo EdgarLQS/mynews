@@ -3,7 +3,7 @@ title: mynews 功能矩阵
 doc_type: matrix
 status: current
 implementation_status: verified
-version: 1.0
+version: 1.1
 created: 2026-08-02
 updated: 2026-08-03
 owner: project-maintainers
@@ -26,6 +26,7 @@ owner: project-maintainers
 | CLI-03 | CLI | `--days`、`--date`、`--from/--to` 参数契约与时区校验 | Implemented | 日期参数测试 |
 | CLI-04 | CLI | 结构化退出码 0/1/2/3 | Implemented | 来源状态与流水线测试 |
 | CLI-05 | CLI | RunReport/Schema/verified 证据校验命令 | Implemented | `mynews validate`；离线 Schema/结构检查与可选逐条重抓 |
+| CLI-06 | CLI | 从 RunReport 离线生成中文 Markdown `mynews report` | Implemented | report fixture、中文 help 和文件输出测试 |
 | SRC-01 | 来源 | Hacker News 官方 API | Verified | fixture + `uv run mynews probe --source hacker-news` |
 | SRC-02 | 来源 | 官方 RSS/Atom/API、GitHub Release 与官方 HTML 更新页 | Implemented | Qwen RSS、CC Switch Release、OpenAI/Anthropic/Gemini/DeepSeek/TRAE fixtures 与 Adapter 测试 |
 | SRC-03 | 来源 | 官方价格页和更新日志监控 | Implemented | OpenAI API Pricing、DeepSeek 模型与价格页；首观快照、规范化差异与 `pricing_change` 测试 |
@@ -35,14 +36,18 @@ owner: project-maintainers
 | SRC-07 | 来源 | CC Switch 官方 Changelog 新功能监控 | Verified | fixture；2026-08-02 15:34 probe healthy，33/33 条，退出码 0 |
 | PIPE-01 | 处理 | 规范化、相关性、热度分离 | Implemented | Normalizer 领域测试 |
 | PIPE-02 | 处理 | 跨来源、跨日期、跨运行去重 | Implemented | 批内与跨运行状态恢复测试 |
+| PIPE-03 | 处理 | discovery AI/科技确定性筛选与质量统计 | Implemented | 相关性策略、filtered/verification_attempted/no_primary_evidence 测试 |
 | VER-01 | 核验 | 第一方官方证据直接核验 | Verified | 官方直验测试；Qwen 第一方候选真实 G6-V 复核 |
 | VER-02 | 核验 | 可配置 Codex Verifier 与单次候选预算 | Verified | Fake、预算/批次测试及真实 Google Gemini G6-V 均通过；程序二次校验保持有效 |
 | VER-03 | 核验 | URL、域名、摘录二次校验 | Verified | 伪造来源、重定向、日期/哈希、提示注入和真实页面二次校验 |
+| VER-04 | 核验 | 保留 discovery 候选进入第一方证据查找，模型不得扩大白名单 | Implemented | Fake/Codex seam、精确域名/组织和二次校验测试；真实 G6-V 待执行 |
 | DATA-00 | 数据 | Pydantic v1 领域模型与 JSON Schema 兼容契约 | Implemented | `uv run pytest tests/test_models.py` |
 | DATA-01 | 数据 | 每次运行独立 JSON | Implemented | JSON Store 追加运行测试 |
 | DATA-02 | 数据 | latest 原子更新和失败保护 | Implemented | 原子写入与 failed 保护测试 |
 | DATA-03 | 数据 | 去重状态与价格快照 JSON | Implemented | 重启恢复与 first_observed_at 测试 |
-| OPS-01 | 运维 | 已注册内置来源 `probe` | Verified | 12 个 built-in 来源完成实时 probe；稳定来源 healthy，知乎/Bloomberg 如实 blocked |
+| DATA-04 | 数据 | 来源目录页快照与 RunReport 1.1 质量字段 | Implemented | SourceSnapshot 原子保存、旧 1.0 fixture 兼容和 Schema 测试 |
+| OPS-01 | 运维 | 已注册内置来源 `probe`，稳定/实验等级参与 Run 状态 | Implemented | 来源等级聚合与状态测试；2026-08-03 live probe 12/12 有结果 |
+| OPS-03 | 运维 | 官方 HTML 无日期目录只保存快照，摘要不超过 500 字 | Implemented | HTML fixture、快照和摘要上限测试 |
 | OPS-02 | 运维 | 主机本地 09:30 launchd 安装脚本 | Implemented | `scripts/collect.sh render-plist/install/status/uninstall --dry-run`；采集进程使用 `TZ=Asia/Shanghai`；互斥、Fake launchctl 幂等测试与 `plutil -lint`；真实 launchd 未加载 |
 | EXT-01 | 扩展 | built-in SourcePlugin registry | Implemented | registry 隔离、重复 ID 和选择测试 |
 | EXT-02 | 扩展 | 仓库外 Python entry-point 插件 | Future | 后续 ADR |
@@ -56,4 +61,4 @@ owner: project-maintainers
 
 - 实现内容完成且相应离线检查通过后才能从 Planned 改为 Implemented。
 - 依赖真实网络、Codex 或 launchd 的功能，必须完成对应真实验收才能改为 Verified。
-- 改表时同步 [文档总览](../README.md) 和 [v1 计划](../planning/v1-implementation-plan.md)。
+- 改表时同步 [文档总览](../README.md) 和 [v1.1 计划](../planning/v1.1-information-quality-plan.md)。
