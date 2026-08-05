@@ -22,8 +22,25 @@ jobs:
         with:
           python-version: "3.12"
           enable-cache: true
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libplist-utils
+      - name: Install plist lint compatibility
+        run: |
+          sudo tee /usr/bin/plutil >/dev/null <<'PY'
+          #!/usr/bin/env python3
+          import plistlib
+          import sys
+
+          if len(sys.argv) != 3 or sys.argv[1] != "-lint":
+              print("usage: plutil -lint path", file=sys.stderr)
+              raise SystemExit(2)
+          try:
+              with open(sys.argv[2], "rb") as handle:
+                  plistlib.load(handle)
+          except (OSError, plistlib.InvalidFileException) as error:
+              print(f"{sys.argv[2]}: {error}", file=sys.stderr)
+              raise SystemExit(1) from error
+          print(f"{sys.argv[2]}: OK")
+          PY
+          sudo chmod 755 /usr/bin/plutil
       - name: Install dependencies
         run: uv sync --all-groups
       - name: Check documentation
