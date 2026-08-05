@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+import os
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Literal
 
 import pytest
 
@@ -15,6 +17,7 @@ from mynews.domain.models import (
     EvidenceValidation,
     PendingVerificationState,
     RunReport,
+    SourceError,
 )
 from mynews.domain.normalization import Normalizer
 from mynews.sources.protocol import SourceCollection, SourceHealth, SourceMetadata
@@ -48,7 +51,7 @@ class Registry:
         self,
         candidate: Candidate | None,
         *,
-        health: str = "healthy",
+        health: Literal["healthy", "failed"] = "healthy",
     ) -> None:
         self.http = NullHttp()
         self._candidate = candidate
@@ -59,6 +62,7 @@ class Registry:
                 source_id="hn",
                 name="HN",
                 role="discovery",
+                homepage="https://news.ycombinator.com",
                 official_domains=("openai.com",),
                 official_github_organizations=("openai",),
             )
@@ -81,19 +85,24 @@ class Registry:
                     fetched_count=len(candidates),
                     accepted_count=len(candidates),
                     duration_ms=1,
+                    checked_at=NOW,
                     error=(
                         None
                         if self._health == "healthy"
-                        else {
-                            "code": "fixture_failed",
-                            "message": "fixture failed",
-                        }
+                        else SourceError(
+                            code="fixture_failed",
+                            message="fixture failed",
+                        )
                     ),
                 ),
             ),
         )
 
-    def probe(self, context: object, source_ids: object = None) -> tuple[()]:
+    def probe(
+        self,
+        context: object,
+        source_ids: object = None,
+    ) -> tuple[SourceHealth, ...]:
         del context, source_ids
         return ()
 
@@ -331,7 +340,12 @@ def test_failed_source_run_does_not_mutate_pending_state(tmp_path: Path) -> None
     before = (tmp_path / "state/pending_verifications.json").read_bytes()
 
     class NoCallVerifier:
-        def verify(self, targets: object, *, config: object) -> object:
+        def verify(
+            self,
+            targets: Sequence[VerificationTarget],
+            *,
+            config: VerificationConfig,
+        ) -> tuple[VerificationDecision, ...]:
             del targets, config
             raise AssertionError("failed source run must not verify pending")
 
@@ -364,18 +378,20 @@ def test_commit_failure_rolls_back_run_latest_dedup_and_pending(
             tmp_path / "state/pending_verifications.json",
         )
     }
-    original_replace = __import__("os").replace
+    original_replace = os.replace
     failed = False
 
-    def fail_once(source: str | bytes, destination: str | bytes) -> None:
+    def fail_once(source: object, destination: object) -> None:
         nonlocal failed
         if not failed and str(destination).endswith("latest.json"):
             failed = True
             raise OSError("simulated replace failure")
-        original_replace(source, destination)
+        original_replace(source, destination)  # type: ignore[arg-type]
 
     monkeypatch.setattr("mynews.storage.json_store.os.replace", fail_once)
-    changed = PendingVerificationManager(baseline_pending.state.model_copy(deep=True))
+    changed = PendingVerificationManager(
+        baseline_pending.state.model_copy(deep=True)
+    )
     changed.record_failure(
         item_target(),
         "codex_timeout",
