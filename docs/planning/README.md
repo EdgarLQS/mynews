@@ -17,7 +17,7 @@ owner: project-maintainers
 
 | 计划 | 文档状态 | 实现状态 | 下一门槛 |
 | --- | --- | --- | --- |
-| [v1.2 增量核验与证据生命周期计划](v1.2-evidence-lifecycle-plan.md) | Current | In Progress | 完成 Python 3.12 全量门禁、隔离两次七天运行和真实 Codex G6-V；外部阻断必须记录为 BLOCKED |
+| [v1.2 增量核验与证据生命周期计划](v1.2-evidence-lifecycle-plan.md) | Current | Implemented | 离线 Python 3.12 门禁 151 passed；完成隔离两次真实七天运行和生产 Codex G6-V，外部阻断必须记录为 BLOCKED |
 
 ## 已完成计划
 
