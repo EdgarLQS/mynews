@@ -113,7 +113,15 @@ class PendingVerificationManager:
             next_retry_at = None
         entry = PendingVerificationEntry(
             event_key=target.item.event_key,
-            target=target,
+            item=target.item,
+            source_id=target.source_id,
+            publisher=target.publisher,
+            excerpt=target.excerpt,
+            official_domains=list(target.official_domains),
+            official_github_organizations=list(
+                target.official_github_organizations
+            ),
+            source_role=target.source_role,
             status=status,
             attempt_count=attempt_count,
             last_reason=reason,
