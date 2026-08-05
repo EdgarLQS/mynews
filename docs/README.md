@@ -18,7 +18,7 @@ owner: project-maintainers
 | 项目 | 状态 | 说明 |
 | --- | --- | --- |
 | 产品范围 | Current | 聚焦 AI 与科技，继续覆盖模型、AI 编程工具和开发者平台 |
-| v1.2 计划 | Current / In Progress | 受控解析、pending 增量核验、原子状态事务和证据生命周期已实现；完整 CI 与真实 G6-V 按计划记录 |
+| v1.2 计划 | Current / Implemented | 受控解析、pending 增量核验、原子状态事务和证据生命周期已实现；Python 3.12 全量门禁 151 passed，真实 G6-V 与 G7 仍按计划保持未完成 |
 | v1.1 计划 | Archived / Implemented | 原文和验收记录完整归档；discovery G6-V 未完成的历史结论未被改写 |
 | 系统架构 | Current / Implemented | SourcePlugin、registry、规范化/去重、EvidenceVerifier、pending、证据生命周期和 NewsStore seam 已实现 |
 | AI 开发说明 | Current / Implemented | Codex 与 Claude Code 共用一套项目规则 |
@@ -69,7 +69,7 @@ owner: project-maintainers
 
 | 文档 | 状态 | 实现状态 |
 | --- | --- | --- |
-| [v1.2 当前计划](planning/v1.2-evidence-lifecycle-plan.md) | Current | In Progress |
+| [v1.2 当前计划](planning/v1.2-evidence-lifecycle-plan.md) | Current | Implemented |
 | [系统架构](architecture/system-architecture.md) | Current | Implemented |
 | [功能矩阵](product/feature-matrix.md) | Current | Implemented |
 | [项目验收规则](testing/acceptance-rules.md) | Current | Implemented |
