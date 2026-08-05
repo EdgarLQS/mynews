@@ -2,7 +2,7 @@
 
 面向个人使用的 AI 与科技热点收集器，优先覆盖模型、AI 编程工具、开发者平台及相关重大科技动态。项目从热点渠道发现线索，回溯并验证第一方原始信息，再以结构化 JSON 保存，供后续筛选、分析和产品开发使用。
 
-> 当前状态：v1.2 受控证据解析、pending 增量核验、原子状态事务和证据生命周期已实现并进入完整门禁；真实 discovery Codex G6-V 尚未通过，因此不宣称 Verified。v1.1 原计划及未完成门禁记录已完整归档。真实 launchd 按验收边界未加载。
+> 当前状态：v1.2 受控证据解析、pending 增量核验、原子状态事务和证据生命周期已实现；GitHub Actions 的 Python 3.12 文档、diff、Ruff、Mypy、151 项全量测试和中文 CLI help 均通过。真实 discovery Codex G6-V 与隔离两次真实七天运行尚未完成，因此不宣称 Verified。v1.1 原计划及未完成门禁记录已完整归档。真实 launchd 按验收边界未加载。
 
 日常运行可使用 `scripts/collect.sh --days 7`。脚本固定在项目根目录运行，支持 `render-plist`、`install`、`status` 和 `uninstall`；这些 launchd 动作支持中文 help 和 `--dry-run`，安装动作必须显式执行，任务 label 为 `com.mynews.collect`，计划时间为主机本地时间每日 09:30（采集进程使用 `TZ=Asia/Shanghai`）。采集脚本使用 `logs/collect.lock` 防止定时任务重叠，并保留底层 `collect` 退出码。运行数据写入 `output/`、`state/`，日志写入 `logs/`，这些目录不提交。
 
