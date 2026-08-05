@@ -31,7 +31,7 @@ class RunValidation:
         return self.schema_valid and not self.errors
 
     def as_payload(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "status": "passed" if self.passed else "failed",
             "run": self.run_path,
             "schema_valid": self.schema_valid,
@@ -39,8 +39,10 @@ class RunValidation:
             "evidence_count": self.evidence_count,
             "evidence_checked": self.evidence_checked,
             "errors": list(self.errors),
-            "warnings": list(self.warnings),
         }
+        if self.warnings:
+            payload["warnings"] = list(self.warnings)
+        return payload
 
     @classmethod
     def failed(cls, run_path: str, error: str) -> RunValidation:
