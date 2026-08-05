@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
 import pytest
@@ -134,7 +134,10 @@ def evidence(
     )
 
 
-def report_payload(item: dict[str, object], version: str = "1.2") -> dict[str, object]:
+def report_payload(
+    item: dict[str, object],
+    version: str = "1.2",
+) -> dict[str, object]:
     return {
         "schema_version": version,
         "run_id": "run-1",
@@ -182,7 +185,11 @@ def test_resolver_uses_fixed_order_before_codex() -> None:
     result = resolver.resolve(
         item_target,
         timeout=5,
-        codex_suggestion=suggestion(other_url, item_target, digest="sha256:unused"),
+        codex_suggestion=suggestion(
+            other_url,
+            item_target,
+            digest="sha256:unused",
+        ),
     )
 
     assert result.evidence is not None
@@ -261,7 +268,11 @@ def test_lookalike_domain_or_organization_is_rejected(url: str) -> None:
     result = resolver.resolve(
         item_target,
         timeout=5,
-        codex_suggestion=suggestion(url, item_target, digest="sha256:not-used"),
+        codex_suggestion=suggestion(
+            url,
+            item_target,
+            digest="sha256:not-used",
+        ),
     )
 
     assert result.evidence is None
@@ -275,12 +286,16 @@ def test_first_verification_requires_date_and_matching_hash() -> None:
     http = FakeHttp({official_url: response(body, final_url=official_url)})
     resolver = EvidenceResolver(http, official_domains=("openai.com",))
 
-    missing_date = resolver.resolve(target(official_url, published_at=None), timeout=5)
+    missing_date = resolver.resolve(
+        target(official_url, published_at=None),
+        timeout=5,
+    )
+    media_target = target("https://media.example/story")
     wrong_hash = resolver.resolve_suggestion(
-        target("https://media.example/story"),
+        media_target,
         suggestion(
             official_url,
-            target("https://media.example/story"),
+            media_target,
             digest="sha256:wrong",
         ),
         timeout=5,
@@ -356,13 +371,14 @@ def test_schema_10_and_11_migrate_but_12_rejects_weak_verified_evidence() -> Non
             "primary_evidence": [evidence(item_target)],
         }
     ).model_dump(mode="json")
-    legacy = replace(
-        evidence(item_target),
-        validation=EvidenceValidation(
-            reachable=True,
-            official_domain=True,
-            excerpt_matched=True,
-        ),
+    legacy = evidence(item_target).model_copy(
+        update={
+            "validation": EvidenceValidation(
+                reachable=True,
+                official_domain=True,
+                excerpt_matched=True,
+            )
+        }
     )
     legacy_item = {
         **strong,
