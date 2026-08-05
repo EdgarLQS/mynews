@@ -102,7 +102,7 @@ class VerificationDecision:
                 and self.evidence.validation.official_domain
                 and self.evidence.validation.excerpt_matched
             ):
-                raise ValueError("verified 判定的证据必须通过三项校验")
+                raise ValueError("verified 判定的证据必须通过基础校验")
         elif self.evidence is not None:
             raise ValueError("unverified 判定不能携带证据")
 
@@ -111,11 +111,16 @@ class VerificationDecision:
         return cls(item_id=item_id, status="unverified", reason=reason)
 
     @classmethod
-    def verified(cls, item_id: str, evidence: Evidence) -> VerificationDecision:
+    def verified(
+        cls,
+        item_id: str,
+        evidence: Evidence,
+        reason: str = "verified_primary_evidence",
+    ) -> VerificationDecision:
         return cls(
             item_id=item_id,
             status="verified",
-            reason="verified_primary_evidence",
+            reason=reason,
             evidence=evidence,
         )
 

@@ -8,11 +8,15 @@ from mynews.domain.models import NewsItem, RunReport, SourceResult
 
 
 def render_report(report: RunReport) -> str:
+    stats = report.verification_stats
     lines = [
         "# mynews 信息报告",
         "",
         f"- 运行：`{report.run_id}`",
         f"- 状态：`{report.status}`",
+        "- 核验统计："
+        f"尝试 {stats.attempted}，重试 {stats.retried}，"
+        f"待核验 {stats.pending}，过期 {stats.expired}",
         "",
     ]
     lines.extend(_item_section("已核验", _items(report, "verified", False)))
@@ -23,6 +27,7 @@ def render_report(report: RunReport) -> str:
             [item for item in report.items if item.event_type == "pricing_change"],
         )
     )
+    lines.extend(_evidence_review_section(report))
     lines.extend(_source_section(report.sources))
     return "\n".join(lines).rstrip() + "\n"
 
@@ -63,8 +68,37 @@ def _item_section(title: str, items: list[NewsItem]) -> list[str]:
             ]
         )
         if item.primary_evidence:
-            lines.append(f"- 证据摘录：{item.primary_evidence[0].excerpt}")
+            evidence = item.primary_evidence[0]
+            lines.append(f"- 证据摘录：{evidence.excerpt}")
+            if evidence.validation.lifecycle_status == "changed_supporting":
+                lines.append("- 证据警告：`changed_supporting`")
+        if item.verification_retry is not None:
+            retry = item.verification_retry
+            lines.append(
+                "- 重试："
+                f"`{retry.status}`，{retry.attempt_count}/{retry.max_attempts}；"
+                f"原因：`{retry.last_reason}`"
+            )
+            if retry.terminal_reason is not None:
+                lines.append(f"- 终止原因：`{retry.terminal_reason}`")
+            if retry.next_retry_at is not None:
+                lines.append(f"- 下次重试：{retry.next_retry_at.isoformat()}")
         lines.append("")
+    return lines
+
+
+def _evidence_review_section(report: RunReport) -> list[str]:
+    lines = ["## 证据复核", ""]
+    if not report.evidence_reviews:
+        return lines + ["- 无", ""]
+    for review in report.evidence_reviews:
+        detail = f"；原因：`{review.reason}`" if review.reason else ""
+        warning = f"；警告：`{review.warning}`" if review.warning else ""
+        lines.append(
+            f"- `{review.event_key}`：`{review.status}`；"
+            f"{review.evidence_url}{detail}{warning}"
+        )
+    lines.append("")
     return lines
 
 

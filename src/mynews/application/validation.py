@@ -24,13 +24,14 @@ class RunValidation:
     evidence_count: int
     evidence_checked: bool
     errors: tuple[str, ...]
+    warnings: tuple[str, ...] = ()
 
     @property
     def passed(self) -> bool:
         return self.schema_valid and not self.errors
 
     def as_payload(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "status": "passed" if self.passed else "failed",
             "run": self.run_path,
             "schema_valid": self.schema_valid,
@@ -39,6 +40,9 @@ class RunValidation:
             "evidence_checked": self.evidence_checked,
             "errors": list(self.errors),
         }
+        if self.warnings:
+            payload["warnings"] = list(self.warnings)
+        return payload
 
     @classmethod
     def failed(cls, run_path: str, error: str) -> RunValidation:
@@ -64,16 +68,30 @@ def validate_run_file(
     evidence_count = sum(len(item.primary_evidence) for item in verified_items)
     if not check_evidence or not evidence_count:
         return RunValidation(
-            str(path), True, len(verified_items), evidence_count, False, ()
+            str(path),
+            True,
+            len(verified_items),
+            evidence_count,
+            False,
+            (),
         )
 
     active_registry = registry or built_in_registry()
     verifier = CodexVerifier(active_registry.http)
-    errors = _validate_verified_evidence(
-        verified_items, active_registry, verifier, timeout
+    errors, warnings = _validate_verified_evidence(
+        verified_items,
+        active_registry,
+        verifier,
+        timeout,
     )
     return RunValidation(
-        str(path), True, len(verified_items), evidence_count, True, tuple(errors)
+        str(path),
+        True,
+        len(verified_items),
+        evidence_count,
+        True,
+        tuple(errors),
+        tuple(warnings),
     )
 
 
@@ -82,8 +100,9 @@ def _validate_verified_evidence(
     registry: SourceRegistry,
     verifier: CodexVerifier,
     timeout: float,
-) -> list[str]:
+) -> tuple[list[str], list[str]]:
     errors: list[str] = []
+    warnings: list[str] = []
     for item in items:
         for evidence in item.primary_evidence:
             metadata = _metadata_for_evidence(item, evidence, registry)
@@ -96,29 +115,31 @@ def _validate_verified_evidence(
                 publisher=metadata.name,
                 excerpt=None,
                 official_domains=metadata.official_domains,
-                official_github_organizations=metadata.official_github_organizations,
+                official_github_organizations=(
+                    metadata.official_github_organizations
+                ),
                 source_role=metadata.role,
             )
-            _, reason = verifier.revalidate_evidence(
-                target, evidence, timeout=timeout
+            result = verifier.review_evidence(
+                target,
+                evidence,
+                timeout=timeout,
             )
-            if reason:
-                errors.append(f"{item.event_key}: {reason}: {evidence.url}")
-    return errors
-
-
-def _metadata_for_item(
-    item: NewsItem, registry: SourceRegistry
-) -> SourceMetadata | None:
-    for source_id in item.discovery_sources:
-        metadata = registry.source_metadata.get(source_id)
-        if metadata is not None and metadata.role in {"primary", "monitor"}:
-            return metadata
-    return None
+            if result.status == "failed":
+                errors.append(
+                    f"{item.event_key}: {result.reason}: {evidence.url}"
+                )
+            elif result.status == "changed_supporting":
+                warnings.append(
+                    f"{item.event_key}: {result.warning}: {evidence.url}"
+                )
+    return errors, warnings
 
 
 def _metadata_for_evidence(
-    item: NewsItem, evidence: object, registry: SourceRegistry
+    item: NewsItem,
+    evidence: object,
+    registry: SourceRegistry,
 ) -> SourceMetadata | None:
     """根据证据 URL 在合并来源中选择对应的官方边界。"""
     evidence_url = str(getattr(evidence, "url", ""))
@@ -132,11 +153,17 @@ def _metadata_for_evidence(
         metadata = registry.source_metadata.get(source_id)
         if metadata is None or metadata.role not in {"primary", "monitor"}:
             continue
-        domains = {domain.casefold().strip(".") for domain in metadata.official_domains}
-        organizations = {
-            value.casefold() for value in metadata.official_github_organizations
+        domains = {
+            domain.casefold().strip(".")
+            for domain in metadata.official_domains
         }
-        if host in domains or (host == "github.com" and organization in organizations):
+        organizations = {
+            value.casefold()
+            for value in metadata.official_github_organizations
+        }
+        if host in domains or (
+            host == "github.com" and organization in organizations
+        ):
             return metadata
     return None
 
@@ -157,7 +184,10 @@ def write_schema(path: Path) -> None:
         temporary = handle.name
         with handle:
             json.dump(
-                RunReport.model_json_schema(), handle, ensure_ascii=False, indent=2
+                RunReport.model_json_schema(),
+                handle,
+                ensure_ascii=False,
+                indent=2,
             )
             handle.write("\n")
             handle.flush()

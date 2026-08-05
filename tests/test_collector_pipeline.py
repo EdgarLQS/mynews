@@ -121,7 +121,13 @@ def test_pipeline_applies_fake_verifier_and_injects_configured_budget(
         excerpt="A factual update",
         content_hash=item.content_hash,
         validation=EvidenceValidation(
-            reachable=True, official_domain=True, excerpt_matched=True
+            reachable=True,
+            official_domain=True,
+            redirect_safe=True,
+            excerpt_matched=True,
+            date_matched=True,
+            content_hash_matched=True,
+            lifecycle_status="current",
         ),
     )
     verifier = FakeVerifier(
@@ -210,8 +216,10 @@ def test_pipeline_filters_irrelevant_discovery_candidates_and_records_reason(
         IrrelevantRegistry((discovery_health,)),
         JsonNewsStore(tmp_path),
         clock=SequenceClock(
-            [datetime(2026, 8, 2, 9, 30, tzinfo=UTC),
-             datetime(2026, 8, 2, 9, 30, 1, tzinfo=UTC)]
+            [
+                datetime(2026, 8, 2, 9, 30, tzinfo=UTC),
+                datetime(2026, 8, 2, 9, 30, 1, tzinfo=UTC),
+            ]
         ),
         verifier=FakeVerifier(),
     ).collect(request())

@@ -50,7 +50,13 @@ def _report() -> RunReport:
         excerpt="Official launch of Model 5.",
         content_hash=_content_hash(BODY),
         validation=EvidenceValidation(
-            reachable=True, official_domain=True, excerpt_matched=True
+            reachable=True,
+            official_domain=True,
+            redirect_safe=True,
+            excerpt_matched=True,
+            date_matched=True,
+            content_hash_matched=True,
+            lifecycle_status="current",
         ),
     )
     item = NewsItem(
