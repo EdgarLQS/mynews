@@ -6,7 +6,7 @@ decision_status: accepted
 implementation_status: implemented
 version: 1.1
 created: 2026-08-02
-updated: 2026-08-03
+updated: 2026-08-05
 owner: project-maintainers
 ---
 
@@ -27,12 +27,9 @@ owner: project-maintainers
 
 ### v1.1 约束补充
 
-7. 来源保留详细稳定等级；`experimental` 的异常不影响 Run 状态，稳定来源异常仍必须显式
-   反映在 RunReport 中。
-8. discovery 候选先经过确定性的 AI/科技相关性过滤；通过的候选可以进入 Codex 第一方证据
-   查找，但 Codex 不能扩大程序提供的精确官方域名或 GitHub 组织白名单。
-9. 官方 HTML 目录页只有同时具备标题和日期才产生事件；无日期目录只保存 SourceSnapshot，
-   摘要上限为 500 字。质量统计和离线 Markdown report 由 RunReport/NewsStore seam 提供。
+7. 来源保留详细稳定等级；`experimental` 的异常不影响 Run 状态，稳定来源异常仍必须显式反映在 RunReport 中。
+8. discovery 候选先经过确定性的 AI/科技相关性过滤；通过的候选可以进入 Codex 第一方证据查找，但 Codex 不能扩大程序提供的精确官方域名或 GitHub 组织白名单。
+9. 官方 HTML 目录页只有同时具备标题和日期才产生事件；无日期目录只保存 SourceSnapshot，摘要上限为 500 字。质量统计和离线 Markdown report 由 RunReport/NewsStore seam 提供。
 
 ## 被否决的方案
 
@@ -57,6 +54,6 @@ owner: project-maintainers
 
 ## 实现与验证
 
-阶段 4 的离线实现、伪造来源测试和真实 Codex G6-V 已完成，当前为 Verified；v1.1 的离线
-实现已完成，真实来源 probe、discovery Codex 核验和七天回溯按
-[v1.1 当前计划](../planning/v1.1-information-quality-plan.md) 的独立门禁记录。
+阶段 4 的离线实现、伪造来源测试和当时约定的真实 Codex G6-V 已完成。v1.1 的离线实现已完成，但其 discovery G6-V 未完成，完整记录保留在 [v1.1 归档计划](../archive/plan/2026/v1.1-information-quality-plan.md)。
+
+v1.2 对模型边界、跨运行重试和证据复核生命周期的新增决定由 [ADR-0002](ADR-0002-controlled-resolution-and-evidence-lifecycle.md) 与 [v1.2 当前计划](../planning/v1.2-evidence-lifecycle-plan.md) 管理，不回写改变本 ADR 的原始结论。
