@@ -429,7 +429,11 @@ class RunReport(ContractModel):
     def _require_strict_verified_item(item: NewsItem) -> None:
         if item.verification_status != "verified":
             return
-        if not any(_strict_evidence_valid(evidence) for evidence in item.primary_evidence):
+        valid = any(
+            _strict_evidence_valid(evidence)
+            for evidence in item.primary_evidence
+        )
+        if not valid:
             raise ValueError(
                 "RunReport 1.2 的 verified 条目必须通过完整证据校验"
             )
