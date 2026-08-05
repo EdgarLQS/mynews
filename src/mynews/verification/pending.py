@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import Literal
 
 from mynews.domain.models import (
     PendingVerificationEntry,
@@ -100,7 +101,7 @@ class PendingVerificationManager:
         attempt_count = (existing.attempt_count if existing else 0) + 1
         created_at = existing.created_at if existing else now
         expires_at = existing.expires_at if existing else now + self._policy.ttl
-        status = "pending"
+        status: Literal["pending", "expired"] = "pending"
         terminal_reason: str | None = None
         next_retry_at: datetime | None = now + self._delay(attempt_count)
         if attempt_count >= self._policy.max_attempts:
