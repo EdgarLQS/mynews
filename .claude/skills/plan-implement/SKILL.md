@@ -1,0 +1,57 @@
+---
+name: plan-implement
+description: Maintain the current project phase and produce the latest implementation handoff plus staged acceptance-and-fix instructions. Use when the user asks for current progress, the next phase, a development plan, implementation instructions, acceptance instructions, a new-conversation handoff, or a summary of project decisions.
+---
+
+# 计划与实施
+
+把当前项目状态转换成可执行、可验收、可复制的开发交接。先读取仓库事实，再输出计划；不得用历史聊天或旧计划猜测当前实现。
+
+## 工作流
+
+1. 确认 `pwd`、当前分支、Git 状态、未提交和未跟踪文件；保护不属于本任务的变更。
+2. 从 `docs/README.md` 进入文档体系，按需读取功能矩阵、`docs/planning/README.md`、唯一 Current 计划、架构和数据契约。用户要求验收时完整读取 `docs/testing/acceptance-rules.md`。
+3. 以 `docs/README.md` 和功能矩阵判断实现状态；用 `Proposed`、`Implemented`、`Verified`、`BLOCKED`、`FAIL` 区分设计、离线实现和真实能力。发现用户口径与文档冲突时，指出冲突并要求实际证据，不能自行改写状态。
+4. 判断请求类型：
+   - “当前进度/下一步”：说明已完成能力、未完成门槛和推荐下一阶段。
+   - “实施说明”：生成新分支、范围、接口、文档同步、测试和禁止事项。
+   - “验收说明/实施验收”：生成三段式流程：首轮只读验收、独立修复发现的问题、修复后的完整复验；首轮只读期间不得修改文件。
+   - “总结本会话”：只提炼稳定的用户目标、已确认决策、当前事实、未决风险和下一步，不把临时运行产物当作代码能力。
+5. 多文件或多步骤任务先给不超过 5 句话的策略与验证计划；交接内容使用 `references/templates.md` 的结构。
+
+## 项目不变量
+
+- 当前实现以 `docs/README.md` 为准，产品范围以 `docs/product/feature-matrix.md` 为准，当前顺序以 `docs/planning/` 为准。
+- 同一主题只能有一份 Current 计划；被替代计划按 `docs/GOVERNANCE.md` 归档并登记索引。
+- 只有官方公告、文档、价格页、官方仓库或发行说明经程序复核后才能是 `verified`；发现渠道、媒体、搜索摘要和模型回答不能单独证明事实。
+- 离线测试只能证明 `Implemented`；依赖真实网络、生产 Codex 或定时器的能力必须执行对应真实验收后才可写 `Verified`。外部阻断写 `BLOCKED`，程序错误写 `FAIL`。
+- 任何来源失败、Codex 失败或存储失败都必须结构化记录，不能静默成功、污染 `latest.json` 或覆盖历史 run。
+- 默认不操作真实 launchd，不修改或提交 `output/`、`state/`、`logs/` 运行产物。
+
+## 实施交接要求
+
+实施说明必须明确：
+
+- 从哪个基线创建什么 `codex/` 分支；是否允许修改和提交。
+- 本阶段目标、非目标、公共 CLI/JSON/模块接口和兼容规则。
+- 需要同步的计划、架构、ADR、功能矩阵、README、数据契约和 AI 入口。
+- 最小相关测试、静态检查、全量测试、真实环境门禁和成功判定。
+- 不得顺带重构、扩展未经批准的来源、绕过访问控制或把 mock 当作真实验收。
+
+## 验收交接要求
+
+验收说明必须明确：
+
+- 以目标分支与 `main` 的 merge-base 为基线，覆盖提交、未提交和未跟踪文件。
+- 首轮只读执行；不得在首轮修复、格式化、暂存、提交、切换分支或污染运行目录。
+- 实际执行文档检查、`git diff --check`、Ruff、Mypy、相关测试、全量测试和中文 CLI help；未执行项标 `SKIPPED` 并说明原因。
+- 对真实来源、生产 Codex、隔离回溯和定时能力分别判定；只能 mock 或外部阻断不得 PASS。
+- 首轮只读后，逐项记录问题、严重性、文件和证据；修复作为独立开发步骤，不能在首轮验收中顺手修改。
+- 修复完成后重新运行受影响门禁和完整验收；只有复验无未解决问题时才能给 `PASS`。外部阻断为 `BLOCKED`，程序问题为 `FAIL`。
+- 报告使用“计划、执行、验证”结构，并分别说明首轮发现、修复结果和复验结果。
+
+## 结果格式
+
+面向用户的内容简洁直接。开发交接和验收交接分别放入可复制代码块；不要把“建议”“已实现”“已验证”混用。若当前事实不足，保留为待确认门槛而不是猜测补全。
+
+详细模板见 [references/templates.md](references/templates.md)。
