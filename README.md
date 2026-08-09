@@ -2,9 +2,9 @@
 
 面向个人使用的 AI 与科技热点收集器，优先覆盖模型、AI 编程工具、开发者平台及相关重大科技动态。项目从热点渠道发现线索，回溯并验证第一方原始信息，再以结构化 JSON 保存，供后续筛选、分析和产品开发使用。
 
-> 当前状态：v1.3 情报简报已实现离线 DigestBuilder、Digest Schema 1.0、主榜/线索隔离、Codex 安全回退和三文件原子输出；本分支未执行真实 Digest Codex 验收，不宣称 Verified。v1.2 的实际命令、Run ID、G6-S 限制、G6-V `BLOCKED` 和 G7 结果已归档。真实 launchd 按验收边界未加载。
+> 当前状态：v1.3 情报简报已实现离线 DigestBuilder、Digest Schema 1.0、主榜/线索隔离、Codex 安全回退和三文件原子输出；真实七天复验已执行但没有 verified 主榜故事，当前 G6-V 为 `BLOCKED`，不宣称 Verified。v1.2 的实际命令、Run ID、G6-S 限制、G6-V `BLOCKED` 和 G7 结果已归档。真实 launchd 按验收边界未加载。
 
-日常运行可使用 `scripts/collect.sh --days 7`。脚本固定在项目根目录运行，支持 `render-plist`、`install`、`status` 和 `uninstall`；这些 launchd 动作支持中文 help 和 `--dry-run`，安装动作必须显式执行，任务 label 为 `com.mynews.collect`，计划时间为主机本地时间每日 09:30（采集进程使用 `TZ=Asia/Shanghai`）。采集脚本使用 `logs/collect.lock` 防止定时任务重叠，并保留底层 `collect` 退出码。只有显式加 `--digest` 才会在采集成功后追加简报生成，默认行为不变。运行数据写入 `output/`、`state/`，日志写入 `logs/`，这些目录不提交。
+日常运行可使用 `scripts/collect.sh --days 7`。脚本固定在项目根目录运行，支持 `render-plist`、`install`、`status` 和 `uninstall`；这些 launchd 动作支持中文 help 和 `--dry-run`，安装动作必须显式执行，任务 label 为 `com.mynews.collect`，计划时间为主机本地时间每日 09:30（采集进程使用 `TZ=Asia/Shanghai`）。采集脚本使用 `logs/collect.lock` 防止定时任务重叠，并保留底层 `collect` 退出码。只有显式加 `--digest` 才会在采集成功后追加简报生成，默认行为不变。运行数据写入 `output/`、`state/`，日志写入 `logs/`，这些目录不提交。需要时可用 `collect --verification-reasoning-effort medium` 和 `digest --summary-reasoning-effort medium` 调整 Codex 推理强度；这不会改变证据核验门槛。
 
 发布前可执行：
 
@@ -15,6 +15,8 @@ uv run mynews digest --run output/latest.json --out-dir output --no-codex
 ```
 
 增加 `--check-evidence` 会重新抓取每条 `verified` 证据。若页面整体发生变化，但原摘录、日期和官方边界仍成立，校验结果会产生 `changed_supporting` warning；支持文本、日期或安全边界失效时仍然失败。
+
+如果个人使用只需要人工查看候选，可以使用 `mynews digest --no-codex` 生成线索链接，再自行打开官方页面确认。该模式不会把 `unverified` 条目升级为 `verified`；不要直接编辑 `output/latest.json`，也不要把人工判断冒充 `codex_primary_evidence`。需要程序正式接收人工证据时，应另行增加带 URL、日期、摘录和哈希校验的人工复核入口。
 
 ## 文档入口
 

@@ -18,6 +18,8 @@ from pydantic import (
 if TYPE_CHECKING:
     from mynews.verification.protocol import VerificationTarget
 
+ReasoningEffort = Literal["low", "medium", "high", "xhigh", "max"]
+
 
 class ContractModel(BaseModel):
     """允许消费者忽略 1.x minor 版本新增字段。"""
@@ -33,6 +35,7 @@ class CollectionRequest(ContractModel):
     timezone: str = "Asia/Shanghai"
     source_ids: list[str] = Field(default_factory=list)
     verification_budget: int | None = Field(default=None, ge=0)
+    verification_reasoning_effort: ReasoningEffort | None = None
 
     @field_validator("from_", "to")
     @classmethod

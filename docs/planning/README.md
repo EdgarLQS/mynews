@@ -5,7 +5,7 @@ status: current
 implementation_status: implemented
 version: 1.3
 created: 2026-08-02
-updated: 2026-08-05
+updated: 2026-08-09
 owner: project-maintainers
 ---
 

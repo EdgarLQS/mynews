@@ -20,7 +20,7 @@ from mynews.storage.digest_store import DigestFileStore, DigestStoreError
 from mynews.storage.json_store import JsonNewsStore, JsonStoreError
 from mynews.storage.protocol import NewsStore
 from mynews.verification.codex import CodexVerifier
-from mynews.verification.protocol import VerificationConfig
+from mynews.verification.protocol import REASONING_EFFORTS, VerificationConfig
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 
@@ -101,6 +101,12 @@ def build_parser() -> ChineseArgumentParser:
         metavar="秒",
         type=_positive_float,
         help="每次 Codex/证据请求的超时时间",
+    )
+    collect.add_argument(
+        "--verification-reasoning-effort",
+        choices=REASONING_EFFORTS,
+        metavar="强度",
+        help="Codex 核验推理强度，默认 medium",
     )
 
     probe = commands.add_parser(
@@ -203,6 +209,12 @@ def build_parser() -> ChineseArgumentParser:
         help="每次 Codex 摘要调用超时时间，默认 30 秒",
     )
     digest.add_argument(
+        "--summary-reasoning-effort",
+        choices=REASONING_EFFORTS,
+        metavar="强度",
+        help="Codex 摘要推理强度，默认 medium",
+    )
+    digest.add_argument(
         "--no-codex",
         action="store_true",
         help="不调用 Codex，全部使用安全回退文本",
@@ -269,6 +281,10 @@ def _verification_config(args: argparse.Namespace) -> VerificationConfig:
             if args.verification_timeout is not None
             else defaults.timeout
         ),
+        reasoning_effort=(
+            args.verification_reasoning_effort
+            or defaults.reasoning_effort
+        ),
         codex_executable=defaults.codex_executable,
     )
 
@@ -325,6 +341,7 @@ def _request_from_namespace(
             "to": end,
             "timezone": "Asia/Shanghai",
             "source_ids": source_ids,
+            "verification_reasoning_effort": args.verification_reasoning_effort,
         }
     )
 
@@ -393,6 +410,10 @@ def main(
                 max_items=args.max_items,
                 summary_model=args.summary_model or defaults.summary_model,
                 summary_timeout=args.summary_timeout,
+                summary_reasoning_effort=(
+                    args.summary_reasoning_effort
+                    or defaults.summary_reasoning_effort
+                ),
                 use_codex=not args.no_codex,
             )
             digest = DigestBuilder().build(

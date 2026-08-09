@@ -43,6 +43,15 @@ def test_unknown_optional_fields_are_accepted_for_minor_compatibility() -> None:
     assert report.schema_version == "1.0"
 
 
+def test_verification_reasoning_effort_is_optional_and_round_trips() -> None:
+    payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    payload["requested_range"]["verification_reasoning_effort"] = "medium"
+
+    report = RunReport.model_validate(payload)
+
+    assert report.requested_range.verification_reasoning_effort == "medium"
+
+
 def test_unknown_major_schema_version_is_rejected() -> None:
     payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
     payload["schema_version"] = "2.0"

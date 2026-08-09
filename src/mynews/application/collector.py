@@ -438,7 +438,12 @@ def _request_with_sources(
             request.verification_budget
             if request.verification_budget is not None
             else config.budget
-        )
+        ),
+        "verification_reasoning_effort": (
+            request.verification_reasoning_effort
+            if request.verification_reasoning_effort is not None
+            else config.reasoning_effort
+        ),
     }
     if source_ids is not None:
         updates["source_ids"] = list(dict.fromkeys(source_ids))
@@ -450,8 +455,19 @@ def _config_for_request(
     config: VerificationConfig,
 ) -> VerificationConfig:
     if request.verification_budget is None:
-        return config
-    return replace(config, budget=request.verification_budget)
+        if request.verification_reasoning_effort is None:
+            return config
+        return replace(
+            config,
+            reasoning_effort=request.verification_reasoning_effort,
+        )
+    return replace(
+        config,
+        budget=request.verification_budget,
+        reasoning_effort=(
+            request.verification_reasoning_effort or config.reasoning_effort
+        ),
+    )
 
 
 def _verification_targets(

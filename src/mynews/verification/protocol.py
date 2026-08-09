@@ -6,12 +6,20 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal, Protocol, runtime_checkable
 
-from mynews.domain.models import Evidence, NewsItem
+from mynews.domain.models import Evidence, NewsItem, ReasoningEffort
 
 DEFAULT_CODEX_MODEL = "gpt-5.6-luna"
 DEFAULT_VERIFICATION_BUDGET = 30
 DEFAULT_VERIFICATION_BATCH_SIZE = 5
 DEFAULT_VERIFICATION_TIMEOUT = 30.0
+DEFAULT_VERIFICATION_REASONING_EFFORT: ReasoningEffort = "medium"
+REASONING_EFFORTS: tuple[ReasoningEffort, ...] = (
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+    "max",
+)
 DEFAULT_PRIMARY_DOMAINS = (
     "openai.com",
     "developers.openai.com",
@@ -54,6 +62,7 @@ class VerificationConfig:
     budget: int = DEFAULT_VERIFICATION_BUDGET
     batch_size: int = DEFAULT_VERIFICATION_BATCH_SIZE
     timeout: float = DEFAULT_VERIFICATION_TIMEOUT
+    reasoning_effort: ReasoningEffort = DEFAULT_VERIFICATION_REASONING_EFFORT
     codex_executable: str = "codex"
 
     def __post_init__(self) -> None:
@@ -65,6 +74,8 @@ class VerificationConfig:
             raise ValueError("核验批大小必须是正整数")
         if self.timeout <= 0:
             raise ValueError("核验超时必须是正数")
+        if self.reasoning_effort not in REASONING_EFFORTS:
+            raise ValueError("核验推理强度无效")
         if not self.codex_executable.strip():
             raise ValueError("Codex 可执行文件不能为空")
 

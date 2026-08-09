@@ -58,11 +58,18 @@ class StaticCodex:
     def __init__(self, outputs: list[str]) -> None:
         self.outputs = outputs
         self.prompts: list[str] = []
-        self.calls: list[tuple[str, float]] = []
+        self.calls: list[tuple[str, float, str]] = []
 
-    def run(self, prompt: str, *, model: str, timeout: float) -> str:
+    def run(
+        self,
+        prompt: str,
+        *,
+        model: str,
+        timeout: float,
+        reasoning_effort: str,
+    ) -> str:
         self.prompts.append(prompt)
-        self.calls.append((model, timeout))
+        self.calls.append((model, timeout, reasoning_effort))
         return self.outputs.pop(0)
 
 
@@ -249,7 +256,14 @@ def test_codex_suggestion_is_rechecked_before_it_can_verify() -> None:
     )
 
     assert result[0].status == "verified"
-    assert runner.calls == [("test-model", 30.0)]
+    assert runner.calls == [("test-model", 30.0, "medium")]
+
+
+def test_verification_config_defaults_to_medium_and_rejects_unknown_effort() -> None:
+    assert VerificationConfig().reasoning_effort == "medium"
+
+    with pytest.raises(ValueError, match="推理强度无效"):
+        VerificationConfig(reasoning_effort="turbo")  # type: ignore[arg-type]
 
 
 def test_codex_excerpt_matches_visible_text_across_html_elements() -> None:
@@ -438,7 +452,9 @@ def test_codex_runner_is_read_only_ephemeral_and_never_uses_shell(
         check: bool,
         shell: bool,
         cwd: str,
+        reasoning_effort: str = "medium",
     ) -> SimpleNamespace:
+        del reasoning_effort
         captured.update(
             {
                 "command": command,
@@ -468,6 +484,9 @@ def test_codex_runner_is_read_only_ephemeral_and_never_uses_shell(
     assert command[:2] == ["codex-test", "exec"]
     assert "--ephemeral" in command
     assert command[command.index("--sandbox") + 1] == "read-only"
+    assert command[command.index("-c") + 1] == (
+        'model_reasoning_effort="medium"'
+    )
     assert captured["shell"] is False
     assert captured["timeout"] == 2.5
 
@@ -487,8 +506,9 @@ def test_codex_runner_emits_strict_output_schema_for_cli(
         check: bool,
         shell: bool,
         cwd: str,
+        reasoning_effort: str = "medium",
     ) -> SimpleNamespace:
-        del input, text, capture_output, timeout, check, shell, cwd
+        del input, text, capture_output, timeout, check, shell, cwd, reasoning_effort
         schema_path = Path(command[command.index("--output-schema") + 1])
         captured["schema"] = json.loads(schema_path.read_text(encoding="utf-8"))
         output_path = Path(

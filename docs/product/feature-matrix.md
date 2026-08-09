@@ -11,7 +11,7 @@ owner: project-maintainers
 
 # mynews 功能矩阵
 
-本表是产品范围和实现状态的唯一真相来源。v1.3 Digest 离线实现已完成；本分支没有真实 Digest Codex 或定时集成证据，不把对应能力标为 Verified。v1.2 的真实 G6-S、G6-V 和 G7 事实保留在归档记录中。真实 launchd 按验收边界不加载。
+本表是产品范围和实现状态的唯一真相来源。v1.3 Digest 离线实现已完成，真实七天采集和 Digest 已复验；但没有产生 verified 主榜故事，G6-V 仍为 BLOCKED，不把对应能力标为 Verified。v1.2 的真实 G6-S、G6-V 和 G7 事实保留在归档记录中。真实 launchd 按验收边界不加载。
 
 状态：`Planned`、`In progress`、`Implemented`、`Verified`、`Future`、`Out`。
 
@@ -26,7 +26,7 @@ owner: project-maintainers
 | CLI-04 | CLI | 结构化退出码 0/1/2/3 | Implemented | 来源状态与流水线测试 |
 | CLI-05 | CLI | RunReport/Schema/verified 证据校验命令 | Implemented | `mynews validate`；离线 Schema/结构检查与可选逐条重抓 |
 | CLI-06 | CLI | 从 RunReport 离线生成中文 Markdown `mynews report` | Implemented | report fixture、中文 help 和文件输出测试 |
-| CLI-07 | CLI | `mynews digest` 及其输出、条数、摘要模型/超时和 `--no-codex` 参数 | Implemented | Digest fixture、中文 help、回退和原子输出测试 |
+| CLI-07 | CLI | `mynews digest` 及其输出、条数、摘要模型/超时、推理强度、`--no-codex` 和人工查看线索 | Implemented | Digest fixture、中文 help、推理参数、回退、线索链接和原子输出测试 |
 | SRC-01 | 来源 | Hacker News 官方 API | Verified | fixture + 既有真实 probe；v1.2 目标环境重新执行 G6-S |
 | SRC-02 | 来源 | 官方 RSS/Atom/API、GitHub Release 与官方 HTML 更新页 | Implemented | fixtures、Adapter 测试和目标环境 G6-S |
 | SRC-03 | 来源 | 官方价格页和更新日志监控 | Implemented | 首观快照、规范化差异与 `pricing_change` 测试 |
@@ -38,7 +38,7 @@ owner: project-maintainers
 | PIPE-02 | 处理 | 跨来源、跨日期、跨运行去重 | Implemented | 批内与跨运行状态恢复测试；目标环境 G7 |
 | PIPE-03 | 处理 | discovery AI/科技确定性筛选与质量统计 | Implemented | 词边界、HTML/URL 清理和统计测试 |
 | VER-01 | 核验 | 第一方官方证据直接核验 | Verified | 既有官方直验；v1.2 严格门槛回归通过 |
-| VER-02 | 核验 | 可配置 Codex Verifier 与单次候选预算 | Implemented | Fake/预算/批次测试；strict JSON Schema 兼容回归通过；真实候选 G6-V 仍 BLOCKED |
+| VER-02 | 核验 | 可配置 Codex Verifier、推理强度与单次候选预算 | Implemented | Fake/预算/批次/推理参数测试；strict JSON Schema 兼容回归通过；真实候选 G6-V 仍 BLOCKED |
 | VER-03 | 核验 | URL、域名、重定向、摘录、日期和哈希二次校验 | Implemented | 伪造来源、跨域重定向和严格契约测试 |
 | VER-04 | 核验 | discovery 候选进入生产 Codex，模型不得扩大白名单 | Implemented | 离线 seam 和生产 CLI 协议兼容已通过；真实 `codex_primary_evidence` G6-V 未满足 |
 | VER-05 | 核验 | Pending 独立重试、次数上限和 TTL | Implemented | 越过去重重试、终止原因和失败来源保护测试；目标环境 G7 记录真实样本 |
@@ -53,7 +53,7 @@ owner: project-maintainers
 | DIGEST-04 | 数据 | Digest Schema 1.0，历史 JSON、digest-latest.json/md 原子输出及失败恢复 | Implemented | Schema、碰撞保护、替换失败恢复和临时文件检查 |
 | OPS-01 | 运维 | 已注册内置来源 `probe`，稳定/实验等级参与 Run 状态 | Implemented | 目标环境 G6-S，实验 blocked 不伪装成功 |
 | OPS-02 | 运维 | 主机本地 09:30 launchd 安装脚本 | Implemented | 离线脚本和 Fake launchctl 测试；本次真实环境清单禁止操作 launchd |
-| OPS-03 | 运维 | 隔离七天回溯、validate 和 report | Implemented | 2026-08-09 同一固定窗口两次真实运行及 validate/report 通过；无 verified 样本，G6-V 仍阻断发布 |
+| OPS-03 | 运维 | 隔离七天回溯、validate 和 Digest | Implemented | 2026-08-09 同一固定窗口两次真实运行、validate 和生产 Digest 通过；无 verified 样本，G6-V 仍阻断发布 |
 | EXT-01 | 扩展 | built-in SourcePlugin registry | Implemented | registry 隔离、重复 ID 和选择测试 |
 | EXT-02 | 扩展 | 仓库外 Python entry-point 插件 | Future | 后续 ADR |
 | EXT-03 | 扩展 | 其他核验器 Adapter | Future | 后续需求 |

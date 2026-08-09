@@ -7,7 +7,7 @@ import json
 import re
 import subprocess
 import tempfile
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -21,13 +21,32 @@ from mynews.domain.models import (
     DigestItem,
     Evidence,
     NewsItem,
+    ReasoningEffort,
     RunReport,
     VerificationRetry,
 )
-from mynews.verification.protocol import DEFAULT_CODEX_MODEL
 
+DEFAULT_DIGEST_MODEL = "gpt-5.6-luna"
 _URL_PATTERN = re.compile(r"https?://[^\s)\]>]+", re.IGNORECASE)
 _TITLE_TOKEN_PATTERN = re.compile(r"[a-z0-9]+|[\u3400-\u9fff]", re.IGNORECASE)
+_PROMPT_INJECTION_PATTERN = re.compile(
+    r"(?:"
+    r"\b(?:ignore|disregard|forget|override)\b[\s\S]{0,80}\b"
+    r"(?:instruction|rule|prompt|message|everything|above|previous|prior)\b"
+    r"|\b(?:do\s+not|don't|never)\b[\s\S]{0,40}\b"
+    r"(?:follow|obey|use)\b[\s\S]{0,40}\b(?:instruction|prompt|rule)\b"
+    r"|(?:忽略|无视|忘记|覆盖|跳过)[\s\S]{0,30}"
+    r"(?:指令|要求|提示|规则|消息|以上|上面|此前|之前|所有|全部)"
+    r"|(?:不要|无需|禁止)[\s\S]{0,20}(?:遵守|执行|相信|服从)"
+    r"[\s\S]{0,20}(?:指令|要求|提示|规则)"
+    r"|(?:execute|run|call)\s+(?:the\s+)?"
+    r"(?:command|shell|code|script|tool)\b"
+    r"|(?:执行|运行|调用)[\s\S]{0,8}(?:命令|代码|脚本|工具)"
+    r"|(?:system\s+prompt|developer\s+message|assistant\s+message|"
+    r"系统提示|开发者消息)"
+    r")",
+    re.IGNORECASE,
+)
 _EVENT_TYPE_SCORES = {
     "model_release": 100,
     "security": 95,
@@ -42,7 +61,14 @@ _EVENT_TYPE_SCORES = {
 class DigestSummaryRunner(Protocol):
     """可替换的只读 Codex 摘要调用 seam。"""
 
-    def run(self, prompt: str, *, model: str, timeout: float) -> str: ...
+    def run(
+        self,
+        prompt: str,
+        *,
+        model: str,
+        timeout: float,
+        reasoning_effort: ReasoningEffort = "medium",
+    ) -> str: ...
 
 
 class DigestSummaryRunnerError(RuntimeError):
@@ -74,7 +100,14 @@ class CodexDigestSummaryRunner:
     def __init__(self, executable: str = "codex") -> None:
         self._executable = executable
 
-    def run(self, prompt: str, *, model: str, timeout: float) -> str:
+    def run(
+        self,
+        prompt: str,
+        *,
+        model: str,
+        timeout: float,
+        reasoning_effort: ReasoningEffort = "medium",
+    ) -> str:
         with tempfile.TemporaryDirectory(prefix="mynews-digest-codex-") as directory:
             workdir = Path(directory)
             output_path = workdir / "output.json"
@@ -85,6 +118,7 @@ class CodexDigestSummaryRunner:
                 prompt,
                 model,
                 timeout,
+                reasoning_effort,
                 directory,
                 schema_path,
                 output_path,
@@ -105,6 +139,7 @@ def _run_digest_process(
     prompt: str,
     model: str,
     timeout: float,
+    reasoning_effort: ReasoningEffort,
     directory: str,
     schema_path: Path,
     output_path: Path,
@@ -118,6 +153,8 @@ def _run_digest_process(
         "--skip-git-repo-check",
         "--model",
         model,
+        "-c",
+        f'model_reasoning_effort="{reasoning_effort}"',
         "--output-schema",
         str(schema_path),
         "--output-last-message",
@@ -163,8 +200,9 @@ class DigestBuildConfig:
     """简报生成约束，不包含采集或核验预算。"""
 
     max_items: int = 20
-    summary_model: str = DEFAULT_CODEX_MODEL
+    summary_model: str = DEFAULT_DIGEST_MODEL
     summary_timeout: float = 30.0
+    summary_reasoning_effort: ReasoningEffort = "medium"
     use_codex: bool = True
 
     def __post_init__(self) -> None:
@@ -174,6 +212,14 @@ class DigestBuildConfig:
             raise ValueError("简报模型不能为空")
         if self.summary_timeout <= 0:
             raise ValueError("简报超时必须是正数")
+        if self.summary_reasoning_effort not in {
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max",
+        }:
+            raise ValueError("简报推理强度无效")
 
 
 @dataclass(frozen=True, slots=True)
@@ -198,6 +244,8 @@ class DigestBuilder:
         config: DigestBuildConfig | None = None,
         now: datetime | None = None,
     ) -> Digest:
+        if report.status == "failed":
+            raise ValueError("failed RunReport 不能生成 Digest")
         active_config = config or DigestBuildConfig()
         generated_at = now or report.finished_at
         _require_aware(generated_at)
@@ -238,6 +286,8 @@ class DigestBuilder:
             return items, []
         if not config.use_codex:
             return _fallback_items(items, "codex_disabled")
+        if _has_prompt_injection(items):
+            return _prompt_injection_fallback(items)
         if any(not item.evidence_refs for item in items):
             return _fallback_items(items, "missing_saved_evidence")
         try:
@@ -263,6 +313,7 @@ class DigestBuilder:
             _summary_prompt(items),
             model=config.summary_model,
             timeout=config.summary_timeout,
+            reasoning_effort=config.summary_reasoning_effort,
         )
         response = DigestSummaryResponse.model_validate_json(raw)
         return _validate_suggestions(response, items)
@@ -359,10 +410,6 @@ def _same_event(first: NewsItem, second: NewsItem) -> bool:
         return False
     if _canonical(first.canonical_url) == _canonical(second.canonical_url):
         return bool(first.canonical_url and second.canonical_url)
-    if first.content_hash == second.content_hash:
-        return bool(set(first.entities) & set(second.entities)) or not (
-            first.entities or second.entities
-        )
     if not set(first.entities) & set(second.entities):
         return False
     if first.published_at is None or second.published_at is None:
@@ -502,6 +549,24 @@ def _fallback_items(
     return result, errors
 
 
+def _prompt_injection_fallback(
+    items: Sequence[DigestItem],
+) -> tuple[list[DigestItem], list[str]]:
+    result = [
+        item.model_copy(
+            update={
+                "summary_zh": "检测到疑似提示注入，未生成模型摘要。",
+                "impact_zh": "已安全回退，需人工复核。",
+                "summary_status": "fallback",
+                "summary_reason": "prompt_injection_detected",
+            }
+        )
+        for item in items
+    ]
+    errors = [f"prompt_injection_detected:{item.event_key}" for item in items]
+    return result, errors
+
+
 def _validate_suggestions(
     response: DigestSummaryResponse,
     items: Sequence[DigestItem],
@@ -518,6 +583,11 @@ def _validate_suggestions(
             suggestion.impact_zh
         ):
             raise ValueError("Codex 摘要和影响判断必须包含中文")
+        if any(
+            _contains_prompt_injection(value)
+            for value in (suggestion.summary_zh, suggestion.impact_zh)
+        ):
+            raise ValueError("Codex 摘要疑似包含提示注入")
         if (
             not suggestion.evidence_refs
             or len(set(suggestion.evidence_refs)) != len(suggestion.evidence_refs)
@@ -665,7 +735,11 @@ def _previous_match(seed: _DigestSeed, previous: Digest | None) -> DigestItem | 
             return item
         if source_keys & set(item.source_item_keys):
             return item
-        if item.canonical_url and item.canonical_url == seed.item.canonical_url:
+        if (
+            item.canonical_url
+            and seed.item.canonical_url
+            and _canonical(item.canonical_url) == _canonical(seed.item.canonical_url)
+        ):
             return item
     return None
 
@@ -676,27 +750,54 @@ def _lifecycle(
 ) -> Literal["new", "updated", "ongoing"]:
     if previous is None:
         return "new"
-    current_fingerprint = (
-        seed.item.verification_status,
-        seed.item.verification_reason,
-        seed.item.content_hash,
-        seed.item.canonical_url,
-        seed.item.title_original,
-        seed.item.relevance_score,
-        seed.item.heat_score,
-        tuple(sorted(ref.content_hash for ref in seed.evidence_refs)),
+    current_fingerprint = _lifecycle_fingerprint(
+        seed.item,
+        evidence_refs=seed.evidence_refs,
+        source_item_keys=(source.event_key for source in seed.source_items),
     )
-    previous_fingerprint = (
-        previous.verification_status,
-        previous.verification_reason,
-        previous.source_content_hash,
-        previous.canonical_url,
-        previous.source_title_original,
-        previous.relevance_score,
-        previous.heat_score,
-        tuple(sorted(ref.content_hash for ref in previous.evidence_refs)),
+    previous_fingerprint = _lifecycle_fingerprint(
+        previous,
+        evidence_refs=previous.evidence_refs,
+        source_item_keys=previous.source_item_keys,
     )
     return "ongoing" if current_fingerprint == previous_fingerprint else "updated"
+
+
+def _lifecycle_fingerprint(
+    item: NewsItem | DigestItem,
+    *,
+    evidence_refs: Sequence[DigestEvidenceRef],
+    source_item_keys: Iterable[str],
+) -> tuple[object, ...]:
+    if isinstance(item, NewsItem):
+        content_hash = item.content_hash
+        title_original = item.title_original
+    else:
+        content_hash = item.source_content_hash
+        title_original = item.source_title_original
+    return (
+        item.event_type,
+        item.verification_status,
+        item.verification_reason,
+        content_hash,
+        item.canonical_url,
+        item.title_zh,
+        title_original,
+        item.relevance_score,
+        item.heat_score,
+        tuple(sorted(source_item_keys)),
+        tuple(
+            sorted(
+                (
+                    str(ref.url),
+                    ref.excerpt,
+                    ref.published_at.isoformat() if ref.published_at else "",
+                    ref.content_hash,
+                )
+                for ref in evidence_refs
+            )
+        ),
+    )
 
 
 def _date_distance(first: NewsItem, second: NewsItem) -> timedelta:
@@ -723,6 +824,19 @@ def _canonical(value: str | None) -> str:
 
 def _has_chinese(value: str) -> bool:
     return bool(re.search(r"[\u3400-\u9fff]", value))
+
+
+def _contains_prompt_injection(value: str) -> bool:
+    return bool(_PROMPT_INJECTION_PATTERN.search(value))
+
+
+def _has_prompt_injection(items: Sequence[DigestItem]) -> bool:
+    for item in items:
+        values = [item.title_zh, item.source_title_original]
+        values.extend(ref.excerpt for ref in item.evidence_refs)
+        if any(_contains_prompt_injection(value) for value in values):
+            return True
+    return False
 
 
 def _digest_id(run_id: str, generated_at: datetime) -> str:

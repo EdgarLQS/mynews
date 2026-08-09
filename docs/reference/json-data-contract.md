@@ -5,7 +5,7 @@ status: current
 implementation_status: implemented
 version: 1.3
 created: 2026-08-02
-updated: 2026-08-05
+updated: 2026-08-09
 owner: project-maintainers
 ---
 
@@ -59,7 +59,8 @@ logs/
     "to": "2026-08-05T09:30:00+08:00",
     "timezone": "Asia/Shanghai",
     "source_ids": [],
-    "verification_budget": 30
+    "verification_budget": 30,
+    "verification_reasoning_effort": "medium"
   },
   "started_at": "2026-08-05T09:30:00+08:00",
   "finished_at": "2026-08-05T09:31:00+08:00",
@@ -86,7 +87,7 @@ logs/
 - `partial`：已有可用结果，但至少一个 stable 来源异常。
 - `failed`：没有可用 stable 来源或无法完成运行。
 
-`requested_range.verification_budget` 必须记录本次实际预算。输入可以省略，由应用配置注入；持久化报告不能省略。
+`requested_range.verification_budget` 必须记录本次实际预算。`requested_range.verification_reasoning_effort` 记录本次核验实际使用的 Codex 推理强度，允许 `low`、`medium`、`high`、`xhigh`、`max`；旧输入可以没有该可选字段，读取器必须保持兼容。两项输入都可以省略，由应用配置注入；新生成的持久化报告会记录有效值。推理强度只影响 Codex 运行时配置，不放宽第一方证据、域名、日期、摘录、哈希或安全回退门槛。
 
 ## NewsItem
 
@@ -239,7 +240,7 @@ uv run mynews report --run output/latest.json --out output/report.md
 
 ## Digest Schema 1.0
 
-`mynews digest` 只读取 `RunReport` 和 `digest-latest.json`，不修改 RunReport、dedup、pending 或证据状态。Digest 顶层字段如下：
+`mynews digest` 只读取 `status` 为 `complete` 或 `partial` 的 RunReport 和 `digest-latest.json`，不修改 RunReport、dedup、pending 或证据状态；`failed` RunReport 必须拒绝且不得写入 Digest latest。Digest 顶层字段如下：
 
 | 字段 | 约束 |
 | --- | --- |
@@ -250,7 +251,7 @@ uv run mynews report --run output/latest.json --out output/report.md
 | `lead_items` | 只允许 `verification_status=unverified` 的线索；保留 `verification_reason` 和可选 `verification_retry` |
 | `stats`、`summary_errors` | 聚类、条数、摘要回退和稳定错误事实 |
 
-每个 DigestItem 保存 `event_key`、事件类型、中文标题/摘要/影响判断、`lifecycle`（`new`/`updated`/`ongoing`）、来源条目键、内容哈希、发布时间、四项排序分、`rank_score` 和摘要状态。`evidence_refs` 是结构化引用，只能逐字来自同一 RunReport 的严格 `primary_evidence`，保存 URL、摘录、发布日期和内容哈希；Codex 返回的未知 URL、未知条目、重复引用、外部链接或非中文摘要都会触发安全回退。
+每个 DigestItem 保存 `event_key`、事件类型、中文标题/摘要/影响判断、`lifecycle`（`new`/`updated`/`ongoing`）、来源条目键、内容哈希、发布时间、四项排序分、`rank_score` 和摘要状态。`evidence_refs` 是结构化引用，只能逐字来自同一 RunReport 的严格 `primary_evidence`，保存 URL、摘录、发布日期和内容哈希；Codex 返回的未知 URL、未知条目、重复引用、外部链接、提示注入标记或非中文摘要都会触发安全回退。
 
 排序分为：
 
@@ -266,14 +267,24 @@ uv run mynews digest \
   --out-dir output \
   --max-items 20 \
   --summary-model gpt-5.6-luna \
+  --summary-reasoning-effort medium \
   --summary-timeout 30
 uv run mynews digest --run output/latest.json --out-dir output --no-codex
 ```
 
-`--no-codex` 或模型失败时只使用标题和已保存证据摘录，Digest 状态为 `partial`；线索观察不调用 Codex，也不生成事实摘要。
+`--no-codex` 或模型失败时，主榜条目只使用标题和已保存证据摘录，摘要状态为 `partial`；如果当前没有主榜条目，Digest 可以保持 `complete`，但只包含线索观察。线索观察不调用 Codex，也不生成事实摘要。个人人工查看时可打开线索的 `canonical_url`，但该链接只是发现入口，不自动成为第一方证据；人工确认不能通过直接编辑 JSON 的方式升级 `verified`。
+
+### 人工查看线索
+
+```bash
+uv run mynews digest --run output/latest.json --out-dir output --no-codex
+open output/digest-latest.md
+```
+
+人工查看应从标题和 `canonical_url` 出发，继续找到官方公告、官方文档、官方仓库或发行说明，核对页面日期和逐字摘录。当前版本只支持人工阅读，不提供人工证据写入命令；`validate --check-evidence` 只复核已经是 `verified` 的证据，不会把 `unverified` 自动升级。
 
 ## 事务规则
 
 一次 complete/partial 提交同时包含历史 run、latest、dedup 和 pending。每个文件先写同目录临时文件并 `fsync`。任一替换失败时恢复提交前内容，删除本次历史 run。
 
-failed Run 可以保存诊断历史，但不能覆盖 latest，也不能提交本次 dedup/pending 演进结果。
+failed Run 可以保存诊断历史，但不能覆盖 latest，也不能提交本次 dedup/pending 演进结果；`mynews digest` 不能从 failed Run 生成简报。
