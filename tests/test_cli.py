@@ -23,10 +23,12 @@ def test_collect_help_is_chinese(capsys: pytest.CaptureFixture[str]) -> None:
     assert "收集" in output
     assert "--verification-model" in output
     assert "--verification-batch-size" in output
+    assert "--verification-reasoning-effort" in output
 
 
 @pytest.mark.parametrize(
-    "arguments", [["--help"], ["probe", "--help"], ["validate", "--help"]]
+    "arguments",
+    [["--help"], ["probe", "--help"], ["validate", "--help"], ["digest", "--help"]],
 )
 def test_global_and_probe_help_are_available(
     arguments: list[str], capsys: pytest.CaptureFixture[str]
@@ -38,6 +40,16 @@ def test_global_and_probe_help_are_available(
     output = capsys.readouterr().out
     assert "用法：" in output
     assert "选项：" in output
+
+
+def test_digest_help_includes_reasoning_effort(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as raised:
+        main(["digest", "--help"])
+
+    assert raised.value.code == 0
+    assert "--summary-reasoning-effort" in capsys.readouterr().out
 
 
 @pytest.mark.parametrize(
@@ -66,6 +78,15 @@ def test_days_request_uses_shanghai_day_boundary() -> None:
     assert request.from_.isoformat() == "2026-07-26T12:00:00+08:00"
     assert request.to.isoformat() == "2026-08-02T12:00:00+08:00"
     assert request.timezone == "Asia/Shanghai"
+
+
+def test_reasoning_effort_is_parsed_into_collection_request() -> None:
+    request = build_collection_request(
+        ["--days", "7", "--verification-reasoning-effort", "low"],
+        now=NOW,
+    )
+
+    assert request.verification_reasoning_effort == "low"
 
 
 def test_date_request_covers_one_local_calendar_day() -> None:
@@ -169,3 +190,58 @@ def test_report_command_writes_chinese_markdown_offline(
     assert "## 待核验" in text
     assert "## 价格变化" in text
     assert "## 来源状态" in text
+
+
+def test_digest_command_writes_atomic_outputs_without_codex(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fixture = Path(__file__).parent / "fixtures" / "run-report-v1.json"
+
+    result = main(
+        [
+            "digest",
+            "--run",
+            str(fixture),
+            "--out-dir",
+            str(tmp_path),
+            "--max-items",
+            "5",
+            "--summary-model",
+            "offline-test",
+            "--summary-timeout",
+            "1",
+            "--no-codex",
+        ]
+    )
+
+    assert result == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "complete"
+    assert (tmp_path / "digest-latest.json").is_file()
+    assert (tmp_path / "digest-latest.md").is_file()
+    assert list((tmp_path / "digests").glob("*.json"))
+
+
+def test_digest_rejects_failed_run_without_writing_latest(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fixture = Path(__file__).parent / "fixtures" / "run-report-v1.json"
+    payload = json.loads(fixture.read_text(encoding="utf-8"))
+    payload["status"] = "failed"
+    run_path = tmp_path / "failed-run.json"
+    run_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = main(
+        [
+            "digest",
+            "--run",
+            str(run_path),
+            "--out-dir",
+            str(tmp_path / "digest"),
+            "--no-codex",
+        ]
+    )
+
+    assert result == 1
+    assert "failed RunReport" in capsys.readouterr().out
+    assert not (tmp_path / "digest" / "digest-latest.json").exists()

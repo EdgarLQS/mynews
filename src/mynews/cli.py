@@ -11,14 +11,16 @@ from typing import NoReturn
 from zoneinfo import ZoneInfo
 
 from mynews.application.collector import PipelineCollector, SourceCollector
+from mynews.application.digest import DigestBuildConfig, DigestBuilder
 from mynews.application.report import load_report, render_report, write_report
 from mynews.application.validation import RunValidation, validate_run_file, write_schema
 from mynews.domain.models import CollectionRequest
 from mynews.sources.registry import SourceRegistry, built_in_registry
+from mynews.storage.digest_store import DigestFileStore, DigestStoreError
 from mynews.storage.json_store import JsonNewsStore, JsonStoreError
 from mynews.storage.protocol import NewsStore
 from mynews.verification.codex import CodexVerifier
-from mynews.verification.protocol import VerificationConfig
+from mynews.verification.protocol import REASONING_EFFORTS, VerificationConfig
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 
@@ -100,6 +102,12 @@ def build_parser() -> ChineseArgumentParser:
         type=_positive_float,
         help="每次 Codex/证据请求的超时时间",
     )
+    collect.add_argument(
+        "--verification-reasoning-effort",
+        choices=REASONING_EFFORTS,
+        metavar="强度",
+        help="Codex 核验推理强度，默认 medium",
+    )
 
     probe = commands.add_parser(
         "probe",
@@ -159,6 +167,57 @@ def build_parser() -> ChineseArgumentParser:
         "--out",
         metavar="路径",
         help="Markdown 输出路径；不提供时打印到标准输出",
+    )
+    digest = commands.add_parser(
+        "digest",
+        help="从 RunReport 生成中文情报简报",
+        description=(
+            "离线读取 RunReport 和上一期 Digest，生成主榜、线索观察及原子输出。"
+        ),
+        add_help=False,
+    )
+    digest.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    digest.add_argument(
+        "--run",
+        default="output/latest.json",
+        metavar="路径",
+        help="要读取的 RunReport JSON，默认 output/latest.json",
+    )
+    digest.add_argument(
+        "--out-dir",
+        default="output",
+        metavar="目录",
+        help="Digest 输出目录，默认 output",
+    )
+    digest.add_argument(
+        "--max-items",
+        type=_positive_int,
+        default=20,
+        metavar="条数",
+        help="最多输出的主榜和线索总条数，默认 20",
+    )
+    digest.add_argument(
+        "--summary-model",
+        metavar="模型",
+        help="Codex 摘要模型，默认 gpt-5.6-luna",
+    )
+    digest.add_argument(
+        "--summary-timeout",
+        type=_positive_float,
+        default=30.0,
+        metavar="秒",
+        help="每次 Codex 摘要调用超时时间，默认 30 秒",
+    )
+    digest.add_argument(
+        "--summary-reasoning-effort",
+        choices=REASONING_EFFORTS,
+        metavar="强度",
+        help="Codex 摘要推理强度，默认 medium",
+    )
+    digest.add_argument(
+        "--no-codex",
+        action="store_true",
+        help="不调用 Codex，全部使用安全回退文本",
     )
     return parser
 
@@ -222,6 +281,10 @@ def _verification_config(args: argparse.Namespace) -> VerificationConfig:
             if args.verification_timeout is not None
             else defaults.timeout
         ),
+        reasoning_effort=(
+            args.verification_reasoning_effort
+            or defaults.reasoning_effort
+        ),
         codex_executable=defaults.codex_executable,
     )
 
@@ -278,6 +341,7 @@ def _request_from_namespace(
             "to": end,
             "timezone": "Asia/Shanghai",
             "source_ids": source_ids,
+            "verification_reasoning_effort": args.verification_reasoning_effort,
         }
     )
 
@@ -336,6 +400,47 @@ def main(
             )
         )
         return 0 if validation_result.passed else 1
+    if args.command == "digest":
+        try:
+            report = load_report(Path(args.run))
+            digest_store = DigestFileStore(Path(args.out_dir))
+            previous = digest_store.load_latest()
+            defaults = DigestBuildConfig()
+            config = DigestBuildConfig(
+                max_items=args.max_items,
+                summary_model=args.summary_model or defaults.summary_model,
+                summary_timeout=args.summary_timeout,
+                summary_reasoning_effort=(
+                    args.summary_reasoning_effort
+                    or defaults.summary_reasoning_effort
+                ),
+                use_codex=not args.no_codex,
+            )
+            digest = DigestBuilder().build(
+                report,
+                previous,
+                config=config,
+                now=datetime.now(SHANGHAI),
+            )
+            history_path, latest_json, latest_markdown = digest_store.write(digest)
+        except (DigestStoreError, OSError, ValueError) as error:
+            print(f"简报生成失败：{error}")
+            return 1
+        print(
+            json.dumps(
+                {
+                    "status": digest.status,
+                    "digest_id": digest.digest_id,
+                    "run_id": digest.run_id,
+                    "history": str(history_path),
+                    "latest_json": str(latest_json),
+                    "latest_markdown": str(latest_markdown),
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 0 if digest.status == "complete" else 3
     if args.command == "collect":
         request = _request_from_namespace(args, parser, None)
         verification_config = _verification_config(args)

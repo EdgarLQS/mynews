@@ -1,0 +1,4 @@
+interface:
+  display_name: "计划与实施"
+  short_description: "同步项目当前阶段并生成可复制的开发实施与只读验收说明"
+  default_prompt: "使用 $plan-implement 读取当前项目状态并生成最新计划、实施说明和只读验收说明"

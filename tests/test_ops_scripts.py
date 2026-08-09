@@ -98,6 +98,30 @@ exit "${FAKE_UV_EXIT:-0}"
     assert "[REDACTED_SECRET]" in log_text
 
 
+def test_collect_only_runs_digest_when_explicitly_requested(tmp_path: Path) -> None:
+    calls = tmp_path / "calls"
+    uv = _write_executable(
+        tmp_path / "fake-uv",
+        "printf '%s\\n' \"$*\" >> \"$FAKE_UV_CALLS\"\nexit 0",
+    )
+
+    result = _run_script(
+        tmp_path,
+        "--digest",
+        "--days",
+        "7",
+        uv=uv,
+        extra_env={"FAKE_UV_CALLS": str(calls)},
+    )
+
+    assert result.returncode == 0
+    lines = calls.read_text(encoding="utf-8").splitlines()
+    assert lines == [
+        "run mynews collect --days 7",
+        f"run mynews digest --run {ROOT / 'output/latest.json'}",
+    ]
+
+
 def test_collect_skips_when_another_run_holds_the_lock(tmp_path: Path) -> None:
     uv = _write_executable(
         tmp_path / "fake-uv",

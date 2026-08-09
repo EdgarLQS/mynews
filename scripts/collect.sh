@@ -23,8 +23,8 @@ SECRET_VARIABLES=(
 usage() {
   cat <<'EOF'
 用法：
-  scripts/collect.sh [collect 参数...]
-  scripts/collect.sh collect [collect 参数...]
+  scripts/collect.sh [--digest] [collect 参数...]
+  scripts/collect.sh collect [--digest] [collect 参数...]
   scripts/collect.sh render-plist [--dry-run] [--output 绝对路径]
   scripts/collect.sh install [--dry-run]
   scripts/collect.sh status [--dry-run]
@@ -32,6 +32,7 @@ usage() {
 
 说明：
   默认执行 uv run mynews collect，参数会原样安全透传。
+  只有显式提供 --digest 时，采集成功后才追加 uv run mynews digest。
   运行目录固定为项目根目录，输出追加到项目 logs/collect.log。
   render-plist 只渲染模板；install、status、uninstall 才会调用 launchctl。
   四个 launchd 动作都支持 --dry-run；预览不会调用 launchctl，也不会写入或删除文件。
@@ -182,9 +183,45 @@ redact_stream() {
   done
 }
 
+run_logged_command() {
+  local log_file="$1"
+  shift
+  local temp_root="${TMPDIR:-/tmp}" temp_file command_status filter_status
+  local pipeline_status
+  temp_file="$(/usr/bin/mktemp "${temp_root}/mynews-command.XXXXXX")"
+  ACTIVE_TEMP_PATH="$temp_file"
+  set +e
+  "$@" 2>&1 | redact_stream >"$temp_file"
+  pipeline_status=("${PIPESTATUS[@]}")
+  set -e
+  command_status="${pipeline_status[0]}"
+  filter_status="${pipeline_status[1]}"
+  if [[ "$filter_status" -ne 0 ]]; then
+    error '无法脱敏命令输出'
+    return 1
+  fi
+  if ! /bin/cat "$temp_file" >>"$log_file"; then
+    error "无法写入日志：${log_file}"
+    return 1
+  fi
+  /bin/cat "$temp_file"
+  /bin/rm -f -- "$temp_file"
+  ACTIVE_TEMP_PATH=""
+  return "$command_status"
+}
+
 run_collect() {
-  local uv_bin log_root log_file redacted_file command_status filter_status temp_root
-  local lock_path pipeline_status
+  local uv_bin log_root log_file command_status digest_status temp_root
+  local lock_path digest_requested=false
+  local -a collect_args=()
+  while (($# > 0)); do
+    if [[ "$1" == "--digest" ]]; then
+      digest_requested=true
+    else
+      collect_args+=("$1")
+    fi
+    shift
+  done
   log_root="$(log_dir)"
   /bin/mkdir -p -- "$log_root"
   lock_path="${log_root}/collect.lock"
@@ -197,27 +234,21 @@ run_collect() {
   export UV_CACHE_DIR
   cd -- "$PROJECT_ROOT"
   log_file="${log_root}/collect.log"
-  redacted_file="$(/usr/bin/mktemp "${temp_root}/mynews-collect.XXXXXX")"
-  ACTIVE_TEMP_PATH="$redacted_file"
-
-  set +e
-  "$uv_bin" run mynews collect "$@" 2>&1 | redact_stream >"$redacted_file"
-  pipeline_status=("${PIPESTATUS[@]}")
-  set -e
-  command_status="${pipeline_status[0]}"
-  filter_status="${pipeline_status[1]}"
-
-  if [[ "$filter_status" -ne 0 ]]; then
-    error '无法脱敏采集输出'
-    return 1
+  if run_logged_command "$log_file" "$uv_bin" run mynews collect "${collect_args[@]}"; then
+    command_status=0
+  else
+    command_status=$?
   fi
-  if ! /bin/cat "$redacted_file" >>"$log_file"; then
-    error "无法写入日志：${log_file}"
-    return 1
+  if [[ "$digest_requested" == true && ( "$command_status" -eq 0 || "$command_status" -eq 3 ) ]]; then
+    if run_logged_command "$log_file" "$uv_bin" run mynews digest --run "${PROJECT_ROOT}/output/latest.json"; then
+      digest_status=0
+    else
+      digest_status=$?
+    fi
+    if [[ "$digest_status" -ne 0 ]]; then
+      return "$digest_status"
+    fi
   fi
-  /bin/cat "$redacted_file"
-  /bin/rm -f -- "$redacted_file"
-  ACTIVE_TEMP_PATH=""
   return "$command_status"
 }
 

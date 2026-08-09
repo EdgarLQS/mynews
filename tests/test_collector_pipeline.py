@@ -139,13 +139,14 @@ def test_pipeline_applies_fake_verifier_and_injects_configured_budget(
         JsonNewsStore(tmp_path),
         clock=SequenceClock([now, now + timedelta(seconds=1)]),
         verifier=verifier,
-        verification_config=VerificationConfig(budget=7),
+        verification_config=VerificationConfig(budget=7, reasoning_effort="low"),
     ).collect(request())
 
     assert report.items[0].verification_status == "verified"
     assert report.stats["verified_count"] == 1
     assert report.stats["unverified_count"] == 0
     assert report.requested_range.verification_budget == 7
+    assert report.requested_range.verification_reasoning_effort == "low"
 
 
 def test_pipeline_partial_is_stored_but_all_failed_does_not_replace_latest(

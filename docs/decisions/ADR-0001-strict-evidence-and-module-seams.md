@@ -6,7 +6,7 @@ decision_status: accepted
 implementation_status: implemented
 version: 1.1
 created: 2026-08-02
-updated: 2026-08-05
+updated: 2026-08-09
 owner: project-maintainers
 ---
 
@@ -56,4 +56,4 @@ owner: project-maintainers
 
 阶段 4 的离线实现、伪造来源测试和当时约定的真实 Codex G6-V 已完成。v1.1 的离线实现已完成，但其 discovery G6-V 未完成，完整记录保留在 [v1.1 归档计划](../archive/plan/2026/v1.1-information-quality-plan.md)。
 
-v1.2 对模型边界、跨运行重试和证据复核生命周期的新增决定由 [ADR-0002](ADR-0002-controlled-resolution-and-evidence-lifecycle.md) 与 [v1.2 当前计划](../planning/v1.2-evidence-lifecycle-plan.md) 管理，不回写改变本 ADR 的原始结论。
+v1.2 对模型边界、跨运行重试和证据复核生命周期的新增决定由 [ADR-0002](ADR-0002-controlled-resolution-and-evidence-lifecycle.md) 管理；当前实施入口是 [v1.3 计划](../planning/v1.3-intelligence-digest-plan.md)，不回写改变本 ADR 的原始结论。

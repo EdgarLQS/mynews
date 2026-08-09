@@ -12,7 +12,7 @@ from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
-from mynews.domain.models import Evidence
+from mynews.domain.models import Evidence, ReasoningEffort
 from mynews.infrastructure.clock import Clock, SystemClock
 from mynews.infrastructure.http import HttpClient
 from mynews.verification.lifecycle import (
@@ -39,7 +39,14 @@ _TERMINAL_RESOLUTION_REASONS = frozenset(
 
 
 class CodexRunner(Protocol):
-    def run(self, prompt: str, *, model: str, timeout: float) -> str: ...
+    def run(
+        self,
+        prompt: str,
+        *,
+        model: str,
+        timeout: float,
+        reasoning_effort: ReasoningEffort = "medium",
+    ) -> str: ...
 
 
 class CodexRunnerError(RuntimeError):
@@ -84,7 +91,14 @@ class SubprocessCodexRunner:
     def __init__(self, executable: str = "codex") -> None:
         self._executable = executable
 
-    def run(self, prompt: str, *, model: str, timeout: float) -> str:
+    def run(
+        self,
+        prompt: str,
+        *,
+        model: str,
+        timeout: float,
+        reasoning_effort: ReasoningEffort = "medium",
+    ) -> str:
         with tempfile.TemporaryDirectory(prefix="mynews-codex-") as directory:
             workdir = Path(directory)
             output_path = workdir / "output.json"
@@ -105,6 +119,8 @@ class SubprocessCodexRunner:
                 "--skip-git-repo-check",
                 "--model",
                 model,
+                "-c",
+                f'model_reasoning_effort="{reasoning_effort}"',
                 "--output-schema",
                 str(schema_path),
                 "--output-last-message",
@@ -267,6 +283,7 @@ class CodexVerifier:
                     ),
                     model=config.model,
                     timeout=config.timeout,
+                    reasoning_effort=config.reasoning_effort,
                 )
             )
             suggestions = _suggestions_by_id(response.suggestions)
