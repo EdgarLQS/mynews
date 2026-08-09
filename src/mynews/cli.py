@@ -15,6 +15,7 @@ from mynews.application.digest import DigestBuildConfig, DigestBuilder
 from mynews.application.report import load_report, render_report, write_report
 from mynews.application.validation import RunValidation, validate_run_file, write_schema
 from mynews.domain.models import CollectionRequest
+from mynews.sources.external import ExternalPluginLoader, PluginLoadReport
 from mynews.sources.registry import SourceRegistry, built_in_registry
 from mynews.storage.digest_store import DigestFileStore, DigestStoreError
 from mynews.storage.json_store import JsonNewsStore, JsonStoreError
@@ -41,6 +42,7 @@ class ChineseArgumentParser(argparse.ArgumentParser):
         translated = message.replace("unrecognized arguments:", "无法识别的参数：")
         translated = translated.replace("invalid choice:", "无效选项：")
         translated = translated.replace("expected one argument", "需要一个参数")
+        translated = translated.replace("not allowed with", "不能与")
         translated = translated.replace(
             "the following arguments are required:", "缺少必需参数："
         )
@@ -78,12 +80,14 @@ def build_parser() -> ChineseArgumentParser:
     collect.add_argument(
         "--to", dest="to_date", metavar="日期", help="结束本地日期（包含当天）"
     )
-    collect.add_argument(
+    source_selector = collect.add_mutually_exclusive_group()
+    source_selector.add_argument(
         "--source", dest="source_ids", action="append", help="只选择指定来源"
     )
-    collect.add_argument(
-        "--verification-model", metavar="模型", help="Codex 核验模型"
+    source_selector.add_argument(
+        "--plugin", dest="plugin_ids", action="append", help="显式加载并选择外部插件"
     )
+    collect.add_argument("--verification-model", metavar="模型", help="Codex 核验模型")
     collect.add_argument(
         "--verification-budget",
         metavar="条数",
@@ -116,8 +120,12 @@ def build_parser() -> ChineseArgumentParser:
         add_help=False,
     )
     probe.add_argument("-h", "--help", action="help", help="显示帮助并退出")
-    probe.add_argument(
+    probe_selector = probe.add_mutually_exclusive_group()
+    probe_selector.add_argument(
         "--source", dest="source_ids", action="append", help="只检查指定来源"
+    )
+    probe_selector.add_argument(
+        "--plugin", dest="plugin_ids", action="append", help="显式加载并检查外部插件"
     )
 
     validate = commands.add_parser(
@@ -219,6 +227,38 @@ def build_parser() -> ChineseArgumentParser:
         action="store_true",
         help="不调用 Codex，全部使用安全回退文本",
     )
+    plugin = commands.add_parser(
+        "plugin",
+        help="发现和显式检查外部来源插件",
+        description="只发现 Python entry-point；只有显式 --plugin 才会加载外部代码。",
+        add_help=False,
+    )
+    plugin.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    plugin_commands = plugin.add_subparsers(
+        dest="plugin_command", title="插件子命令", parser_class=ChineseArgumentParser
+    )
+    plugin_list = plugin_commands.add_parser(
+        "list",
+        help="列出已发现的外部 entry-point",
+        description="只读取分发元数据，不执行外部插件工厂。",
+        add_help=False,
+    )
+    plugin_list.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    plugin_probe = plugin_commands.add_parser(
+        "probe",
+        help="显式加载并检查一个外部插件",
+        description="加载指定外部插件并检查其来源健康状态。",
+        add_help=False,
+    )
+    plugin_probe.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    plugin_probe.add_argument(
+        "--plugin",
+        dest="plugin_ids",
+        action="append",
+        required=True,
+        metavar="ID",
+        help="entry-point 名称",
+    )
     return parser
 
 
@@ -282,8 +322,7 @@ def _verification_config(args: argparse.Namespace) -> VerificationConfig:
             else defaults.timeout
         ),
         reasoning_effort=(
-            args.verification_reasoning_effort
-            or defaults.reasoning_effort
+            args.verification_reasoning_effort or defaults.reasoning_effort
         ),
         codex_executable=defaults.codex_executable,
     )
@@ -302,7 +341,7 @@ def _request_from_namespace(
     if current.tzinfo is None or current.utcoffset() is None:
         parser.error("当前时间必须包含时区")
 
-    source_ids = args.source_ids or []
+    source_ids = args.source_ids or args.plugin_ids or []
     has_calendar_selector = args.days is not None or args.date is not None
     has_range_selector = args.from_date is not None or args.to_date is not None
     if has_calendar_selector and has_range_selector:
@@ -356,6 +395,24 @@ def build_collection_request(
     return _request_from_namespace(args, parser, now)
 
 
+def _load_external_selection(
+    registry: SourceRegistry,
+    plugin_ids: Sequence[str],
+) -> tuple[SourceRegistry, PluginLoadReport] | None:
+    report = ExternalPluginLoader().load(
+        plugin_ids,
+        occupied_source_ids=registry.source_ids,
+    )
+    if report.status == "failed":
+        print(json.dumps(report.as_payload(), ensure_ascii=False, indent=2))
+        return None
+    return registry.with_plugins(report.plugins), report
+
+
+def _selected_external_source_ids(report: PluginLoadReport) -> tuple[str, ...]:
+    return tuple(item.plugin.metadata.source_id for item in report.loaded)
+
+
 def main(
     argv: Sequence[str] | None = None,
     *,
@@ -365,6 +422,33 @@ def main(
     parser = build_parser()
     args = parser.parse_args(argv)
     active_registry = registry or built_in_registry()
+    if args.command == "plugin":
+        if args.plugin_command == "list":
+            plugin_list_report = ExternalPluginLoader().list_report()
+            print(json.dumps(plugin_list_report, ensure_ascii=False, indent=2))
+            return 0 if plugin_list_report["status"] == "complete" else 1
+        if args.plugin_command == "probe":
+            prepared = _load_external_selection(active_registry, args.plugin_ids)
+            if prepared is None:
+                return 1
+            selected_registry, plugin_report = prepared
+            health = SourceCollector(selected_registry).probe(
+                _selected_external_source_ids(plugin_report)
+            )
+            payload = json.loads(SourceCollector.probe_json(health))
+            payload["plugins"] = [item.as_payload() for item in plugin_report.loaded]
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+            return SourceCollector.exit_code(health)
+        parser.print_help()
+        return 2
+    if getattr(args, "plugin_ids", None):
+        prepared = _load_external_selection(active_registry, args.plugin_ids)
+        if prepared is None:
+            return 1
+        active_registry, plugin_report = prepared
+        selected_plugin_source_ids = _selected_external_source_ids(plugin_report)
+    else:
+        selected_plugin_source_ids = ()
     collector = SourceCollector(active_registry)
     if args.command == "report":
         try:
@@ -384,9 +468,7 @@ def main(
                 write_schema(Path(args.schema_out))
             except OSError as error:
                 failure = RunValidation.failed(args.run, f"无法写入 Schema：{error}")
-                print(
-                    json.dumps(failure.as_payload(), ensure_ascii=False, indent=2)
-                )
+                print(json.dumps(failure.as_payload(), ensure_ascii=False, indent=2))
                 return 1
         validation_result = validate_run_file(
             Path(args.run),
@@ -394,11 +476,7 @@ def main(
             timeout=args.timeout,
             registry=active_registry,
         )
-        print(
-            json.dumps(
-                validation_result.as_payload(), ensure_ascii=False, indent=2
-            )
-        )
+        print(json.dumps(validation_result.as_payload(), ensure_ascii=False, indent=2))
         return 0 if validation_result.passed else 1
     if args.command == "digest":
         try:
@@ -411,8 +489,7 @@ def main(
                 summary_model=args.summary_model or defaults.summary_model,
                 summary_timeout=args.summary_timeout,
                 summary_reasoning_effort=(
-                    args.summary_reasoning_effort
-                    or defaults.summary_reasoning_effort
+                    args.summary_reasoning_effort or defaults.summary_reasoning_effort
                 ),
                 use_codex=not args.no_codex,
             )
@@ -443,10 +520,16 @@ def main(
         return 0 if digest.status == "complete" else 3
     if args.command == "collect":
         request = _request_from_namespace(args, parser, None)
+        if selected_plugin_source_ids:
+            request = request.model_copy(
+                update={"source_ids": list(selected_plugin_source_ids)}
+            )
         verification_config = _verification_config(args)
         try:
             if registry is not None and store is None:
-                result = collector.collect(request, args.source_ids)
+                result = collector.collect(
+                    request, list(selected_plugin_source_ids) or args.source_ids
+                )
                 print(collector.collection_json(result))
                 return collector.exit_code(result.health)
             pipeline = PipelineCollector(
@@ -455,7 +538,9 @@ def main(
                 verifier=CodexVerifier(active_registry.http),
                 verification_config=verification_config,
             )
-            report = pipeline.collect(request, args.source_ids)
+            report = pipeline.collect(
+                request, list(selected_plugin_source_ids) or args.source_ids
+            )
         except KeyError as error:
             parser.error(str(error).strip("'"))
         except (JsonStoreError, ValueError) as error:
@@ -479,7 +564,9 @@ def main(
         return {"complete": 0, "partial": 3, "failed": 1}[report.status]
     if args.command == "probe":
         try:
-            health = collector.probe(args.source_ids)
+            health = collector.probe(
+                list(selected_plugin_source_ids) or args.source_ids
+            )
         except KeyError as error:
             parser.error(str(error).strip("'"))
         print(collector.probe_json(health))

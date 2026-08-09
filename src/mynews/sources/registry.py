@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from time import perf_counter
 from typing import Literal
 
-from mynews.domain.models import SourceError
+from mynews.domain.models import Candidate, SourceError
 from mynews.infrastructure.clock import Clock
 from mynews.infrastructure.http import HttpClient, HttpClientError, SharedHttpClient
 from mynews.sources.builtins.feed import QwenFeedPlugin
@@ -62,6 +62,19 @@ class SourceRegistry:
     @property
     def source_ids(self) -> tuple[str, ...]:
         return self._ordered_ids
+
+    @property
+    def plugins(self) -> tuple[SourcePlugin, ...]:
+        """按注册顺序返回插件；用于在同一 seam 合并显式外部插件。"""
+        return tuple(self._plugins[source_id] for source_id in self._ordered_ids)
+
+    def with_plugins(self, plugins: Iterable[SourcePlugin]) -> SourceRegistry:
+        """创建保留当前 registry 配置、追加显式插件的新 registry。"""
+        return SourceRegistry(
+            (*self.plugins, *tuple(plugins)),
+            http=self._http,
+            max_workers=self._max_workers,
+        )
 
     @property
     def source_roles(self) -> dict[str, str]:
@@ -141,6 +154,14 @@ class SourceRegistry:
         started = perf_counter()
         try:
             batch = plugin.collect(context)
+            if not isinstance(batch, SourceBatch):
+                raise SourcePluginError(
+                    "invalid_collect_result", "插件 collect 必须返回 SourceBatch"
+                )
+            if not all(isinstance(item, Candidate) for item in batch.candidates):
+                raise SourcePluginError(
+                    "invalid_candidate_result", "SourceBatch 只能包含 Candidate"
+                )
             if batch.source_id != plugin.metadata.source_id:
                 raise SourcePluginError(
                     "source_id_mismatch", "Adapter 返回了错误的来源 ID"
@@ -168,6 +189,10 @@ class SourceRegistry:
         started = perf_counter()
         try:
             health = plugin.probe(context)
+            if not isinstance(health, SourceHealth):
+                raise SourcePluginError(
+                    "invalid_probe_result", "插件 probe 必须返回 SourceHealth"
+                )
             if health.source_id != plugin.metadata.source_id:
                 raise SourcePluginError(
                     "source_id_mismatch", "Adapter 返回了错误的来源 ID"

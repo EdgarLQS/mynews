@@ -3,7 +3,7 @@ title: mynews 规划文档状态索引
 doc_type: index
 status: current
 implementation_status: implemented
-version: 1.3
+version: 1.4
 created: 2026-08-02
 updated: 2026-08-09
 owner: project-maintainers
@@ -17,7 +17,7 @@ owner: project-maintainers
 
 | 计划 | 文档状态 | 实现状态 | 下一门槛 |
 | --- | --- | --- | --- |
-| [v1.3 情报简报计划](v1.3-intelligence-digest-plan.md) | Current | Implemented | D1–D6 离线门禁已通过；真实 Codex 摘要或定时集成没有证据时保持未验证 |
+| [v1.4 外部来源插件计划](v1.4-source-plugins-plan.md) | Current | In progress | P1–P6：entry-point、显式加载、结构化失败、Store 保护和隔离分发包 |
 
 ## 已完成计划
 
@@ -25,6 +25,7 @@ owner: project-maintainers
 | --- | --- | --- | --- |
 | [v1.1 信息质量闭环与可读报告计划](../archive/plan/2026/v1.1-information-quality-plan.md) | Archived | Implemented | 被 v1.2 增量核验与证据生命周期计划替代；discovery G6-V 未完成的记录保留在原文 |
 | [v1.2 增量核验与证据生命周期计划](../archive/plan/2026/v1.2-evidence-lifecycle-plan.md) | Archived | Implemented | 被 v1.3 情报简报计划替代；真实 G6-V `BLOCKED` 和 G7 限制保留在原文 |
+| [v1.3 情报简报计划](../archive/plan/2026/v1.3-intelligence-digest-plan.md) | Archived | Implemented | 被 v1.4 外部来源插件计划替代；真实 Digest Codex `BLOCKED` 记录保留在原文 |
 | [v1 热点收集器实施计划](../archive/plan/2026/v1-implementation-plan.md) | Archived | Verified | 已被 v1.1 计划替代；真实 launchd 按边界不加载 |
 
 ## 计划维护规则

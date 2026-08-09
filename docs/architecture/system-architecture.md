@@ -3,7 +3,7 @@ title: mynews 系统架构与代码结构
 doc_type: architecture
 status: current
 implementation_status: implemented
-version: 1.3
+version: 1.4
 created: 2026-08-02
 updated: 2026-08-09
 owner: project-maintainers
@@ -24,8 +24,11 @@ owner: project-maintainers
 
 ```mermaid
 flowchart LR
-    CLI["CLI: collect / probe / validate / report / digest"] --> COL["PipelineCollector"]
-    COL --> REG["SourceRegistry + SourcePlugin"]
+    CLI["CLI: collect / probe / validate / report / digest / plugin"] --> EXT["ExternalPluginLoader: explicit --plugin"]
+    EXT --> REG["SourceRegistry + SourcePlugin"]
+    CLI --> REG
+    CLI --> COL["PipelineCollector"]
+    COL --> REG
     REG --> REL["Relevance Filter"]
     REL --> NOR["Normalizer"]
     NOR --> DEDUP["Deduplicator"]
@@ -51,6 +54,7 @@ flowchart LR
 | Module | Interface | 责任边界 |
 | --- | --- | --- |
 | SourceRegistry | `collect_all`、`probe` | 隔离 Adapter、汇总健康状态，不决定 verified |
+| ExternalPluginLoader | `list_report`、`load(plugin_ids)` | 发现 `mynews.source_plugins`，显式加载无参数工厂，严格校验 metadata 和 source_id；不接触 Store/Verifier/Codex |
 | Normalizer | `normalize` | URL、时间、语言、事件类型和稳定事件键 |
 | Deduplicator | `deduplicate` | 新闻输出去重；不决定 pending 是否重试 |
 | VerificationCoordinator | `verify(new_targets, now, config)` | 合并新目标与到期 pending，在内存中演进状态 |
@@ -61,6 +65,11 @@ flowchart LR
 | DigestBuilder | `build(report, previous, config)` | 保守事件聚合、确定性排序、生命周期与主榜/线索隔离；不改变 RunReport |
 | DigestSummaryRunner | `run(prompt, model, timeout, reasoning_effort)` | 只读取已保存证据的可替换摘要调用；非法输出只能触发安全回退 |
 | DigestFileStore | `load_latest`、`write` | 历史 Digest、latest JSON 和 Markdown 的同批次原子提交 |
+
+外部插件的 entry-point 名称是 CLI 的插件 ID；只有 `--plugin` 选择才执行工厂，
+`plugin list` 只读取分发元数据。通过校验的插件使用 `SourceRegistry.with_plugins` 与
+内置来源共享既有 collect/probe 隔离和 RunReport 1.x 结构。插件是受信任的本地 Python
+代码，显式允许清单不是进程级沙箱；不开放核验器插件。
 
 Digest 的信任边界：只有 RunReport 中严格保存的 `primary_evidence` 可以形成 `evidence_refs`；Codex 不能增加 URL、事实或引用。主榜只接收 `verified`，线索观察只接收 `unverified`，两类输出在 Pydantic Schema 和 Markdown 渲染层同时隔离。
 
@@ -155,6 +164,7 @@ src/mynews/
 ├── sources/
 │   ├── protocol.py
 │   ├── registry.py
+│   ├── external.py
 │   └── builtins/
 ├── verification/
 │   ├── protocol.py
@@ -179,6 +189,7 @@ src/mynews/
 - 不相关 discovery 在进入规范化和核验前停止。
 - 任何没有完整第一方证据的路径都保持 unverified。
 - stable 来源失败必须影响 Run 状态；experimental 来源按现有等级规则如实记录。
+- 外部插件加载失败时不启动流水线；插件运行异常只形成结构化来源失败，failed Run 不覆盖 latest、dedup、pending 或已有历史 run。
 - 运行数据只写被忽略的 `output/`、`state/` 和 `logs/`。
 - Digest 输出失败时恢复旧 `digest-latest.json`/`.md`，不留下临时文件；摘要模型失败时状态为 `partial` 并回退到标题和已保存证据摘录。
 - Digest 在调用 Codex 前检查不可信标题/摘录中的提示注入标记；模型摘要或影响判断出现同类标记时拒绝其结果并以不回显可疑摘录的 `partial` 回退。

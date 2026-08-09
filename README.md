@@ -2,9 +2,9 @@
 
 面向个人使用的 AI 与科技热点收集器，优先覆盖模型、AI 编程工具、开发者平台及相关重大科技动态。项目从热点渠道发现线索，回溯并验证第一方原始信息，再以结构化 JSON 保存，供后续筛选、分析和产品开发使用。
 
-> 当前状态：v1.3 情报简报已实现离线 DigestBuilder、Digest Schema 1.0、主榜/线索隔离、Codex 安全回退和三文件原子输出；真实七天复验已执行但没有 verified 主榜故事，当前 G6-V 为 `BLOCKED`，不宣称 Verified。v1.2 的实际命令、Run ID、G6-S 限制、G6-V `BLOCKED` 和 G7 结果已归档。真实 launchd 按验收边界未加载。
+> 当前状态：v1.4 外部来源插件已实现 Python entry-point、显式 `--plugin` 加载、严格协议校验、结构化失败和 Store 保护。v1.3 Digest 的真实 Codex 记录仍为 `BLOCKED`，不宣称 Verified；真实 launchd 按验收边界未加载。外部插件是受信任本地 Python 代码，显式清单不是进程级沙箱。
 
-日常运行可使用 `scripts/collect.sh --days 7`。脚本固定在项目根目录运行，支持 `render-plist`、`install`、`status` 和 `uninstall`；这些 launchd 动作支持中文 help 和 `--dry-run`，安装动作必须显式执行，任务 label 为 `com.mynews.collect`，计划时间为主机本地时间每日 09:30（采集进程使用 `TZ=Asia/Shanghai`）。采集脚本使用 `logs/collect.lock` 防止定时任务重叠，并保留底层 `collect` 退出码。只有显式加 `--digest` 才会在采集成功后追加简报生成，默认行为不变。运行数据写入 `output/`、`state/`，日志写入 `logs/`，这些目录不提交。需要时可用 `collect --verification-reasoning-effort medium` 和 `digest --summary-reasoning-effort medium` 调整 Codex 推理强度；这不会改变证据核验门槛。
+日常运行可使用 `scripts/collect.sh --days 7`。脚本固定在项目根目录运行，支持 `render-plist`、`install`、`status` 和 `uninstall`；这些 launchd 动作支持中文 help 和 `--dry-run`，安装动作必须显式执行，任务 label 为 `com.mynews.collect`，计划时间为主机本地时间每日 09:30（采集进程使用 `TZ=Asia/Shanghai`）。采集脚本使用 `logs/collect.lock` 防止定时任务重叠，并保留底层 `collect` 退出码。只有显式加 `--digest` 才会在采集成功后追加简报生成，默认行为不变。运行数据写入 `output/`、`state/`，日志写入 `logs/`，这些目录不提交。需要时可用 `collect --verification-reasoning-effort medium` 和 `digest --summary-reasoning-effort medium` 调整 Codex 推理强度；这不会改变证据核验门槛。外部来源必须显式使用 `mynews plugin list` 发现、`mynews plugin probe --plugin <id>` 检查，或在 `collect/probe` 中传入 `--plugin <id>`；默认命令不会加载外部插件。
 
 发布前可执行：
 
@@ -21,8 +21,8 @@ uv run mynews digest --run output/latest.json --out-dir output --no-codex
 ## 文档入口
 
 - [文档总览与当前状态](docs/README.md)
-- [v1.3 当前计划](docs/planning/v1.3-intelligence-digest-plan.md)
-- [v1.2 归档计划与真实验收记录](docs/archive/README.md)
+- [v1.4 当前计划](docs/planning/v1.4-source-plugins-plan.md)
+- [v1.3 Digest 归档与真实验收记录](docs/archive/README.md)
 - [系统架构与代码结构](docs/architecture/system-architecture.md)
 - [功能矩阵](docs/product/feature-matrix.md)
 - [项目验收规则](docs/testing/acceptance-rules.md)

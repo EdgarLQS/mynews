@@ -3,7 +3,7 @@ title: mynews JSON 数据契约
 doc_type: reference
 status: current
 implementation_status: implemented
-version: 1.3
+version: 1.4
 created: 2026-08-02
 updated: 2026-08-09
 owner: project-maintainers
@@ -224,6 +224,33 @@ SourceResult 保留 `source_id`、`role`、`stability`、`health`、抓取/接�
 - `retried`：来自到期 pending 的目标；
 - `pending`、`expired`：提交后的 pending 状态数量；
 - `changed_supporting`、`revalidation_failed`：证据复核结果。
+
+## 外部插件 CLI 报告
+
+外部插件报告只用于 CLI 诊断，不写入 RunReport、latest、dedup、pending 或正式来源
+目录；RunReport 仍复用既有 `SourceResult`。`plugin list` 的成功输出包含：
+
+```json
+{
+  "status": "complete",
+  "group": "mynews.source_plugins",
+  "loaded": false,
+  "plugins": [{"id": "temporary-hn", "value": "package:factory"}],
+  "errors": []
+}
+```
+
+显式加载失败或发现冲突时 `status` 为 `failed`，`errors` 每项至少包含
+`plugin_id`、`code`、`message`，可选 `source_id`。稳定错误代码包括
+`plugin_not_found`、`factory_import_failed`、`factory_must_be_no_argument`、
+`factory_runtime_error`、`invalid_plugin_protocol`、`invalid_source_metadata`、
+`protocol_incompatible`、`invalid_role`、`invalid_official_domains`、
+`empty_capabilities`、`duplicate_source_id` 和 `builtin_source_id_conflict`。
+
+`plugin probe --plugin <id>` 成功时在既有 `status`/`sources` 外附带 `plugins`；
+`collect/probe --plugin <id>` 仍按既有 RunReport 或 SourceCollection 输出。外部工厂
+只能返回 SourcePlugin 1.0；插件代码没有 Store、Codex 或 Verifier 的公共参数，但
+由于它是受信任本地 Python 代码，系统不承诺进程级沙箱。
 
 ## validate 和 report
 

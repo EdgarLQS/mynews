@@ -3,7 +3,7 @@ title: mynews 功能矩阵
 doc_type: matrix
 status: current
 implementation_status: implemented
-version: 1.3
+version: 1.4
 created: 2026-08-02
 updated: 2026-08-09
 owner: project-maintainers
@@ -11,7 +11,7 @@ owner: project-maintainers
 
 # mynews 功能矩阵
 
-本表是产品范围和实现状态的唯一真相来源。v1.3 Digest 离线实现已完成，真实七天采集和 Digest 已复验；但没有产生 verified 主榜故事，G6-V 仍为 BLOCKED，不把对应能力标为 Verified。v1.2 的真实 G6-S、G6-V 和 G7 事实保留在归档记录中。真实 launchd 按验收边界不加载。
+本表是产品范围和实现状态的唯一真相来源。v1.3 Digest 已按 Implemented 归档，真实 Digest Codex 记录仍为 BLOCKED。v1.4 外部来源插件的离线实现已完成；外部插件是受信任本地 Python 代码，显式清单只控制加载，不承诺进程级沙箱。真实 launchd 按验收边界不加载。
 
 状态：`Planned`、`In progress`、`Implemented`、`Verified`、`Future`、`Out`。
 
@@ -27,6 +27,7 @@ owner: project-maintainers
 | CLI-05 | CLI | RunReport/Schema/verified 证据校验命令 | Implemented | `mynews validate`；离线 Schema/结构检查与可选逐条重抓 |
 | CLI-06 | CLI | 从 RunReport 离线生成中文 Markdown `mynews report` | Implemented | report fixture、中文 help 和文件输出测试 |
 | CLI-07 | CLI | `mynews digest` 及其输出、条数、摘要模型/超时、推理强度、`--no-codex` 和人工查看线索 | Implemented | Digest fixture、中文 help、推理参数、回退、线索链接和原子输出测试 |
+| CLI-08 | CLI | `plugin list`、`plugin probe --plugin` 及 collect/probe 的显式 `--plugin` 选择 | Implemented | 中文 help、非法参数、退出码、entry-point 发现和 source selection 测试 |
 | SRC-01 | 来源 | Hacker News 官方 API | Verified | fixture + 既有真实 probe；v1.2 目标环境重新执行 G6-S |
 | SRC-02 | 来源 | 官方 RSS/Atom/API、GitHub Release 与官方 HTML 更新页 | Implemented | fixtures、Adapter 测试和目标环境 G6-S |
 | SRC-03 | 来源 | 官方价格页和更新日志监控 | Implemented | 首观快照、规范化差异与 `pricing_change` 测试 |
@@ -55,7 +56,7 @@ owner: project-maintainers
 | OPS-02 | 运维 | 主机本地 09:30 launchd 安装脚本 | Implemented | 离线脚本和 Fake launchctl 测试；本次真实环境清单禁止操作 launchd |
 | OPS-03 | 运维 | 隔离七天回溯、validate 和 Digest | Implemented | 2026-08-09 同一固定窗口两次真实运行、validate 和生产 Digest 通过；无 verified 样本，G6-V 仍阻断发布 |
 | EXT-01 | 扩展 | built-in SourcePlugin registry | Implemented | registry 隔离、重复 ID 和选择测试 |
-| EXT-02 | 扩展 | 仓库外 Python entry-point 插件 | Future | 后续 ADR |
+| EXT-02 | 扩展 | 仓库外 Python entry-point 插件 | Implemented | `mynews.source_plugins`、无参数工厂、严格 metadata、显式加载、失败结构和隔离 `.dist-info` 测试 |
 | EXT-03 | 扩展 | 其他核验器 Adapter | Future | 后续需求 |
 | UI-01 | 产品 | Web/桌面 UI | Out | 不属于 v1 |
 | DB-01 | 数据 | 数据库存储 | Out | JSON 先行 |
@@ -66,4 +67,4 @@ owner: project-maintainers
 
 - 实现内容完成且相应离线检查通过后才能从 Planned 改为 Implemented。
 - 依赖真实网络、Codex 或七天运行的功能，必须完成对应真实验收才能改为 Verified。
-- v1.3 的状态回写以 [当前计划](../planning/v1.3-intelligence-digest-plan.md) 为准；v1.2 真实结果以 [归档索引](../archive/README.md) 和归档清单为准。
+- v1.4 的状态回写以 [当前计划](../planning/v1.4-source-plugins-plan.md) 为准；v1.3 Digest 的真实 `BLOCKED` 结果以 [归档索引](../archive/README.md) 和归档清单为准。

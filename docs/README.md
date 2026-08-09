@@ -3,7 +3,7 @@ title: mynews 文档总览与当前状态
 doc_type: index
 status: current
 implementation_status: implemented
-version: 1.3
+version: 1.4
 created: 2026-08-02
 updated: 2026-08-09
 owner: project-maintainers
@@ -18,13 +18,14 @@ owner: project-maintainers
 | 项目 | 状态 | 说明 |
 | --- | --- | --- |
 | 产品范围 | Current | 聚焦 AI 与科技，继续覆盖模型、AI 编程工具和开发者平台 |
-| v1.3 情报简报计划 | Current / Implemented | DigestBuilder、Digest Schema 1.0、主榜/线索隔离、摘要回退和原子输出已通过离线门禁；未执行真实 Digest Codex 验收，不宣称 Verified |
+| v1.3 情报简报计划 | Archived / Implemented | DigestBuilder、Digest Schema 1.0、主榜/线索隔离、摘要回退和原子输出已完成；真实 Digest Codex 验收记录仍为 `BLOCKED`，原文保留在归档 |
+| v1.4 外部来源插件计划 | Current / Implemented | Python entry-point 外部 SourcePlugin、显式插件选择、严格加载校验、结构化失败和 Store 保护已通过离线门禁；不宣称进程级沙箱或真实定时 Verified |
 | v1.2 计划与真实验收 | Archived / In Progress | 实际命令、两次 Run ID、G6-S 限制、G6-V `BLOCKED` 和 G7 结果已归档；真实发布门禁未完成，不能写成 Verified |
 | 系统架构 | Current / Implemented | SourcePlugin、registry、规范化/去重、EvidenceVerifier、pending、证据生命周期、NewsStore 和 Digest seam 已实现 |
 | AI 开发说明 | Current / Implemented | Codex 与 Claude Code 共用一套项目规则 |
 | 验收流程 | Current / Implemented | 统一验收规则与 Claude `/acceptance` 入口已建立 |
 | 工程骨架与 JSON 契约 | Implemented | Python 3.12 + uv、中文 CLI、Pydantic 模型和 1.x 兼容测试已建立 |
-| 来源运行时 | Implemented | 内置 registry、共享 HTTP 策略、来源隔离和 Adapter 已保留并纳入主线全量回归 |
+| 来源运行时 | Implemented | 内置 registry、共享 HTTP 策略、来源隔离和 Adapter 已保留；外部 entry-point 仅在显式插件选择时加载 |
 | 规范化与新闻去重 | Implemented | 相关性过滤和跨运行 DedupState 保持独立；不相关 discovery 不进入核验 |
 | 第一方证据核验 | Implemented | 固定解析顺序、精确域名/组织、重定向、摘录、日期和哈希二次校验已实现；真实 discovery G6-V 尚未通过 |
 | Pending 增量核验 | Implemented | 首次可重试失败进入独立状态，后续即使命中新闻去重仍可重试；成功、上限和 TTL 有明确状态 |
@@ -44,7 +45,7 @@ owner: project-maintainers
 
 1. [功能矩阵](product/feature-matrix.md)：确认当前、未来和明确不做的范围。
 2. [项目验收规则](testing/acceptance-rules.md)：了解每次开发完成后的统一质量门禁。
-3. [v1.3 当前计划](planning/v1.3-intelligence-digest-plan.md)：查看当前实施顺序和验收门槛。
+3. [v1.4 当前计划](planning/v1.4-source-plugins-plan.md)：查看当前实施顺序和验收门槛；v1.3 真实 Digest Codex `BLOCKED` 记录见归档。
 4. [系统架构](architecture/system-architecture.md)：理解采集、核验、Digest 模块和数据流。
 5. [信息来源目录](reference/source-catalog.md)：查看渠道角色、稳定等级和核验规则。
 6. [JSON 数据契约](reference/json-data-contract.md)：查看 RunReport 和 Digest 格式。
@@ -70,7 +71,7 @@ owner: project-maintainers
 
 | 文档 | 状态 | 实现状态 |
 | --- | --- | --- |
-| [v1.3 当前计划](planning/v1.3-intelligence-digest-plan.md) | Current | Implemented |
+| [v1.4 当前计划](planning/v1.4-source-plugins-plan.md) | Current | Implemented |
 | [系统架构](architecture/system-architecture.md) | Current | Implemented |
 | [功能矩阵](product/feature-matrix.md) | Current | Implemented |
 | [项目验收规则](testing/acceptance-rules.md) | Current | Implemented |
@@ -79,3 +80,4 @@ owner: project-maintainers
 | [ADR-0001](decisions/ADR-0001-strict-evidence-and-module-seams.md) | Accepted | Implemented |
 | [ADR-0002](decisions/ADR-0002-controlled-resolution-and-evidence-lifecycle.md) | Accepted | Implemented |
 | [ADR-0003](decisions/ADR-0003-evidence-grounded-intelligence-digest.md) | Accepted | Implemented；未执行真实 Digest Codex 验收 |
+| [ADR-0004](decisions/ADR-0004-external-source-plugins.md) | Accepted | Implemented；外部插件为受信任本地代码，不提供进程级沙箱 |
