@@ -18,7 +18,7 @@ owner: project-maintainers
 - 通用触发语：`按项目验收规则开始验收` 或 `开始验收`。
 - Claude Code：输入 `/acceptance`；可在后面补充文件、提交或功能范围。
 - 未指定范围时：验收当前工作树相对 `HEAD` 的全部已跟踪和未跟踪变更。
-- v1.2 的真实 G6-S、G6-V、G7 按 [v1.2 真实环境验收与交接清单](v1.2-real-environment-acceptance.md) 执行。
+- v1.2 的真实 G6-S、G6-V、G7 结果见[归档验收清单](../archive/testing/2026/v1.2-real-environment-acceptance.md)；当前开发按 v1.3 计划的 D1–D6 执行。
 
 验收默认只读。除非用户明确要求“验收并修复”，验收人员不得修改、格式化、提交或删除项目文件。
 

@@ -382,6 +382,102 @@ class EvidenceReview(ContractModel):
     warning: str | None = None
 
 
+class DigestEvidenceRef(ContractModel):
+    """Digest 只能引用 RunReport 已保存的第一方证据。"""
+
+    url: AnyHttpUrl
+    excerpt: str = Field(min_length=1)
+    published_at: datetime | None = None
+    content_hash: str = Field(min_length=1)
+
+    @field_validator("published_at")
+    @classmethod
+    def validate_digest_evidence_datetime(
+        cls,
+        value: datetime | None,
+    ) -> datetime | None:
+        if value is not None and (
+            value.tzinfo is None or value.utcoffset() is None
+        ):
+            raise ValueError("Digest 证据时间必须包含时区")
+        return value
+
+
+class DigestItem(ContractModel):
+    """简报中的一个聚合事件，主榜与线索观察共享此结构。"""
+
+    event_key: str = Field(min_length=1)
+    event_type: str = Field(min_length=1)
+    title_zh: str = Field(min_length=1)
+    summary_zh: str = Field(min_length=1)
+    impact_zh: str = Field(min_length=1)
+    lifecycle: Literal["new", "updated", "ongoing"]
+    verification_status: Literal["verified", "unverified"]
+    verification_reason: str = Field(min_length=1)
+    verification_retry: VerificationRetry | None = None
+    evidence_refs: list[DigestEvidenceRef] = Field(default_factory=list)
+    source_item_keys: list[str] = Field(default_factory=list)
+    source_content_hash: str = Field(min_length=1)
+    source_title_original: str = Field(min_length=1)
+    canonical_url: str | None = None
+    published_at: datetime | None = None
+    relevance_score: int = Field(ge=0, le=100)
+    heat_score: int = Field(ge=0, le=100)
+    freshness_score: int = Field(ge=0, le=100)
+    event_type_score: int = Field(ge=0, le=100)
+    rank_score: float = Field(ge=0, le=100)
+    summary_status: Literal["codex", "fallback", "not_requested"]
+    summary_reason: str | None = None
+
+    @field_validator("published_at")
+    @classmethod
+    def validate_digest_item_datetime(
+        cls,
+        value: datetime | None,
+    ) -> datetime | None:
+        if value is not None and (
+            value.tzinfo is None or value.utcoffset() is None
+        ):
+            raise ValueError("Digest 条目时间必须包含时区")
+        return value
+
+
+class Digest(ContractModel):
+    """独立 Digest Schema 1.0。"""
+
+    schema_version: Literal["1.0"] = "1.0"
+    digest_id: str = Field(min_length=1)
+    run_id: str = Field(min_length=1)
+    generated_at: datetime
+    status: Literal["complete", "partial"]
+    main_items: list[DigestItem] = Field(default_factory=list)
+    lead_items: list[DigestItem] = Field(default_factory=list)
+    stats: dict[str, int] = Field(default_factory=dict)
+    summary_errors: list[str] = Field(default_factory=list)
+
+    @field_validator("generated_at")
+    @classmethod
+    def validate_digest_datetime(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("Digest 生成时间必须包含时区")
+        return value
+
+    @model_validator(mode="after")
+    def enforce_fact_lead_isolation(self) -> Digest:
+        if any(item.verification_status != "verified" for item in self.main_items):
+            raise ValueError("Digest 主榜只能包含 verified 条目")
+        if any(item.verification_status != "unverified" for item in self.lead_items):
+            raise ValueError("Digest 线索观察只能包含 unverified 条目")
+        keys = [item.event_key for item in (*self.main_items, *self.lead_items)]
+        if len(keys) != len(set(keys)):
+            raise ValueError("Digest 不得重复输出同一事件")
+        return self
+
+    @property
+    def all_items(self) -> tuple[DigestItem, ...]:
+        return (*self.main_items, *self.lead_items)
+
+
 class RunReport(ContractModel):
     """一次运行的完整可序列化报告。"""
 

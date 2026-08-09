@@ -26,7 +26,8 @@ def test_collect_help_is_chinese(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 @pytest.mark.parametrize(
-    "arguments", [["--help"], ["probe", "--help"], ["validate", "--help"]]
+    "arguments",
+    [["--help"], ["probe", "--help"], ["validate", "--help"], ["digest", "--help"]],
 )
 def test_global_and_probe_help_are_available(
     arguments: list[str], capsys: pytest.CaptureFixture[str]
@@ -169,3 +170,33 @@ def test_report_command_writes_chinese_markdown_offline(
     assert "## 待核验" in text
     assert "## 价格变化" in text
     assert "## 来源状态" in text
+
+
+def test_digest_command_writes_atomic_outputs_without_codex(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fixture = Path(__file__).parent / "fixtures" / "run-report-v1.json"
+
+    result = main(
+        [
+            "digest",
+            "--run",
+            str(fixture),
+            "--out-dir",
+            str(tmp_path),
+            "--max-items",
+            "5",
+            "--summary-model",
+            "offline-test",
+            "--summary-timeout",
+            "1",
+            "--no-codex",
+        ]
+    )
+
+    assert result == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "complete"
+    assert (tmp_path / "digest-latest.json").is_file()
+    assert (tmp_path / "digest-latest.md").is_file()
+    assert list((tmp_path / "digests").glob("*.json"))

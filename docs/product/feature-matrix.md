@@ -3,7 +3,7 @@ title: mynews 功能矩阵
 doc_type: matrix
 status: current
 implementation_status: implemented
-version: 1.2
+version: 1.3
 created: 2026-08-02
 updated: 2026-08-09
 owner: project-maintainers
@@ -11,7 +11,7 @@ owner: project-maintainers
 
 # mynews 功能矩阵
 
-本表是产品范围和实现状态的唯一真相来源。v1.2 离线实现已完成；真实 G6-S、G6-V 和 G7 必须按 [真实环境验收与交接清单](../testing/v1.2-real-environment-acceptance.md) 执行，通过前不得把对应能力标为 Verified。真实 launchd 按验收边界不加载。
+本表是产品范围和实现状态的唯一真相来源。v1.3 Digest 离线实现已完成；本分支没有真实 Digest Codex 或定时集成证据，不把对应能力标为 Verified。v1.2 的真实 G6-S、G6-V 和 G7 事实保留在归档记录中。真实 launchd 按验收边界不加载。
 
 状态：`Planned`、`In progress`、`Implemented`、`Verified`、`Future`、`Out`。
 
@@ -26,6 +26,7 @@ owner: project-maintainers
 | CLI-04 | CLI | 结构化退出码 0/1/2/3 | Implemented | 来源状态与流水线测试 |
 | CLI-05 | CLI | RunReport/Schema/verified 证据校验命令 | Implemented | `mynews validate`；离线 Schema/结构检查与可选逐条重抓 |
 | CLI-06 | CLI | 从 RunReport 离线生成中文 Markdown `mynews report` | Implemented | report fixture、中文 help 和文件输出测试 |
+| CLI-07 | CLI | `mynews digest` 及其输出、条数、摘要模型/超时和 `--no-codex` 参数 | Implemented | Digest fixture、中文 help、回退和原子输出测试 |
 | SRC-01 | 来源 | Hacker News 官方 API | Verified | fixture + 既有真实 probe；v1.2 目标环境重新执行 G6-S |
 | SRC-02 | 来源 | 官方 RSS/Atom/API、GitHub Release 与官方 HTML 更新页 | Implemented | fixtures、Adapter 测试和目标环境 G6-S |
 | SRC-03 | 来源 | 官方价格页和更新日志监控 | Implemented | 首观快照、规范化差异与 `pricing_change` 测试 |
@@ -46,6 +47,10 @@ owner: project-maintainers
 | DATA-01 | 数据 | 每次运行独立 JSON | Implemented | JSON Store 追加运行测试；目标环境 G7 |
 | DATA-02 | 数据 | run/latest/dedup/pending 事务提交与失败保护 | Implemented | 注入替换失败、完整回滚和 failed 保护测试 |
 | DATA-03 | 数据 | 去重、pending、价格和来源快照 JSON | Implemented | 重启恢复、状态演进和快照测试 |
+| DIGEST-01 | 情报 | 独立 DigestBuilder 读取 RunReport/上一期 Digest，保守聚合、权重排序和 new/updated/ongoing | Implemented | 聚类、误合并、排序、生命周期和 max-items 测试 |
+| DIGEST-02 | 情报 | 主榜只含 verified；unverified 进入线索观察并保留原因、重试状态 | Implemented | Schema 隔离、原因/重试和 Markdown 测试 |
+| DIGEST-03 | 情报 | 仅依据已保存严格证据的 Codex 中文摘要/影响判断与安全回退 | Implemented | 合法引用、未知引用、非法输出、超时和安全回退测试 |
+| DIGEST-04 | 数据 | Digest Schema 1.0，历史 JSON、digest-latest.json/md 原子输出及失败恢复 | Implemented | Schema、碰撞保护、替换失败恢复和临时文件检查 |
 | OPS-01 | 运维 | 已注册内置来源 `probe`，稳定/实验等级参与 Run 状态 | Implemented | 目标环境 G6-S，实验 blocked 不伪装成功 |
 | OPS-02 | 运维 | 主机本地 09:30 launchd 安装脚本 | Implemented | 离线脚本和 Fake launchctl 测试；本次真实环境清单禁止操作 launchd |
 | OPS-03 | 运维 | 隔离七天回溯、validate 和 report | Implemented | 2026-08-09 同一固定窗口两次真实运行及 validate/report 通过；无 verified 样本，G6-V 仍阻断发布 |
@@ -61,4 +66,4 @@ owner: project-maintainers
 
 - 实现内容完成且相应离线检查通过后才能从 Planned 改为 Implemented。
 - 依赖真实网络、Codex 或七天运行的功能，必须完成对应真实验收才能改为 Verified。
-- v1.2 的状态回写以 [当前计划](../planning/v1.2-evidence-lifecycle-plan.md) 和 [真实环境清单](../testing/v1.2-real-environment-acceptance.md) 为准。
+- v1.3 的状态回写以 [当前计划](../planning/v1.3-intelligence-digest-plan.md) 为准；v1.2 真实结果以 [归档索引](../archive/README.md) 和归档清单为准。

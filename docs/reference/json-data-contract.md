@@ -3,7 +3,7 @@ title: mynews JSON 数据契约
 doc_type: reference
 status: current
 implementation_status: implemented
-version: 1.2
+version: 1.3
 created: 2026-08-02
 updated: 2026-08-05
 owner: project-maintainers
@@ -13,7 +13,7 @@ owner: project-maintainers
 
 ## 目标与兼容策略
 
-JSON 是持久化和后续开发的稳定 interface。运行时校验和导出 Schema 的唯一来源是 `mynews.domain.models.RunReport`。
+JSON 是持久化和后续开发的稳定 interface。RunReport 的运行时校验和导出 Schema 来源是 `mynews.domain.models.RunReport`；Digest 使用同模块的独立 `Digest` Schema 1.0。
 
 - 新运行输出 `schema_version: "1.2"`。
 - 读取器继续接受 `1.0`、`1.1` 和 `1.2`，并忽略未知 minor 字段。
@@ -26,6 +26,10 @@ JSON 是持久化和后续开发的稳定 interface。运行时校验和导出 S
 ```text
 output/
 ├── latest.json
+├── digest-latest.json
+├── digest-latest.md
+├── digests/
+│   └── <digest-id>.json
 └── runs/
     └── <run-id>.json
 state/
@@ -41,6 +45,7 @@ logs/
 - failed Run 不覆盖 latest，也不推进 dedup 或 pending。
 - 一次成功提交中的 run、latest、dedup 和 pending 具有同一逻辑事务边界。
 - `output/`、`state/`、`logs/` 必须被 Git 忽略。
+- Digest 历史文件位于 `output/digests/`；`digest-latest.json` 和 `digest-latest.md` 与历史文件同一原子提交。Digest 失败不得覆盖旧 latest，也不得留下 `.tmp`。
 
 ## RunReport 1.2
 
@@ -231,6 +236,41 @@ uv run mynews report --run output/latest.json --out output/report.md
 - `--check-evidence` 重抓 verified 证据；`changed_supporting` 写入 `warnings`，真正失效写入 `errors` 并返回失败。
 - warnings 为空时，为兼容旧 CLI 消费者可省略该字段。
 - report 不访问网络或调用 Codex，只展示 RunReport 已有事实。
+
+## Digest Schema 1.0
+
+`mynews digest` 只读取 `RunReport` 和 `digest-latest.json`，不修改 RunReport、dedup、pending 或证据状态。Digest 顶层字段如下：
+
+| 字段 | 约束 |
+| --- | --- |
+| `schema_version` | 固定 `"1.0"`；未知 Digest major/minor 不静默接受 |
+| `digest_id`、`run_id`、`generated_at` | 本次简报标识、输入 Run ID 和带时区生成时间 |
+| `status` | `complete` 或 `partial`；Codex 超时、非法输出或引用失败必须为 `partial` |
+| `main_items` | 只允许 `verification_status=verified` 的聚合事件 |
+| `lead_items` | 只允许 `verification_status=unverified` 的线索；保留 `verification_reason` 和可选 `verification_retry` |
+| `stats`、`summary_errors` | 聚类、条数、摘要回退和稳定错误事实 |
+
+每个 DigestItem 保存 `event_key`、事件类型、中文标题/摘要/影响判断、`lifecycle`（`new`/`updated`/`ongoing`）、来源条目键、内容哈希、发布时间、四项排序分、`rank_score` 和摘要状态。`evidence_refs` 是结构化引用，只能逐字来自同一 RunReport 的严格 `primary_evidence`，保存 URL、摘录、发布日期和内容哈希；Codex 返回的未知 URL、未知条目、重复引用、外部链接或非中文摘要都会触发安全回退。
+
+排序分为：
+
+`rank_score = relevance_score × 35% + heat_score × 25% + freshness_score × 20% + event_type_score × 20%`
+
+其中四项均为 0–100；时效按 Digest 生成时刻每过一天衰减 10 分，事件类型分固定为 `model_release=100`、`security=95`、`product_update=85`、`research=80`、`pricing_change=75`、`funding=70`、`other=50`。相同排序分按发布时间和 `event_key` 稳定排序。不同事件只有在精确键/URL，或事件类型、共同实体、标题相似度和日期距离同时满足时才聚合。
+
+### Digest 输出命令
+
+```bash
+uv run mynews digest \
+  --run output/latest.json \
+  --out-dir output \
+  --max-items 20 \
+  --summary-model gpt-5.6-luna \
+  --summary-timeout 30
+uv run mynews digest --run output/latest.json --out-dir output --no-codex
+```
+
+`--no-codex` 或模型失败时只使用标题和已保存证据摘录，Digest 状态为 `partial`；线索观察不调用 Codex，也不生成事实摘要。
 
 ## 事务规则
 

@@ -3,9 +3,9 @@ title: mynews 系统架构与代码结构
 doc_type: architecture
 status: current
 implementation_status: implemented
-version: 1.2
+version: 1.3
 created: 2026-08-02
-updated: 2026-08-05
+updated: 2026-08-09
 owner: project-maintainers
 ---
 
@@ -18,12 +18,13 @@ owner: project-maintainers
 - discovery 只负责发现；只有程序复核后的第一方证据才能产生 `verified`。
 - 新闻去重与核验重试具有独立生命周期。
 - RunReport JSON 是稳定外部 interface，内部 Python 结构不是外部契约。
+- DigestBuilder 只读取已保存事实和上一期 Digest，不回写采集、核验或 pending 状态。
 
 ## 数据流
 
 ```mermaid
 flowchart LR
-    CLI["CLI: collect / probe / validate / report"] --> COL["PipelineCollector"]
+    CLI["CLI: collect / probe / validate / report / digest"] --> COL["PipelineCollector"]
     COL --> REG["SourceRegistry + SourcePlugin"]
     REG --> REL["Relevance Filter"]
     REL --> NOR["Normalizer"]
@@ -39,6 +40,10 @@ flowchart LR
     TX --> JSON["runs + latest + dedup + pending"]
     JSON --> REPORT["Offline Markdown report"]
     JSON --> VAL["Schema + evidence validation"]
+    JSON --> DIGEST["DigestBuilder"]
+    PREV["上一期 Digest"] --> DIGEST
+    DIGEST --> SUMMARY["Evidence-grounded Codex summary"]
+    DIGEST --> DIGEST_STORE["Atomic DigestFileStore"]
 ```
 
 ## Module 与 seam
@@ -53,6 +58,13 @@ flowchart LR
 | EvidenceLifecycleReviewer | `review` | current、changed_supporting、failed 复核状态 |
 | NewsStore | `commit(report, dedup_state, pending_state)` | 历史 run、latest、dedup、pending 的逻辑事务 |
 | Validation | `validate_run_file` | 1.x Schema 和已保存证据复核 |
+| DigestBuilder | `build(report, previous, config)` | 保守事件聚合、确定性排序、生命周期与主榜/线索隔离；不改变 RunReport |
+| DigestSummaryRunner | `run(prompt, model, timeout)` | 只读取已保存证据的可替换摘要调用；非法输出只能触发安全回退 |
+| DigestFileStore | `load_latest`、`write` | 历史 Digest、latest JSON 和 Markdown 的同批次原子提交 |
+
+Digest 的信任边界：只有 RunReport 中严格保存的 `primary_evidence` 可以形成 `evidence_refs`；Codex 不能增加 URL、事实或引用。主榜只接收 `verified`，线索观察只接收 `unverified`，两类输出在 Pydantic Schema 和 Markdown 渲染层同时隔离。
+
+Digest 排序使用整数化的 35/25/20/20 权重：`relevance_score`、`heat_score`、时效分和固定事件类型分。相同分数按发布时间再按 `event_key` 稳定排序。聚合要求精确事件键/URL，或同时满足事件类型、共同实体、标题相似度和日期距离；不会因为同一厂商或相同事件类型单独合并。
 
 ## 受控证据解析
 
@@ -119,6 +131,7 @@ Codex 只提供候选 URL、日期、摘录和哈希建议。它不能增加域�
 - `PendingVerificationEntry`：可恢复核验目标和重试事实。
 - `VerificationStats`：尝试、重试、pending、expired 和复核统计。
 - `RunReport`：一次运行的完整 1.x JSON interface。
+- `Digest`：独立 Schema 1.0 的主榜、线索观察、摘要状态、生命周期和证据引用。
 
 领域模型不依赖 Codex CLI、具体 HTTP 实现或文件系统。
 
@@ -132,6 +145,7 @@ src/mynews/
 │   ├── verification.py
 │   ├── evidence_review.py
 │   ├── validation.py
+│   ├── digest.py
 │   └── report.py
 ├── domain/
 │   ├── models.py
@@ -151,7 +165,8 @@ src/mynews/
 │   └── lifecycle.py
 ├── storage/
 │   ├── protocol.py
-│   └── json_store.py
+│   ├── json_store.py
+│   └── digest_store.py
 └── infrastructure/
     ├── http.py
     └── clock.py
@@ -165,6 +180,7 @@ src/mynews/
 - 任何没有完整第一方证据的路径都保持 unverified。
 - stable 来源失败必须影响 Run 状态；experimental 来源按现有等级规则如实记录。
 - 运行数据只写被忽略的 `output/`、`state/` 和 `logs/`。
+- Digest 输出失败时恢复旧 `digest-latest.json`/`.md`，不留下临时文件；摘要模型失败时状态为 `partial` 并回退到标题和已保存证据摘录。
 - launchd 只能由用户显式操作；开发和 CI 不安装或加载真实任务。
 
-重要变更见 [ADR-0001](../decisions/ADR-0001-strict-evidence-and-module-seams.md) 与 [ADR-0002](../decisions/ADR-0002-controlled-resolution-and-evidence-lifecycle.md)。
+重要变更见 [ADR-0001](../decisions/ADR-0001-strict-evidence-and-module-seams.md)、[ADR-0002](../decisions/ADR-0002-controlled-resolution-and-evidence-lifecycle.md) 与 [ADR-0003](../decisions/ADR-0003-evidence-grounded-intelligence-digest.md)。

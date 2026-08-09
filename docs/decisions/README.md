@@ -3,7 +3,7 @@ title: mynews 架构决策记录索引
 doc_type: index
 status: current
 implementation_status: implemented
-version: 1.1
+version: 1.3
 created: 2026-08-02
 updated: 2026-08-05
 owner: project-maintainers
@@ -19,6 +19,7 @@ ADR 记录重要、长期且不应被普通计划静默改写的决定。
 | --- | --- | --- |
 | [ADR-0001：严格第一方证据与模块 seam](ADR-0001-strict-evidence-and-module-seams.md) | Accepted | Implemented |
 | [ADR-0002：受控解析与证据生命周期](ADR-0002-controlled-resolution-and-evidence-lifecycle.md) | Accepted | Implemented；真实 Codex G6-V 尚未通过 |
+| [ADR-0003：基于证据的情报简报](ADR-0003-evidence-grounded-intelligence-digest.md) | Accepted | Implemented；未执行真实 Digest Codex 验收 |
 
 ## 新增 ADR 的条件
 
