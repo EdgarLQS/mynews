@@ -157,6 +157,22 @@ def test_codex_verification_matches_timezone_aware_page_date() -> None:
     assert result[0].status == "verified"
 
 
+def test_codex_suggestion_can_fall_back_to_candidate_date() -> None:
+    candidate = target(url="https://news.example/story")
+    payload = json.loads(suggestion(candidate.item.event_key))
+    payload["suggestions"][0]["published_at"] = None
+    verifier = CodexVerifier(
+        FakeHttp({"https://official.example/news": response(BODY)}),
+        runner=StaticCodex([json.dumps(payload)]),
+    )
+
+    result = verifier.verify(
+        [candidate], config=VerificationConfig(budget=1, batch_size=1)
+    )
+
+    assert result[0].status == "verified"
+
+
 def suggestion(item_id: str, *, url: str = "https://official.example/news") -> str:
     return json.dumps(
         {
@@ -454,3 +470,45 @@ def test_codex_runner_is_read_only_ephemeral_and_never_uses_shell(
     assert command[command.index("--sandbox") + 1] == "read-only"
     assert captured["shell"] is False
     assert captured["timeout"] == 2.5
+
+
+def test_codex_runner_emits_strict_output_schema_for_cli(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def run(
+        command: list[str],
+        *,
+        input: str,
+        text: bool,
+        capture_output: bool,
+        timeout: float,
+        check: bool,
+        shell: bool,
+        cwd: str,
+    ) -> SimpleNamespace:
+        del input, text, capture_output, timeout, check, shell, cwd
+        schema_path = Path(command[command.index("--output-schema") + 1])
+        captured["schema"] = json.loads(schema_path.read_text(encoding="utf-8"))
+        output_path = Path(
+            command[command.index("--output-last-message") + 1]
+        )
+        output_path.write_text('{"suggestions":[]}', encoding="utf-8")
+        return SimpleNamespace(returncode=0, stderr="")
+
+    monkeypatch.setattr("mynews.verification.codex.subprocess.run", run)
+
+    SubprocessCodexRunner("codex-test").run(
+        "structured prompt", model="test-model", timeout=2.5
+    )
+
+    schema = captured["schema"]
+    assert isinstance(schema, dict)
+    suggestion_schema = schema["$defs"]["CodexSuggestion"]
+    assert set(suggestion_schema["required"]) == set(
+        suggestion_schema["properties"]
+    )
+    assert {"published_at", "content_hash"} <= set(
+        suggestion_schema["required"]
+    )

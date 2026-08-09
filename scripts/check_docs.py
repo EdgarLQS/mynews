@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""校验 mynews 文档与 AI 指令入口。"""
+"""校验 mynews 文档、计划唯一性、链接和运行目录保护。"""
 
 from __future__ import annotations
 
 import argparse
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -38,6 +39,7 @@ IMPLEMENTATION_STATUSES = {
     "verified",
     "not_applicable",
 }
+RUNTIME_DIRECTORIES = ("output", "state", "logs")
 LINK_PATTERN = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 JSON_PATTERN = re.compile(r"```json\n(.*?)\n```", re.DOTALL)
 
@@ -111,7 +113,8 @@ def check_links(path: Path, content: str, root: Path) -> list[str]:
             continue
         local_target = target.split("#", 1)[0]
         if local_target and not (path.parent / local_target).resolve().exists():
-            errors.append(f"{path.relative_to(root)}: missing link target {target}")
+            relative = path.relative_to(root)
+            errors.append(f"{relative}: missing link target {target}")
     return errors
 
 
@@ -122,6 +125,49 @@ def check_json(path: Path, content: str) -> list[str]:
             json.loads(block)
         except json.JSONDecodeError as error:
             errors.append(f"{path}: JSON block {index}: {error}")
+    return errors
+
+
+def check_current_plan(root: Path) -> list[str]:
+    current: list[Path] = []
+    for path in sorted((root / "docs/planning").glob("*.md")):
+        fields = frontmatter(path.read_text(encoding="utf-8"))
+        if fields.get("doc_type") == "plan" and fields.get("status") == "current":
+            current.append(path.relative_to(root))
+    if len(current) == 1:
+        return []
+    return [
+        "docs/planning: exactly one Current plan is required; "
+        f"found {len(current)}: {current}"
+    ]
+
+
+def _git(
+    root: Path,
+    *arguments: str,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ("git", *arguments),
+        cwd=root,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
+def check_runtime_directories(root: Path) -> list[str]:
+    errors: list[str] = []
+    tracked = _git(root, "ls-files", "--", *RUNTIME_DIRECTORIES)
+    if tracked.returncode != 0:
+        return [f"git ls-files failed: {tracked.stderr.strip()}"]
+    tracked_paths = [line for line in tracked.stdout.splitlines() if line]
+    if tracked_paths:
+        errors.append(f"runtime files must not be tracked: {tracked_paths}")
+    for directory in RUNTIME_DIRECTORIES:
+        probe = f"{directory}/.mynews-doc-check"
+        ignored = _git(root, "check-ignore", "--quiet", "--no-index", probe)
+        if ignored.returncode != 0:
+            errors.append(f"runtime directory is not ignored: {directory}/")
     return errors
 
 
@@ -144,6 +190,8 @@ def validate(root: Path) -> tuple[list[Path], list[str]]:
             errors.append("CLAUDE.md: line 1 must import @AGENTS.md")
     if not (root / ".claude/skills/acceptance/SKILL.md").exists():
         errors.append(".claude/skills/acceptance/SKILL.md: required file is missing")
+    errors.extend(check_current_plan(root))
+    errors.extend(check_runtime_directories(root))
     return files, errors
 
 

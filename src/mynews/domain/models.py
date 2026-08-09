@@ -1,9 +1,9 @@
-"""阶段 1 的稳定领域模型与 JSON 契约。"""
+"""稳定领域模型与向后兼容的 RunReport 1.2 契约。"""
 
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import (
@@ -15,9 +15,12 @@ from pydantic import (
     model_validator,
 )
 
+if TYPE_CHECKING:
+    from mynews.verification.protocol import VerificationTarget
+
 
 class ContractModel(BaseModel):
-    """允许消费者忽略 minor 版本新增字段。"""
+    """允许消费者忽略 1.x minor 版本新增字段。"""
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -76,8 +79,13 @@ class Candidate(ContractModel):
 
     @field_validator("published_at")
     @classmethod
-    def validate_published_at(cls, value: datetime | None) -> datetime | None:
-        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+    def validate_published_at(
+        cls,
+        value: datetime | None,
+    ) -> datetime | None:
+        if value is not None and (
+            value.tzinfo is None or value.utcoffset() is None
+        ):
             raise ValueError("发布时间必须包含时区")
         return value
 
@@ -87,7 +95,15 @@ class EvidenceValidation(ContractModel):
 
     reachable: bool = False
     official_domain: bool = False
+    redirect_safe: bool = False
     excerpt_matched: bool = False
+    date_matched: bool = False
+    content_hash_matched: bool = False
+    lifecycle_status: Literal[
+        "current",
+        "changed_supporting",
+        "failed",
+    ] = "current"
 
 
 class Evidence(ContractModel):
@@ -100,13 +116,44 @@ class Evidence(ContractModel):
     retrieved_at: datetime
     excerpt: str = Field(min_length=1)
     content_hash: str = Field(min_length=1)
+    previous_content_hash: str | None = None
+    reviewed_at: datetime | None = None
     validation: EvidenceValidation = Field(default_factory=EvidenceValidation)
 
-    @field_validator("published_at", "retrieved_at")
+    @field_validator("published_at", "retrieved_at", "reviewed_at")
     @classmethod
-    def validate_evidence_datetime(cls, value: datetime | None) -> datetime | None:
-        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+    def validate_evidence_datetime(
+        cls,
+        value: datetime | None,
+    ) -> datetime | None:
+        if value is not None and (
+            value.tzinfo is None or value.utcoffset() is None
+        ):
             raise ValueError("证据时间必须包含时区")
+        return value
+
+
+class VerificationRetry(ContractModel):
+    """RunReport 中仅展示已经持久化的待核验事实。"""
+
+    status: Literal["pending", "expired"]
+    attempt_count: int = Field(ge=1)
+    last_reason: str = Field(min_length=1)
+    terminal_reason: str | None = None
+    next_retry_at: datetime | None = None
+    max_attempts: int = Field(ge=1)
+    expires_at: datetime
+
+    @field_validator("next_retry_at", "expires_at")
+    @classmethod
+    def validate_retry_datetime(
+        cls,
+        value: datetime | None,
+    ) -> datetime | None:
+        if value is not None and (
+            value.tzinfo is None or value.utcoffset() is None
+        ):
+            raise ValueError("重试时间必须包含时区")
         return value
 
 
@@ -128,6 +175,7 @@ class NewsItem(ContractModel):
     verification_status: Literal["verified", "unverified"] = "unverified"
     verification_reason: str = Field(min_length=1)
     primary_evidence: list[Evidence] = Field(default_factory=list)
+    verification_retry: VerificationRetry | None = None
     content_hash: str = Field(min_length=1)
     canonical_url: str | None = None
     entities: list[str] = Field(default_factory=list)
@@ -135,24 +183,109 @@ class NewsItem(ContractModel):
 
     @field_validator("published_at", "first_seen_at")
     @classmethod
-    def validate_news_datetime(cls, value: datetime | None) -> datetime | None:
-        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+    def validate_news_datetime(
+        cls,
+        value: datetime | None,
+    ) -> datetime | None:
+        if value is not None and (
+            value.tzinfo is None or value.utcoffset() is None
+        ):
             raise ValueError("新闻时间必须包含时区")
         return value
 
     @model_validator(mode="after")
     def verify_evidence_requirement(self) -> NewsItem:
-        if self.verification_status == "verified":
-            if not self.primary_evidence:
-                raise ValueError("verified 条目必须包含 primary_evidence")
-            if not any(
-                evidence.validation.reachable
-                and evidence.validation.official_domain
-                and evidence.validation.excerpt_matched
-                for evidence in self.primary_evidence
-            ):
-                raise ValueError("verified 条目的 primary_evidence 必须通过 validation")
+        if self.verification_status != "verified":
+            return self
+        if not self.primary_evidence:
+            raise ValueError("verified 条目必须包含 primary_evidence")
+        if not any(
+            evidence.validation.reachable
+            and evidence.validation.official_domain
+            and evidence.validation.excerpt_matched
+            for evidence in self.primary_evidence
+        ):
+            raise ValueError(
+                "verified 条目的 primary_evidence 必须通过 validation"
+            )
         return self
+
+
+class PendingVerificationEntry(ContractModel):
+    """独立于 DedupState 的待核验持久化条目。"""
+
+    event_key: str = Field(min_length=1)
+    item: NewsItem
+    source_id: str = Field(min_length=1)
+    publisher: str = Field(min_length=1)
+    excerpt: str | None = None
+    official_domains: list[str] = Field(default_factory=list)
+    official_github_organizations: list[str] = Field(default_factory=list)
+    source_role: str = "discovery"
+    attempt_count: int = Field(ge=1)
+    last_reason: str = Field(min_length=1)
+    terminal_reason: str | None = None
+    next_retry_at: datetime | None = None
+    max_attempts: int = Field(ge=1)
+    created_at: datetime
+    updated_at: datetime
+    expires_at: datetime
+    status: Literal["pending", "expired"] = "pending"
+
+    @field_validator(
+        "next_retry_at",
+        "created_at",
+        "updated_at",
+        "expires_at",
+    )
+    @classmethod
+    def validate_pending_datetime(
+        cls,
+        value: datetime | None,
+    ) -> datetime | None:
+        if value is not None and (
+            value.tzinfo is None or value.utcoffset() is None
+        ):
+            raise ValueError("pending 时间必须包含时区")
+        return value
+
+    @model_validator(mode="after")
+    def require_matching_event_key(self) -> PendingVerificationEntry:
+        if self.event_key != self.item.event_key:
+            raise ValueError("pending event_key 必须匹配 item")
+        return self
+
+    @property
+    def target(self) -> VerificationTarget:
+        from mynews.verification.protocol import VerificationTarget
+
+        return VerificationTarget(
+            item=self.item,
+            source_id=self.source_id,
+            publisher=self.publisher,
+            excerpt=self.excerpt,
+            official_domains=tuple(self.official_domains),
+            official_github_organizations=tuple(
+                self.official_github_organizations
+            ),
+            source_role=self.source_role,
+        )
+
+    def retry_view(self) -> VerificationRetry:
+        return VerificationRetry(
+            status=self.status,
+            attempt_count=self.attempt_count,
+            last_reason=self.last_reason,
+            terminal_reason=self.terminal_reason,
+            next_retry_at=self.next_retry_at,
+            max_attempts=self.max_attempts,
+            expires_at=self.expires_at,
+        )
+
+
+class PendingVerificationState(ContractModel):
+    schema_version: str = Field(default="1.0", pattern=r"^[0-9]+\.[0-9]+$")
+    entries: dict[str, PendingVerificationEntry] = Field(default_factory=dict)
 
 
 class PriceSnapshot(ContractModel):
@@ -168,7 +301,10 @@ class PriceSnapshot(ContractModel):
 
     @field_validator("observed_at", "first_observed_at", "published_at")
     @classmethod
-    def validate_snapshot_datetime(cls, value: datetime | None) -> datetime | None:
+    def validate_snapshot_datetime(
+        cls,
+        value: datetime | None,
+    ) -> datetime | None:
         if value is None:
             return None
         if value.tzinfo is None or value.utcoffset() is None:
@@ -196,7 +332,7 @@ class SourceSnapshot(ContractModel):
 
     @field_validator("observed_at")
     @classmethod
-    def validate_snapshot_datetime(cls, value: datetime) -> datetime:
+    def validate_source_snapshot_datetime(cls, value: datetime) -> datetime:
         if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError("来源快照时间必须包含时区")
         return value
@@ -228,10 +364,28 @@ class SourceResult(ContractModel):
         return self
 
 
+class VerificationStats(ContractModel):
+    attempted: int = Field(default=0, ge=0)
+    retried: int = Field(default=0, ge=0)
+    pending: int = Field(default=0, ge=0)
+    expired: int = Field(default=0, ge=0)
+    revalidated: int = Field(default=0, ge=0)
+    changed_supporting: int = Field(default=0, ge=0)
+    revalidation_failed: int = Field(default=0, ge=0)
+
+
+class EvidenceReview(ContractModel):
+    event_key: str = Field(min_length=1)
+    evidence_url: str = Field(min_length=1)
+    status: Literal["current", "changed_supporting", "failed"]
+    reason: str = ""
+    warning: str | None = None
+
+
 class RunReport(ContractModel):
     """一次运行的完整可序列化报告。"""
 
-    schema_version: str = Field(default="1.1", pattern=r"^[0-9]+\.[0-9]+$")
+    schema_version: str = Field(default="1.2", pattern=r"^[0-9]+\.[0-9]+$")
     run_id: str = Field(min_length=1)
     status: Literal["complete", "partial", "failed"]
     requested_range: CollectionRequest
@@ -240,6 +394,10 @@ class RunReport(ContractModel):
     sources: list[SourceResult] = Field(default_factory=list)
     stats: dict[str, int] = Field(default_factory=dict)
     reason_counts: dict[str, int] = Field(default_factory=dict)
+    verification_stats: VerificationStats = Field(
+        default_factory=VerificationStats
+    )
+    evidence_reviews: list[EvidenceReview] = Field(default_factory=list)
     items: list[NewsItem] = Field(default_factory=list)
 
     @field_validator("schema_version")
@@ -257,9 +415,46 @@ class RunReport(ContractModel):
         return value
 
     @model_validator(mode="after")
-    def require_forward_run_time(self) -> RunReport:
+    def require_valid_run(self) -> RunReport:
         if self.started_at > self.finished_at:
             raise ValueError("运行开始时间不能晚于结束时间")
         if self.requested_range.verification_budget is None:
             raise ValueError("RunReport 必须记录实际核验预算")
+        if self.schema_version == "1.2":
+            for item in self.items:
+                self._require_strict_verified_item(item)
         return self
+
+    @staticmethod
+    def _require_strict_verified_item(item: NewsItem) -> None:
+        if item.verification_status != "verified":
+            return
+        valid = any(
+            _strict_evidence_valid(evidence)
+            for evidence in item.primary_evidence
+        )
+        if not valid:
+            raise ValueError(
+                "RunReport 1.2 的 verified 条目必须通过完整证据校验"
+            )
+
+
+def _strict_evidence_valid(evidence: Evidence) -> bool:
+    validation = evidence.validation
+    if evidence.published_at is None:
+        return False
+    support_valid = (
+        validation.reachable
+        and validation.official_domain
+        and validation.redirect_safe
+        and validation.excerpt_matched
+        and validation.date_matched
+    )
+    if not support_valid:
+        return False
+    if validation.lifecycle_status == "changed_supporting":
+        return evidence.previous_content_hash is not None
+    return (
+        validation.lifecycle_status == "current"
+        and validation.content_hash_matched
+    )

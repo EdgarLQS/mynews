@@ -3,9 +3,9 @@ title: mynews 历史文档归档索引
 doc_type: archive-index
 status: current
 implementation_status: not_applicable
-version: 1.0
+version: 1.1
 created: 2026-08-02
-updated: 2026-08-02
+updated: 2026-08-05
 owner: project-maintainers
 ---
 
@@ -26,7 +26,8 @@ archive/
 
 | 原路径 | 归档路径 | 日期 | 原因 | 替代文档 |
 | --- | --- | --- | --- | --- |
-| `docs/planning/v1-implementation-plan.md` | `plan/2026/v1-implementation-plan.md` | 2026-08-03 | v1 完成并由信息质量闭环 v1.1 替代 | [v1.1 计划](../planning/v1.1-information-quality-plan.md) |
+| `docs/planning/v1.1-information-quality-plan.md` | `plan/2026/v1.1-information-quality-plan.md` | 2026-08-05 | v1.1 已实现并由增量核验与证据生命周期 v1.2 替代；原文保留未完成 discovery G6-V 记录 | [v1.2 计划](../planning/v1.2-evidence-lifecycle-plan.md) |
+| `docs/planning/v1-implementation-plan.md` | `plan/2026/v1-implementation-plan.md` | 2026-08-03 | v1 完成并由信息质量闭环 v1.1 替代 | [v1.1 归档计划](plan/2026/v1.1-information-quality-plan.md) |
 
 ## 归档要求
 
