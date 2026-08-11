@@ -17,7 +17,7 @@ owner: project-maintainers
 
 | 计划 | 文档状态 | 实现状态 | 下一门槛 |
 | --- | --- | --- | --- |
-| [v1.5 扩展来源与安全交接计划](v1.5-expanded-sources-safe-handoff-plan.md) | Current | Proposed | P1–P6：角色/Feed seam、15 来源插件包、扩展采集、安全输出、离线与真实验收 |
+| [v1.5 扩展来源与安全交接计划](v1.5-expanded-sources-safe-handoff-plan.md) | Current | Implemented | P1–P5 已通过离线门禁；下一门槛是 P6 逐来源真实 probe 和扩展组合采集 |
 
 ## 已完成计划
 

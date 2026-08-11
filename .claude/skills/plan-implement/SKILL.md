@@ -27,6 +27,7 @@ description: Maintain the current project phase and produce repository-grounded 
 - 离线测试只能证明 `Implemented`；依赖真实网络、生产 Codex 或定时器的能力必须执行对应真实验收后才可写 `Verified`。外部阻断写 `BLOCKED`，程序错误写 `FAIL`。
 - 任何来源失败、Codex 失败或存储失败都必须结构化记录，不能静默成功、污染 `latest.json` 或覆盖历史 run。
 - 外部来源计划必须区分主 wheel、独立插件分发包、默认 built-in、plugin-only 和追加扩展模式；来源清单以 Current 计划和来源目录为准，不能从另一个仓库的旧测试推断。
+- v1.5 P1–P5 已 Implemented 时，必须同时核对 `--plugin`、`--with-plugin`、watchlist、输出隐私门禁和 report 原子写入；真实来源 probe 仍单独标为 Verified、BLOCKED 或 FAIL。
 - 默认不操作真实 launchd，不修改或提交 `output/`、`state/`、`logs/` 运行产物。
 
 ## 实施交接要求

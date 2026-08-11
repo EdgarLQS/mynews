@@ -370,7 +370,9 @@ def _health_status(
     health: Sequence[SourceHealth],
 ) -> Literal["complete", "partial", "failed"]:
     stable_health = tuple(
-        item for item in health if item.stability != "experimental"
+        item
+        for item in health
+        if item.stability not in {"experimental", "manual"}
     )
     if not stable_health:
         return "complete"
@@ -525,7 +527,12 @@ def _preferred_candidate(
 ) -> Candidate | None:
     for candidate in candidates:
         metadata = source_metadata.get(candidate.source_id)
-        if metadata is not None and metadata.role in {"primary", "monitor"}:
+        if metadata is not None and metadata.role in {
+            "primary",
+            "monitor",
+            "research",
+            "incident",
+        }:
             return candidate
     return candidates[0] if candidates else None
 

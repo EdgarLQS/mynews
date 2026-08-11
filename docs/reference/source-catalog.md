@@ -29,11 +29,12 @@ v1.1 将来源详细等级写入 `SourceHealth`/`SourceResult`。`experimental` 
 状态的实验等级；`stable-planned`、`adapter-planned` 等其余当前内置等级按稳定来源处理，
 其异常仍会使 Run 变为 `partial` 或 `failed`。这使来源质量和 Run 状态在 JSON 与 report 中可解释。
 
-## v1.5 Proposed 外部来源包
+## v1.5 Implemented 外部来源包
 
 下表是 [v1.5 当前计划](../planning/v1.5-expanded-sources-safe-handoff-plan.md) 的权威来源
-清单，均为 Planned，不表示已经安装、实现或通过真实 probe。它们只能通过独立分发包和
-显式扩展模式接入；普通 built-in 采集保持不变。
+清单。独立分发包、entry-point、fixture 和离线隔离测试已经 Implemented；它们是否安装和
+真实可用仍由逐来源 probe 证明。它们只能通过独立分发包和显式扩展模式接入；普通 built-in
+采集保持不变。
 
 | 来源 ID | 角色 | 等级 | 官方入口 | 官方边界 |
 | --- | --- | --- | --- | --- |
@@ -48,13 +49,18 @@ v1.1 将来源详细等级写入 `SourceHealth`/`SourceResult`。`experimental` 
 | glm-releases | research | stable-planned | https://github.com/THUDM/GLM/releases.atom | `github.com/THUDM` |
 | deepseek-status | incident | experimental | https://status.deepseek.com/history.atom | `status.deepseek.com` |
 | openai-status | incident | experimental | https://status.openai.com/history.rss | `status.openai.com` |
-| anthropic-status | incident | experimental | https://status.anthropic.com/history.rss | `status.anthropic.com` |
+| anthropic-status | incident | experimental | https://status.claude.com/history.rss | `status.claude.com` |
 | github-status | incident | experimental | https://www.githubstatus.com/history.atom | `githubstatus.com` |
 | techcrunch-ai | discovery | experimental | https://techcrunch.com/category/artificial-intelligence/feed/ | `techcrunch.com` |
-| paperswithcode-daily | benchmark | experimental | https://paperswithcode.co/feeds/daily.xml | `paperswithcode.co` |
+| paperswithcode-daily | benchmark | manual | https://huggingface.co/papers | `huggingface.co` |
 
 `qwen-blog-rss` 和 Hacker News RSS 与当前 built-in 重复，不计入新增来源；当前配置不存在
 的 `arxiv-cs-ai`、`arxiv-cs-cl`、`arxiv-cs-lg` 测试期望也不计入计划覆盖。
+
+`paperswithcode-daily` 当前没有可确认的官方 RSS/Atom daily 入口；旧官方页面当前转到
+Hugging Face Daily Papers，因此保留 `https://huggingface.co/papers` 作为人工检查入口。
+显式插件 probe/collect 必须结构化为 `blocked`/`manual_source`，不得请求猜测的 Feed URL，
+也不得用 fixture 结果把它标为 healthy 或 Verified。
 
 ## 阶段 4.5 来源覆盖
 

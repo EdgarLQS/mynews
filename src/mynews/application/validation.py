@@ -151,7 +151,12 @@ def _metadata_for_evidence(
     organization = parsed.path.strip("/").split("/", 1)[0].casefold()
     for source_id in item.discovery_sources:
         metadata = registry.source_metadata.get(source_id)
-        if metadata is None or metadata.role not in {"primary", "monitor"}:
+        if metadata is None or metadata.role not in {
+            "primary",
+            "monitor",
+            "research",
+            "incident",
+        }:
             continue
         domains = {
             domain.casefold().strip(".")

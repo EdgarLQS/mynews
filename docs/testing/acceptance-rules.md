@@ -88,6 +88,9 @@ owner: project-maintainers
 
 ### v1.5 扩展来源专项判定
 
+- 当前代码状态：P1–P5 的离线实现可以最高标为 `Implemented`；P6 仍必须在隔离环境
+  显式安装来源包，逐一执行真实 probe，并将外部阻断记为 `BLOCKED`。不得把离线 fixture、
+  `plugin list` 或 mock 结果写成 `Verified`。
 - 先确认主 wheel 与独立来源分发包的安装边界；首轮只读验收不得临时安装或改写
   环境。必需插件未准备导致无法执行时写 `BLOCKED`，仓库缺少计划内分发包或入口写
   `FAIL`。

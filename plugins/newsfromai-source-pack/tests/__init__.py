@@ -1,0 +1,1 @@
+"""newsFromAI source pack tests."""
