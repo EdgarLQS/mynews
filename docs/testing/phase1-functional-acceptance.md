@@ -81,7 +81,7 @@ v1 发布验收，也不把离线通过写成真实来源或定时能力的 `Ver
 
 ## 后续开发交接
 
-后续工作当时进入 [v1.1 计划](../archive/plan/2026/v1.1-information-quality-plan.md)，其原始实施和验收记录现已归档；当前实施入口为 [v1.5 扩展来源与安全交接计划](../planning/v1.5-expanded-sources-safe-handoff-plan.md)。阶段 1 交接时约定的优先顺序为：
+后续工作当时进入 [v1.1 计划](../archive/plan/2026/v1.1-information-quality-plan.md)，其原始实施和验收记录现已归档；当前实施入口为 [v1.6 newsFromAI 完整吸收计划](../planning/v1.6-newsfromai-parity-plan.md)。阶段 1 交接时约定的优先顺序为：
 
 1. 建立 built-in `SourcePlugin` registry 和稳定内部接口。
 2. 增加共享 HTTP client、超时、有限重试、User-Agent、并发上限和缓存头。

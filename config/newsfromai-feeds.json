@@ -1,0 +1,196 @@
+{
+  "schemaVersion": "1.0",
+  "freshness": {
+    "enabled": true,
+    "maxAgeDays": 2
+  },
+  "feeds": [
+    {
+      "id": "openai-news",
+      "name": "OpenAI News",
+      "type": "rss",
+      "tier": "core",
+      "source_role": "primary",
+      "enabled": true,
+      "url": "https://openai.com/news/rss.xml",
+      "max_age_days": 2,
+      "lang": "en"
+    },
+    {
+      "id": "google-blog",
+      "name": "Google Blog",
+      "type": "rss",
+      "tier": "core",
+      "source_role": "primary",
+      "enabled": true,
+      "url": "https://blog.google/rss/",
+      "max_age_days": 2,
+      "lang": "en"
+    },
+    {
+      "id": "github-changelog",
+      "name": "GitHub Changelog",
+      "type": "rss",
+      "tier": "core",
+      "source_role": "primary",
+      "enabled": true,
+      "url": "https://github.blog/changelog/feed/",
+      "max_age_days": 2,
+      "lang": "en"
+    },
+    {
+      "id": "hugging-face-blog",
+      "name": "Hugging Face Blog",
+      "type": "rss",
+      "tier": "core",
+      "source_role": "primary",
+      "enabled": true,
+      "url": "https://huggingface.co/blog/feed.xml",
+      "max_age_days": 2,
+      "lang": "en"
+    },
+    {
+      "id": "google-deepmind",
+      "name": "Google DeepMind Blog",
+      "type": "rss",
+      "tier": "core",
+      "source_role": "primary",
+      "enabled": true,
+      "url": "https://deepmind.google/blog/rss.xml",
+      "max_age_days": 2,
+      "lang": "en"
+    },
+    {
+      "id": "nvidia-ai",
+      "name": "NVIDIA AI Blog",
+      "type": "rss",
+      "tier": "core",
+      "source_role": "primary",
+      "enabled": true,
+      "url": "https://blogs.nvidia.com/blog/category/deep-learning/feed/",
+      "max_age_days": 2,
+      "lang": "en"
+    },
+    {
+      "id": "aws-machine-learning",
+      "name": "AWS Machine Learning Blog",
+      "type": "rss",
+      "tier": "core",
+      "source_role": "primary",
+      "enabled": true,
+      "url": "https://aws.amazon.com/blogs/machine-learning/feed/",
+      "max_age_days": 2,
+      "lang": "en"
+    },
+    {
+      "id": "qwen-blog-rss",
+      "name": "Qwen Blog",
+      "type": "rss",
+      "tier": "supplementary",
+      "source_role": "primary",
+      "enabled": true,
+      "url": "https://qwenlm.github.io/blog/index.xml",
+      "max_age_days": 7,
+      "lang": "zh"
+    },
+    {
+      "id": "kimi-k2-releases",
+      "name": "Kimi K2 Releases",
+      "type": "rss",
+      "tier": "supplementary",
+      "source_role": "research",
+      "enabled": true,
+      "url": "https://github.com/MoonshotAI/Kimi-K2/releases.atom",
+      "max_age_days": 7,
+      "lang": "en"
+    },
+    {
+      "id": "glm-releases",
+      "name": "GLM Releases",
+      "type": "rss",
+      "tier": "supplementary",
+      "source_role": "research",
+      "enabled": true,
+      "url": "https://github.com/THUDM/GLM/releases.atom",
+      "max_age_days": 7,
+      "lang": "en"
+    },
+    {
+      "id": "deepseek-status",
+      "name": "DeepSeek Status",
+      "type": "rss",
+      "tier": "temporary",
+      "source_role": "incident",
+      "enabled": true,
+      "url": "https://status.deepseek.com/history.atom",
+      "max_age_days": 1,
+      "lang": "en"
+    },
+    {
+      "id": "hacker-news",
+      "name": "Hacker News",
+      "type": "rss",
+      "tier": "supplementary",
+      "source_role": "discovery",
+      "enabled": true,
+      "url": "https://hnrss.org/frontpage",
+      "max_age_days": 1,
+      "lang": "en"
+    },
+    {
+      "id": "techcrunch-ai",
+      "name": "TechCrunch AI",
+      "type": "rss",
+      "tier": "supplementary",
+      "source_role": "discovery",
+      "enabled": true,
+      "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
+      "max_age_days": 2,
+      "lang": "en"
+    },
+    {
+      "id": "paperswithcode-daily",
+      "name": "Papers with Code Daily",
+      "type": "rss",
+      "tier": "supplementary",
+      "source_role": "benchmark",
+      "enabled": true,
+      "url": "https://paperswithcode.co/feeds/daily.xml",
+      "max_age_days": 2,
+      "lang": "en"
+    },
+    {
+      "id": "openai-status",
+      "name": "OpenAI Status",
+      "type": "rss",
+      "tier": "temporary",
+      "source_role": "incident",
+      "enabled": true,
+      "url": "https://status.openai.com/history.rss",
+      "max_age_days": 1,
+      "lang": "en"
+    },
+    {
+      "id": "anthropic-status",
+      "name": "Anthropic Status",
+      "type": "rss",
+      "tier": "temporary",
+      "source_role": "incident",
+      "enabled": true,
+      "url": "https://status.anthropic.com/history.rss",
+      "max_age_days": 1,
+      "lang": "en"
+    },
+    {
+      "id": "github-status",
+      "name": "GitHub Status",
+      "type": "rss",
+      "tier": "temporary",
+      "source_role": "incident",
+      "enabled": true,
+      "url": "https://www.githubstatus.com/history.atom",
+      "max_age_days": 1,
+      "lang": "en"
+    }
+  ]
+}

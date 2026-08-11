@@ -20,8 +20,8 @@ owner: project-maintainers
 | 产品范围 | Current | 聚焦 AI 与科技，继续覆盖模型、AI 编程工具和开发者平台 |
 | v1.3 情报简报计划 | Archived / Implemented | DigestBuilder、Digest Schema 1.0、主榜/线索隔离、摘要回退和原子输出已完成；真实 Digest Codex 验收记录仍为 `BLOCKED`，原文保留在归档 |
 | v1.4 外部来源插件计划 | Archived / Implemented | Python entry-point 外部 SourcePlugin、显式插件选择、严格加载校验、结构化失败和 Store 保护已通过离线门禁；历史计划已归档 |
-| v1.5 扩展来源与安全交接计划 | Current / Implemented | P1–P5 离线实现和门禁已通过；P6 已按当前官方入口复验：12 个来源有有效记录、2 个合法空 Feed、`paperswithcode-daily` 为 manual/blocked；整体仍不能把新增来源批量写成 Verified |
-| v1.6 newsFromAI 数据能力完整吸收计划 | Draft / Proposed | 下一阶段补齐 freshness、正文增强、历史观察、Candidate Contract 和 editorial pack；不复制 SQLite、UI、发布或 PPT 能力 |
+| v1.5 扩展来源与安全交接计划 | Archived / Implemented | 已移动到历史归档；来源插件、人工清单和安全边界继续被 v1.6 复用 |
+| v1.6 newsFromAI 数据能力完整吸收计划 | Current / Implemented | P0–P6 离线实现和门禁已通过；P7 真实来源验收需按环境记录，不能把受限网络写成 Verified |
 | v1.2 计划与真实验收 | Archived / In Progress | 实际命令、两次 Run ID、G6-S 限制、G6-V `BLOCKED` 和 G7 结果已归档；真实发布门禁未完成，不能写成 Verified |
 | 系统架构 | Current / Implemented | SourcePlugin、registry、规范化/去重、EvidenceVerifier、pending、证据生命周期、NewsStore 和 Digest seam 已实现 |
 | AI 开发说明 | Current / Implemented | Codex 与 Claude Code 共用一套项目规则 |
@@ -47,8 +47,8 @@ owner: project-maintainers
 
 1. [功能矩阵](product/feature-matrix.md)：确认当前、未来和明确不做的范围。
 2. [项目验收规则](testing/acceptance-rules.md)：了解每次开发完成后的统一质量门禁。
-3. [v1.5 当前计划](planning/v1.5-expanded-sources-safe-handoff-plan.md)：查看扩展来源、兼容边界、实施顺序和逐来源验收门槛；v1.4 已归档。
-4. [v1.6 下一阶段草案](planning/v1.6-newsfromai-parity-plan.md)：查看完整吸收 newsFromAI 当前 datacollection 能力的范围与门槛。
+3. [v1.6 当前计划](planning/v1.6-newsfromai-parity-plan.md)：查看完整吸收 newsFromAI 当前 datacollection 能力的范围、实施记录和验收门槛。
+4. [newsFromAI 映射表](reference/newsfromai-v16-mapping.md)：查看 17 个 Feed 与全部人工清单覆盖率。
 5. [系统架构](architecture/system-architecture.md)：理解采集、核验、Digest 模块和数据流。
 6. [信息来源目录](reference/source-catalog.md)：查看渠道角色、稳定等级和核验规则。
 7. [JSON 数据契约](reference/json-data-contract.md)：查看 RunReport 和 Digest 格式。
@@ -74,7 +74,7 @@ owner: project-maintainers
 
 | 文档 | 状态 | 实现状态 |
 | --- | --- | --- |
-| [v1.5 当前计划](planning/v1.5-expanded-sources-safe-handoff-plan.md) | Current | Implemented；P6 真实来源验收记录已写入，真实 Codex G6-V 仍 SKIPPED/BLOCKED |
+| [v1.6 当前计划](planning/v1.6-newsfromai-parity-plan.md) | Current | Implemented；P7 真实来源/prepare 验收按环境记录，网络或 Codex 受限时保持 BLOCKED/SKIPPED |
 | [系统架构](architecture/system-architecture.md) | Current | Implemented |
 | [功能矩阵](product/feature-matrix.md) | Current | Implemented |
 | [项目验收规则](testing/acceptance-rules.md) | Current | Implemented |

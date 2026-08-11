@@ -2,7 +2,7 @@
 
 面向个人使用的 AI 与科技热点收集器，优先覆盖模型、AI 编程工具、开发者平台及相关重大科技动态。项目从热点渠道发现线索，回溯并验证第一方原始信息，再以结构化 JSON 保存，供后续筛选、分析和产品开发使用。
 
-> 当前状态：v1.4 外部来源插件已按 Implemented 归档；v1.5 P1–P5 已 Implemented，P6 已按当前官方入口复验：12 个来源有有效记录、2 个合法空 Feed、`paperswithcode-daily` 为 manual/blocked；整体仍保持 Implemented，不把插件结果自动写成 Verified。v1.3 Digest 的真实 Codex 记录仍为 `BLOCKED`，真实 launchd 按验收边界未加载。外部插件是受信任本地 Python 代码，显式清单不是进程级沙箱。
+> 当前状态：v1.5 已按 Implemented 归档；v1.6 P0–P6 已 Implemented，P7 真实来源验收按环境记录，网络受限时保持 `BLOCKED`，不把来源结果自动写成 Verified。v1.3 Digest 的真实 Codex 记录仍为 `BLOCKED`，真实 launchd 按验收边界未加载。外部插件是受信任本地 Python 代码，显式清单不是进程级沙箱。
 
 日常运行可使用 `scripts/collect.sh --days 7`。脚本固定在项目根目录运行，支持 `render-plist`、`install`、`status` 和 `uninstall`；这些 launchd 动作支持中文 help 和 `--dry-run`，安装动作必须显式执行，任务 label 为 `com.mynews.collect`，计划时间为主机本地时间每日 09:30（采集进程使用 `TZ=Asia/Shanghai`）。采集脚本使用 `logs/collect.lock` 防止定时任务重叠，并保留底层 `collect` 退出码。只有显式加 `--digest` 才会在采集成功后追加简报生成，默认行为不变。运行数据写入 `output/`、`state/`，日志写入 `logs/`，这些目录不提交。需要时可用 `collect --verification-reasoning-effort medium` 和 `digest --summary-reasoning-effort medium` 调整 Codex 推理强度；这不会改变证据核验门槛。外部来源必须显式使用 `mynews plugin list` 发现、`mynews plugin probe --plugin <id>` 检查；`--plugin` 是 plugin-only，`--with-plugin` 才是 built-in + 插件追加，默认命令不会加载外部插件。固定扩展采集使用 `scripts/collect-expanded.sh`。
 
@@ -13,6 +13,7 @@ uv run mynews validate --run output/latest.json --schema-out /tmp/mynews.schema.
 uv run mynews report --run output/latest.json --out output/report.md
 uv run mynews digest --run output/latest.json --out-dir output --no-codex
 uv run mynews watchlist --file config/manual-watchlist.json --out output/watchlist.md
+uv run mynews prepare --date 2026-08-11
 ```
 
 增加 `--check-evidence` 会重新抓取每条 `verified` 证据。若页面整体发生变化，但原摘录、日期和官方边界仍成立，校验结果会产生 `changed_supporting` warning；支持文本、日期或安全边界失效时仍然失败。
@@ -22,7 +23,8 @@ uv run mynews watchlist --file config/manual-watchlist.json --out output/watchli
 ## 文档入口
 
 - [文档总览与当前状态](docs/README.md)
-- [v1.5 当前计划](docs/planning/v1.5-expanded-sources-safe-handoff-plan.md)
+- [v1.6 当前计划](docs/planning/v1.6-newsfromai-parity-plan.md)
+- [newsFromAI 来源与人工清单映射](docs/reference/newsfromai-v16-mapping.md)
 - [v1.4 外部插件归档计划](docs/archive/plan/2026/v1.4-source-plugins-plan.md)
 - [v1.3 Digest 归档与真实验收记录](docs/archive/README.md)
 - [系统架构与代码结构](docs/architecture/system-architecture.md)

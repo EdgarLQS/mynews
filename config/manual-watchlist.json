@@ -1,65 +1,457 @@
 [
   {
-    "id": "baidu-comate",
-    "name": "百度 Comate",
-    "url": "https://cloud.baidu.com/doc/COMATE/index.html",
-    "role": "manual",
-    "note": "人工检查官方文档、更新和价格变化。"
+    "id": "openai-api-pricing",
+    "name": "OpenAI API Pricing",
+    "url": "https://developers.openai.com/api/docs/pricing/",
+    "role": "primary",
+    "note": "检查模型输入、缓存、输出、批处理和高速模式价格；价格事实以该官方定价页为准"
   },
   {
-    "id": "codebuddy",
-    "name": "CodeBuddy",
-    "url": "https://www.codebuddy.cn/docs/ide/Account/pricing",
-    "role": "manual",
-    "note": "人工检查官方文档和价格页面。"
+    "id": "openai-api-changelog",
+    "name": "OpenAI API Changelog",
+    "url": "https://developers.openai.com/api/docs/changelog",
+    "role": "primary",
+    "note": "检查模型、API、SDK、弃用、额度和兼容性变化；正式事实回到官方文档"
   },
   {
-    "id": "cursor",
-    "name": "Cursor",
-    "url": "https://cursor.com/changelog",
-    "role": "manual",
-    "note": "人工检查官方 Changelog 和产品变更。"
+    "id": "deepseek-v4-official",
+    "name": "DeepSeek V4 Official Updates",
+    "url": "https://api-docs.deepseek.com/zh-cn/updates/",
+    "role": "primary",
+    "note": "检查 V4-Pro、V4-Flash、API、价格和兼容性更新；正式事实回到 DeepSeek 官方更新页"
+  },
+  {
+    "id": "deepseek-api-pricing",
+    "name": "DeepSeek API Pricing",
+    "url": "https://api-docs.deepseek.com/quick_start/pricing/",
+    "role": "primary",
+    "note": "检查模型价格、上下文长度、限流和计费规则；价格事实回到 DeepSeek 官方定价页"
+  },
+  {
+    "id": "github-copilot-changelog",
+    "name": "GitHub Copilot Changelog",
+    "url": "https://github.blog/changelog/?query=Copilot",
+    "role": "primary",
+    "note": "检查 Copilot 模型可用性、价格、额度、Agent、弃用和迁移变化；正式事实回到 GitHub Changelog"
+  },
+  {
+    "id": "github-models-changelog",
+    "name": "GitHub Models Changelog",
+    "url": "https://github.blog/changelog/?query=Models",
+    "role": "primary",
+    "note": "检查 GitHub Models、模型目录、推理 API、BYOK 和退役变化；正式事实回到 GitHub Changelog"
+  },
+  {
+    "id": "google-ai-developer-changelog",
+    "name": "Google AI for Developers Changelog",
+    "url": "https://ai.google.dev/gemini-api/docs/changelog",
+    "role": "primary",
+    "note": "检查 Gemini API 模型、价格、配额、弃用和兼容性变化；正式事实回到 Google 官方文档"
+  },
+  {
+    "id": "openai-x",
+    "name": "OpenAI on X",
+    "url": "https://x.com/OpenAI",
+    "role": "discovery",
+    "note": "检查模型、API、产品、价格、服务事故和官方说明；X 仅作线索，事实回到官方页面"
+  },
+  {
+    "id": "codex-x",
+    "name": "OpenAI Codex on X",
+    "url": "https://x.com/OpenAICodex",
+    "role": "discovery",
+    "note": "检查 Codex、编程代理和可用范围变化；正式事实回到产品文档或公告"
+  },
+  {
+    "id": "chatgpt-x",
+    "name": "ChatGPT on X",
+    "url": "https://x.com/ChatGPTapp",
+    "role": "discovery",
+    "note": "检查 ChatGPT 功能、套餐、额度和事故说明；正式事实回到帮助中心或公告"
+  },
+  {
+    "id": "anthropic-x",
+    "name": "Anthropic on X",
+    "url": "https://x.com/AnthropicAI",
+    "role": "discovery",
+    "note": "检查 Claude、API、政策和安全说明；正式事实回到 Anthropic 官方页面"
+  },
+  {
+    "id": "claude-x",
+    "name": "Claude on X",
+    "url": "https://x.com/claudeai",
+    "role": "discovery",
+    "note": "检查 Claude 产品、模型、额度和服务状态；正式事实回到产品文档"
+  },
+  {
+    "id": "google-gemini-x",
+    "name": "Google Gemini on X",
+    "url": "https://x.com/GeminiApp",
+    "role": "discovery",
+    "note": "检查 Gemini 产品和模型更新；正式事实回到 Google 官方公告或文档"
+  },
+  {
+    "id": "google-deepmind-x",
+    "name": "Google DeepMind on X",
+    "url": "https://x.com/GoogleDeepMind",
+    "role": "discovery",
+    "note": "检查模型、研究和安全发布；正式事实回到论文、模型卡或官方博客"
+  },
+  {
+    "id": "mistral-x",
+    "name": "Mistral AI on X",
+    "url": "https://x.com/MistralAI",
+    "role": "discovery",
+    "note": "检查模型、API 和开发工具；正式事实回到 Mistral 官方页面"
+  },
+  {
+    "id": "meta-ai-x",
+    "name": "Meta AI on X",
+    "url": "https://x.com/MetaAI",
+    "role": "discovery",
+    "note": "检查 Llama、Meta AI 和开源权重；正式事实回到 Meta 官方博客或模型卡"
+  },
+  {
+    "id": "microsoft-copilot-x",
+    "name": "Microsoft Copilot on X",
+    "url": "https://x.com/MSFTCopilot",
+    "role": "discovery",
+    "note": "检查 Copilot、企业集成和权限变化；正式事实回到 Microsoft 文档"
+  },
+  {
+    "id": "cursor-x",
+    "name": "Cursor on X",
+    "url": "https://x.com/cursor_ai",
+    "role": "discovery",
+    "note": "检查 AI 编程工具、代理、套餐和额度变化；正式事实回到 Cursor 更新页"
+  },
+  {
+    "id": "huggingface-x",
+    "name": "Hugging Face on X",
+    "url": "https://x.com/huggingface",
+    "role": "discovery",
+    "note": "检查模型、数据集和推理平台；正式事实回到官方仓库或模型卡"
+  },
+  {
+    "id": "ollama-x",
+    "name": "Ollama on X",
+    "url": "https://x.com/ollama",
+    "role": "discovery",
+    "note": "检查本地模型运行工具和模型支持；正式事实回到 Ollama 官方文档"
+  },
+  {
+    "id": "replicate-x",
+    "name": "Replicate on X",
+    "url": "https://x.com/replicate",
+    "role": "discovery",
+    "note": "检查模型部署、推理 API 和价格；正式事实回到 Replicate 官方页面"
+  },
+  {
+    "id": "vercel-x",
+    "name": "Vercel on X",
+    "url": "https://x.com/vercel",
+    "role": "discovery",
+    "note": "检查 AI SDK、部署和平台能力；正式事实回到 Vercel 文档或公告"
+  },
+  {
+    "id": "anthropic-news",
+    "name": "Anthropic Newsroom",
+    "url": "https://www.anthropic.com/news",
+    "role": "discovery",
+    "note": "检查模型、Claude 产品和重要政策更新"
+  },
+  {
+    "id": "mistral-news",
+    "name": "Mistral Latest News",
+    "url": "https://mistral.ai/news/",
+    "role": "discovery",
+    "note": "检查模型、开发工具和产品更新"
+  },
+  {
+    "id": "microsoft-ai-updates",
+    "name": "Microsoft Foundry What's New",
+    "url": "https://learn.microsoft.com/en-us/azure/ai-foundry/whats-new-ai-foundry",
+    "role": "discovery",
+    "note": "检查 Microsoft Foundry、模型和智能体能力更新"
+  },
+  {
+    "id": "google-gemini-changelog",
+    "name": "Google Gemini API Changelog",
+    "url": "https://ai.google.dev/gemini-api/docs/changelog",
+    "role": "discovery",
+    "note": "检查 Gemini API、模型、配额和弃用变化"
+  },
+  {
+    "id": "microsoft-ai-blog",
+    "name": "Microsoft AI Blog",
+    "url": "https://blogs.microsoft.com/ai/",
+    "role": "discovery",
+    "note": "检查 Copilot、Azure AI 和企业 AI 产品更新"
+  },
+  {
+    "id": "qwen-blog",
+    "name": "Qwen Blog",
+    "url": "https://qwenlm.github.io/blog/",
+    "role": "primary",
+    "note": "检查通义千问模型、技术报告和开源权重；正式事实回到博客、模型卡或仓库"
+  },
+  {
+    "id": "deepseek-official",
+    "name": "DeepSeek Official",
+    "url": "https://www.deepseek.com/",
+    "role": "primary",
+    "note": "检查 DeepSeek 模型、产品和 API 更新；正式事实回到官网或 API 文档"
+  },
+  {
+    "id": "deepseek-status",
+    "name": "DeepSeek Status",
+    "url": "https://status.deepseek.com/",
+    "role": "incident",
+    "note": "检查 DeepSeek Web/API 服务异常；事故事实回到状态页和后续说明"
+  },
+  {
+    "id": "kimi-blog",
+    "name": "Kimi / Moonshot AI Blog",
+    "url": "https://platform.kimi.ai/blog",
+    "role": "primary",
+    "note": "检查 Kimi、Moonshot 模型和 API 发布；正式事实回到官方博客或文档"
+  },
+  {
+    "id": "zhipu-releases",
+    "name": "Zhipu GLM Releases",
+    "url": "https://docs.bigmodel.cn/cn/update/new-releases",
+    "role": "primary",
+    "note": "检查 GLM 模型、开放平台和 API 更新；正式事实回到智谱官方文档"
+  },
+  {
+    "id": "zhipu-devday",
+    "name": "Zhipu AI Developer Day",
+    "url": "https://www.zhipuai.cn/devday",
+    "role": "primary",
+    "note": "检查智谱旗舰模型和开发者发布；正式事实回到智谱官方发布页"
   },
   {
     "id": "doubao-volcengine",
-    "name": "豆包 / 火山引擎",
-    "url": "https://www.volcengine.com/product/doubao",
-    "role": "manual",
-    "note": "人工检查官方产品和 API 文档。"
+    "name": "Doubao / Volcengine",
+    "url": "https://developer.volcengine.com/",
+    "role": "primary",
+    "note": "检查豆包模型、火山方舟和 Agent 开发更新；正式事实回到火山引擎公告或文档"
   },
   {
-    "id": "glm-codegeex",
-    "name": "GLM / CodeGeeX",
+    "id": "baidu-qianfan",
+    "name": "Baidu Qianfan",
+    "url": "https://cloud.baidu.com/news/",
+    "role": "primary",
+    "note": "检查文心模型、千帆平台和企业 AI 更新；正式事实回到百度智能云公告或文档"
+  },
+  {
+    "id": "tencent-hunyuan",
+    "name": "Tencent Hunyuan",
+    "url": "https://cloud.tencent.cn/document/product/1729/97765",
+    "role": "primary",
+    "note": "检查混元模型和腾讯云产品动态；正式事实回到腾讯云官方文档"
+  },
+  {
+    "id": "tencent-hunyuan-api-updates",
+    "name": "Tencent Hunyuan API Updates",
+    "url": "https://cloud.tencent.com.cn/document/product/1729/101849",
+    "role": "primary",
+    "note": "检查混元 API 版本、接口和兼容性变化；正式事实回到腾讯云官方文档"
+  },
+  {
+    "id": "huawei-pangu",
+    "name": "Huawei Pangu",
+    "url": "https://www.huaweicloud.com/product/pangu.html",
+    "role": "primary",
+    "note": "检查盘古模型、昇腾和华为云 AI 服务；正式事实回到华为云公告或文档"
+  },
+  {
+    "id": "minimax-releases",
+    "name": "MiniMax Model Releases",
+    "url": "https://platform.minimax.io/docs/release-notes/models",
+    "role": "primary",
+    "note": "检查 MiniMax 文本、语音、视频和音乐模型发布；正式事实回到开放平台文档"
+  },
+  {
+    "id": "minimax-announcements",
+    "name": "MiniMax Announcements",
+    "url": "https://platform.minimaxi.com/document/Announcement",
+    "role": "primary",
+    "note": "检查 MiniMax 官方功能和模型公告；正式事实回到官方公告页"
+  },
+  {
+    "id": "meta-ai-blog",
+    "name": "Meta AI Blog",
+    "url": "https://ai.meta.com/blog/",
+    "role": "discovery",
+    "note": "检查 Llama、开源模型和 Meta AI 产品更新"
+  },
+  {
+    "id": "cohere-blog",
+    "name": "Cohere Blog",
+    "url": "https://cohere.com/blog",
+    "role": "discovery",
+    "note": "检查企业模型、检索和 API 产品更新"
+  },
+  {
+    "id": "replicate-blog",
+    "name": "Replicate Blog",
+    "url": "https://replicate.com/blog",
+    "role": "discovery",
+    "note": "检查模型部署、推理 API 和开源模型工具"
+  },
+  {
+    "id": "ollama-blog",
+    "name": "Ollama Blog",
+    "url": "https://ollama.com/blog",
+    "role": "discovery",
+    "note": "检查本地模型运行和开发工具更新"
+  },
+  {
+    "id": "cursor-changelog",
+    "name": "Cursor Changelog",
+    "url": "https://www.cursor.com/changelog",
+    "role": "discovery",
+    "note": "检查 AI 编程工具、代理和 IDE 工作流更新"
+  },
+  {
+    "id": "vercel-ai-sdk",
+    "name": "Vercel AI SDK",
+    "url": "https://ai-sdk.dev/",
+    "role": "discovery",
+    "note": "检查 AI SDK、提供商适配和应用开发能力更新"
+  },
+  {
+    "id": "langchain-changelog",
+    "name": "LangChain Changelog",
+    "url": "https://changelog.langchain.com/",
+    "role": "discovery",
+    "note": "检查智能体、编排和开发框架更新"
+  },
+  {
+    "id": "llamaindex-blog",
+    "name": "LlamaIndex Blog",
+    "url": "https://www.llamaindex.ai/blog",
+    "role": "discovery",
+    "note": "检查 RAG、智能体和数据连接工具更新"
+  },
+  {
+    "id": "nvidia-nim-docs",
+    "name": "NVIDIA NIM Documentation",
+    "url": "https://docs.nvidia.com/nim/",
+    "role": "discovery",
+    "note": "检查推理容器、部署支持和 GPU 服务变化"
+  },
+  {
+    "id": "huggingface-models",
+    "name": "Hugging Face Models",
+    "url": "https://huggingface.co/models?sort=trending",
+    "role": "research",
+    "note": "观察新模型和权重；正式事实仍需回到模型卡或作者发布"
+  },
+  {
+    "id": "huggingface-daily-papers",
+    "name": "Hugging Face Daily Papers",
+    "url": "https://huggingface.co/papers",
+    "role": "research",
+    "note": "观察研究论文和评测线索；正式事实仍需回到论文、模型卡或作者仓库"
+  },
+  {
+    "id": "lmarena-leaderboard",
+    "name": "LMSYS/LMArena Leaderboard",
+    "url": "https://lmarena.ai/leaderboard",
+    "role": "benchmark",
+    "note": "观察人类偏好评测和排行榜变化；必须保留评测口径、样本和局限，不单独作为迁移依据"
+  },
+  {
+    "id": "china-cac-ai",
+    "name": "国家互联网信息办公室",
+    "url": "https://www.cac.gov.cn/",
+    "role": "discovery",
+    "note": "检查生成式 AI、算法备案、内容治理和数据跨境等监管原文"
+  },
+  {
+    "id": "china-miit-ai",
+    "name": "工业和信息化部",
+    "url": "https://www.miit.gov.cn/",
+    "role": "discovery",
+    "note": "检查 AI 产业、算力、标准、软件和信息技术政策原文"
+  },
+  {
+    "id": "china-gov-ai",
+    "name": "中国政府网",
+    "url": "https://www.gov.cn/",
+    "role": "discovery",
+    "note": "检查国务院及国家层面的人工智能政策和行动方案"
+  },
+  {
+    "id": "qwen-official",
+    "name": "Qwen",
+    "url": "https://qwenlm.github.io/",
+    "role": "discovery",
+    "note": "检查 Qwen 模型、开源权重、模型卡、API 和开发工具更新"
+  },
+  {
+    "id": "alibaba-model-studio",
+    "name": "阿里云百炼公告",
+    "url": "https://help.aliyun.com/zh/model-studio/model-release-notes",
+    "role": "discovery",
+    "note": "检查模型发布、价格、配额、API 变化和下线通知"
+  },
+  {
+    "id": "modelscope",
+    "name": "ModelScope",
+    "url": "https://modelscope.cn/",
+    "role": "discovery",
+    "note": "观察中国开源模型和工具；正式事实回到模型卡、仓库或作者公告"
+  },
+  {
+    "id": "deepseek-official-duplicate-2",
+    "name": "DeepSeek",
+    "url": "https://www.deepseek.com/",
+    "role": "discovery",
+    "note": "检查模型、API、价格、开源仓库和服务公告"
+  },
+  {
+    "id": "zhipu-bigmodel",
+    "name": "智谱 BigModel",
     "url": "https://bigmodel.cn/",
-    "role": "manual",
-    "note": "人工检查官方平台和产品更新。"
+    "role": "discovery",
+    "note": "检查 GLM 模型、API、价格、开源和产品更新"
   },
   {
-    "id": "kimi-code",
-    "name": "Kimi / Kimi Code",
-    "url": "https://www.kimi.com/zh-cn/products/",
-    "role": "manual",
-    "note": "人工检查官方产品、价格和 Release。"
+    "id": "moonshot-kimi",
+    "name": "Moonshot AI / Kimi",
+    "url": "https://platform.moonshot.cn/docs/",
+    "role": "discovery",
+    "note": "检查 Kimi 模型、API、价格、上下文和 coding agent 更新"
   },
   {
-    "id": "minimax",
+    "id": "minimax-official",
     "name": "MiniMax",
     "url": "https://www.minimaxi.com/",
-    "role": "manual",
-    "note": "人工检查官方新闻和开放平台。"
+    "role": "discovery",
+    "note": "检查 MiniMax 模型、开放平台、API 和产品更新"
   },
   {
-    "id": "tongyi-lingma",
-    "name": "通义灵码",
-    "url": "https://lingma.aliyun.com/",
-    "role": "manual",
-    "note": "人工检查官方产品和文档页面。"
+    "id": "baidu-qianfan-duplicate-2",
+    "name": "百度智能云千帆",
+    "url": "https://cloud.baidu.com/product-s/qianfan_home",
+    "role": "discovery",
+    "note": "检查文心模型、千帆平台、API、价格和企业服务变化"
   },
   {
-    "id": "windsurf",
-    "name": "Windsurf / Devin Desktop",
-    "url": "https://docs.devin.ai/desktop/changelog",
-    "role": "manual",
-    "note": "人工确认产品归属后检查官方 Changelog。"
+    "id": "tencent-hunyuan-duplicate-2",
+    "name": "腾讯混元",
+    "url": "https://cloud.tencent.com/product/hunyuan",
+    "role": "discovery",
+    "note": "检查混元模型、API、开源权重和腾讯产品集成"
+  },
+  {
+    "id": "volcengine-ark",
+    "name": "火山引擎方舟",
+    "url": "https://www.volcengine.com/product/ark",
+    "role": "discovery",
+    "note": "检查豆包模型、方舟平台、API、价格和工具更新"
   }
 ]

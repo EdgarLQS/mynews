@@ -3,7 +3,7 @@ title: mynews 功能矩阵
 doc_type: matrix
 status: current
 implementation_status: implemented
-version: 1.5
+version: 1.6
 created: 2026-08-02
 updated: 2026-08-11
 owner: project-maintainers
@@ -11,7 +11,10 @@ owner: project-maintainers
 
 # mynews 功能矩阵
 
-本表是产品范围和实现状态的唯一真相来源。v1.4 外部来源插件已按 Implemented 归档；v1.5 P1–P5 扩展来源与安全交接已 Implemented，P6 真实来源验收仍独立记录；`paperswithcode-daily` 当前为 manual/blocked。外部插件仍是受信任本地 Python 代码，显式清单只控制加载，不承诺进程级沙箱。真实 launchd 按验收边界不加载。
+本表是产品范围和实现状态的唯一真相来源。v1.5 已按 Implemented 归档；v1.6 P0–P6
+已 Implemented，P7 真实来源验收仍按环境独立记录；`paperswithcode-daily` 当前为
+manual/blocked。外部插件仍是受信任本地 Python 代码，显式清单只控制加载，不承诺进程级
+沙箱。真实 launchd 按验收边界不加载。
 
 状态：`Planned`、`In progress`、`Implemented`、`Verified`、`Future`、`Out`。
 
@@ -30,6 +33,7 @@ owner: project-maintainers
 | CLI-08 | CLI | `plugin list`、`plugin probe --plugin` 及 collect/probe 的显式 `--plugin` 选择 | Implemented | 中文 help、非法参数、退出码、entry-point 发现和 source selection 测试 |
 | CLI-09 | CLI | collect/probe 的 `--with-plugin` 追加选择与扩展采集脚本 | Implemented | 默认采集不变；扩展运行同时记录 built-in 与插件来源；P6 真实组合采集已记录，Codex G6-V 仍 SKIPPED/BLOCKED |
 | CLI-10 | CLI | `mynews watchlist` 人工官方页面检查清单 | Implemented | Pydantic 契约、确定性 Markdown、无网络/Store/Codex 副作用 |
+| CLI-11 | CLI | `mynews prepare --date` 与 `--refresh` editorial 候选包 | Implemented | 日期重放、refresh、中文 help、0/1/3 退出码和失败恢复测试 |
 | SRC-01 | 来源 | Hacker News 官方 API | Verified | fixture + 既有真实 probe；v1.2 目标环境重新执行 G6-S |
 | SRC-02 | 来源 | 官方 RSS/Atom/API、GitHub Release 与官方 HTML 更新页 | Implemented | fixtures、Adapter 测试和目标环境 G6-S |
 | SRC-03 | 来源 | 官方价格页和更新日志监控 | Implemented | 首观快照、规范化差异与 `pricing_change` 测试 |
@@ -38,6 +42,7 @@ owner: project-maintainers
 | SRC-06 | 来源 | 国内外 AI 与重点科技官方来源 | Verified | 既有真实来源验收；v1.2 目标环境重新记录 G6-S 限制 |
 | SRC-07 | 来源 | CC Switch 官方 Changelog 新功能监控 | Verified | fixture 与既有真实 probe |
 | SRC-08 | 来源 | newsFromAI 核对得到的 15 个独立来源插件（含 1 个 manual） | Implemented | 14 个 RSS/Atom fixture、1 个明确 manual/blocked entry-point、entry-point、域名/组织校验和隔离测试；修复后 G6-S 已复验：12 个有效记录、2 个合法空 Feed、1 个 manual/blocked |
+| SRC-09 | 来源 | newsFromAI 当前 17 个自动 Feed 配置映射 | Implemented | `config/newsfromai-feeds.json`、17/17 映射、RSS/Atom 失败隔离和 freshness 测试；真实 probe 仍按 P7 记录 |
 | PIPE-01 | 处理 | 规范化、相关性、热度分离 | Implemented | Normalizer 与相关性回归测试 |
 | PIPE-02 | 处理 | 跨来源、跨日期、跨运行去重 | Implemented | 批内与跨运行状态恢复测试；目标环境 G7 |
 | PIPE-03 | 处理 | discovery AI/科技确定性筛选与质量统计 | Implemented | 词边界、HTML/URL 清理和统计测试 |
@@ -52,6 +57,9 @@ owner: project-maintainers
 | DATA-02 | 数据 | run/latest/dedup/pending 事务提交与失败保护 | Implemented | 注入替换失败、完整回滚和 failed 保护测试 |
 | DATA-03 | 数据 | 去重、pending、价格和来源快照 JSON | Implemented | 重启恢复、状态演进和快照测试 |
 | DATA-04 | 数据 | report/digest/watchlist 可分享输出隐私门禁与 report 原子写入 | Implemented | 敏感值不回显、失败不覆盖旧文件、无临时文件残留 |
+| DATA-05 | 数据 | Candidate Contract v1、公开 JSON Schema、兼容读取和匹配统计 | Implemented | Schema/旧 categories 读取、最多 500 条、`firstSeenAt <= generatedAt` 和隐私门禁 |
+| DATA-06 | 数据 | editorial 观察历史、first-seen、source family、重复观察和保守事件聚类 | Implemented | `duplicateGroupId`、`multiSources`、`repeat_count` 和跨来源误合并测试 |
+| EDITORIAL-01 | 编辑 | candidates JSON/Markdown、完整 manual watchlist、publication history 和 weekly feedback 提示 | Implemented | 确定性输出、人工只读台账、失败状态和原子多文件写入 |
 | DIGEST-01 | 情报 | 独立 DigestBuilder 读取 RunReport/上一期 Digest，保守聚合、权重排序和 new/updated/ongoing | Implemented | 聚类、误合并、排序、生命周期和 max-items 测试 |
 | DIGEST-02 | 情报 | 主榜只含 verified；unverified 进入线索观察并保留原因、重试状态 | Implemented | Schema 隔离、原因/重试和 Markdown 测试 |
 | DIGEST-03 | 情报 | 仅依据已保存严格证据的 Codex 中文摘要/影响判断与安全回退 | Implemented | 合法引用、未知引用、非法输出、超时和安全回退测试 |
@@ -72,4 +80,4 @@ owner: project-maintainers
 
 - 实现内容完成且相应离线检查通过后才能从 Planned 改为 Implemented。
 - 依赖真实网络、Codex 或七天运行的功能，必须完成对应真实验收才能改为 Verified。
-- v1.5 的状态回写以 [当前计划](../planning/v1.5-expanded-sources-safe-handoff-plan.md) 为准；v1.4 及更早真实限制以 [归档索引](../archive/README.md) 和归档清单为准。
+- v1.6 的状态回写以 [当前计划](../planning/v1.6-newsfromai-parity-plan.md) 为准；v1.5 及更早真实限制以 [归档索引](../archive/README.md) 和归档清单为准。
