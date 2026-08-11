@@ -7,10 +7,12 @@ import html
 import json
 import re
 from collections.abc import Iterable, Mapping, Sequence
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any, Literal
 from urllib.parse import urlsplit
+
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, ValidationError
 
 from mynews.application.output_safety import OutputSafetyError, ensure_safe_output
 from mynews.domain.models import Candidate
@@ -70,6 +72,99 @@ _SOURCE_FAMILY_ALIASES = {
     "techcrunch-ai": "techcrunch",
     "techcrunch": "techcrunch",
 }
+
+
+class _ContractModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class _CandidateStatsContract(_ContractModel):
+    candidateCount: int = Field(ge=0, le=MAX_CANDIDATES)
+    databaseMatchedCount: int = Field(ge=0, le=MAX_CANDIDATES)
+    fallbackCount: int = Field(ge=0, le=MAX_CANDIDATES)
+    matchRate: float = Field(ge=0, le=1)
+
+
+class _MatchContract(_ContractModel):
+    method: Literal["dedup_key", "normalized_url", "fallback"]
+    databaseMatched: bool
+
+
+class _EvidenceContract(_ContractModel):
+    type: Literal["source", "official", "paper", "repository", "secondary"]
+    url: AnyHttpUrl
+    title: str | None = Field(default=None, max_length=500)
+    source: str | None = Field(default=None, max_length=200)
+    publishedAt: datetime | None = None
+
+
+class _PublicationContract(_ContractModel):
+    date: str
+    platform: str = Field(min_length=1, max_length=100)
+    url: AnyHttpUrl
+    publishedAt: datetime
+
+
+class _ImageCandidateContract(_ContractModel):
+    url: AnyHttpUrl
+    type: str = Field(max_length=100)
+
+
+class _CandidateContract(_ContractModel):
+    id: str = Field(min_length=1, max_length=200)
+    candidateRef: str | None = Field(default=None, min_length=3, max_length=420)
+    idScope: Literal["global", "batch"] | None = None
+    match: _MatchContract | None = None
+    title: str = Field(min_length=1, max_length=500)
+    url: AnyHttpUrl
+    source: str = Field(min_length=1, max_length=200)
+    sourceRole: Literal[
+        "primary",
+        "discovery",
+        "benchmark",
+        "research",
+        "incident",
+        "monitor",
+        "manual",
+    ] | None = None
+    publishedAt: datetime | None = None
+    firstSeenAt: datetime
+    firstSeenPrecision: Literal["date", "datetime"] | None = None
+    duplicateGroupId: str | None = Field(default=None, max_length=200)
+    multiSources: list[Annotated[str, Field(min_length=1, max_length=200)]] | None = (
+        Field(default=None, min_length=1, max_length=50)
+    )
+    repeat_count: int | None = Field(default=None, ge=1)
+    authors: list[Annotated[str, Field(max_length=200)]] | None = Field(
+        default=None, max_length=20
+    )
+    sourceHeat: float | None = Field(default=None, ge=0)
+    comments: int | None = Field(default=None, ge=0)
+    language: str | None = Field(default=None, max_length=35)
+    summaryOriginal: str | None = Field(default=None, max_length=MAX_SUMMARY_CHARS)
+    contentExcerpt: str | None = Field(default=None, max_length=MAX_CONTENT_CHARS)
+    tags: list[Annotated[str, Field(min_length=1, max_length=100)]] | None = Field(
+        default=None, max_length=30
+    )
+    publicationHistory: list[_PublicationContract] | None = Field(
+        default=None, max_length=MAX_PUBLICATION_HISTORY
+    )
+    evidence: list[_EvidenceContract] | None = Field(
+        default=None, max_length=MAX_EVIDENCE
+    )
+    externalLinks: list[AnyHttpUrl] | None = Field(default=None, max_length=5)
+    imageCandidates: list[_ImageCandidateContract] | None = Field(
+        default=None, max_length=3
+    )
+    extractionStatus: Literal["complete", "partial", "failed"] | None = None
+
+
+class _CandidateBatchContract(_ContractModel):
+    schemaVersion: Literal["1.0"]
+    date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    generatedAt: datetime
+    stats: _CandidateStatsContract | None = None
+    candidates: list[_CandidateContract] = Field(max_length=MAX_CANDIDATES)
 
 
 def source_family(source_id: str, url: str = "") -> str:
@@ -279,6 +374,20 @@ def candidate_contract_schema() -> dict[str, Any]:
     }
 
 
+def _schema_issues(payload: Mapping[str, Any]) -> list[dict[str, str]]:
+    try:
+        _CandidateBatchContract.model_validate(payload)
+    except ValidationError as error:
+        return [
+            {
+                "field": ".".join(str(part) for part in item["loc"]) or "$",
+                "message": str(item["msg"]),
+            }
+            for item in error.errors()
+        ]
+    return []
+
+
 def validate_candidate_payload(payload: Mapping[str, Any]) -> list[dict[str, str]]:
     issues: list[dict[str, str]] = []
     required = ("schemaVersion", "date", "generatedAt", "candidates")
@@ -292,11 +401,19 @@ def validate_candidate_payload(payload: Mapping[str, Any]) -> list[dict[str, str
     business_date = str(payload.get("date", ""))
     if not _DATE_RE.fullmatch(business_date):
         issues.append({"field": "date", "message": "日期必须使用 YYYY-MM-DD"})
+    else:
+        try:
+            date.fromisoformat(business_date)
+        except ValueError:
+            issues.append({"field": "date", "message": "日期不是有效日历日期"})
     generated = _parse_datetime(payload.get("generatedAt"))
     candidates = payload.get("candidates")
     if not isinstance(candidates, list):
         issues.append({"field": "candidates", "message": "必须是数组"})
-        return issues
+        return sorted(
+            issues + _schema_issues(payload),
+            key=lambda item: (item["field"], item["message"]),
+        )
     if len(candidates) > MAX_CANDIDATES:
         issues.append({"field": "candidates", "message": "候选最多 500 条"})
     seen_urls: set[str] = set()
@@ -351,6 +468,31 @@ def validate_candidate_payload(payload: Mapping[str, Any]) -> list[dict[str, str
             )
         ):
             issues.append({"field": f"{path}.repeat_count", "message": "必须是正整数"})
+    issues.extend(_schema_issues(payload))
+    stats = payload.get("stats")
+    if isinstance(stats, Mapping):
+        matched_count = sum(
+            isinstance(item, Mapping)
+            and isinstance(item.get("match"), Mapping)
+            and bool(item["match"].get("databaseMatched"))
+            for item in candidates
+        )
+        expected = {
+            "candidateCount": len(candidates),
+            "databaseMatchedCount": matched_count,
+            "fallbackCount": len(candidates) - matched_count,
+            "matchRate": round(matched_count / len(candidates), 6)
+            if candidates
+            else 0.0,
+        }
+        for field, value in expected.items():
+            if field in stats and stats[field] != value:
+                issues.append(
+                    {
+                        "field": f"stats.{field}",
+                        "message": "统计必须与 candidates 实际内容一致",
+                    }
+                )
     return sorted(issues, key=lambda item: (item["field"], item["message"]))
 
 
@@ -747,7 +889,10 @@ def _clean_text(value: str) -> str:
 def _clip(value: str, limit: int) -> str:
     if len(value) <= limit:
         return value
-    return value[:limit].rstrip() + "..."
+    suffix = "..."
+    if limit <= len(suffix):
+        return value[:limit]
+    return value[: limit - len(suffix)].rstrip() + suffix
 
 
 def _format_datetime(value: datetime | None) -> str | None:

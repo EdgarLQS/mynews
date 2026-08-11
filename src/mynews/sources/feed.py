@@ -291,11 +291,12 @@ def _clean_summary(value: str) -> str:
 def _limit(value: str, limit: int) -> str:
     if len(value) <= limit:
         return value
-    clipped = value[:limit].rstrip()
+    suffix = "..."
+    clipped = value[: max(0, limit - len(suffix))].rstrip()
     boundary = max(clipped.rfind("。"), clipped.rfind(". "), clipped.rfind(" "))
-    if boundary >= int(limit * 0.7):
+    if boundary >= int(max(1, limit - len(suffix)) * 0.7):
         clipped = clipped[:boundary].rstrip()
-    return f"{clipped}..."
+    return f"{clipped}{suffix}"[:limit]
 
 
 def _unique(values: Iterable[str], limit: int) -> list[str]:

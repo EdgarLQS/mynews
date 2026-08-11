@@ -550,9 +550,10 @@ def main(
         selected_plugin_source_ids = ()
     collector = SourceCollector(active_registry)
     if args.command == "prepare":
+        parsed_date = _parse_local_date(args.date, parser, "--date")
         try:
             prepare_result = prepare_editorial_pack(
-                args.date,
+                parsed_date.isoformat(),
                 root=Path.cwd(),
                 refresh=args.refresh,
             )

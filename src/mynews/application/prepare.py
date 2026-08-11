@@ -104,6 +104,8 @@ def prepare_editorial_pack(
     manual = _load_manual_watchlist(root_path)
     markdown = _render_markdown(payload, manual, failures)
     ensure_safe_output(payload, root="candidate")
+    ensure_safe_output(manual, root="candidate.manual")
+    ensure_safe_output(markdown, root="candidateMarkdown")
     writes: dict[Path, object] = {
         collection_path: _collection_json(collection),
         root_path / "state" / "editorial-observations.json": observations,

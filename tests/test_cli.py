@@ -115,6 +115,16 @@ def test_invalid_date_arguments_are_reported_in_chinese(
     assert message in capsys.readouterr().err
 
 
+def test_prepare_invalid_date_is_an_argument_error(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as raised:
+        main(["prepare", "--date", "2026/08/11"])
+
+    assert raised.value.code == 2
+    assert "--date 必须使用 YYYY-MM-DD" in capsys.readouterr().err
+
+
 def test_collect_script_exposes_help() -> None:
     result = __import__("subprocess").run(
         ["./scripts/collect.sh", "--help"], capture_output=True, text=True, check=False

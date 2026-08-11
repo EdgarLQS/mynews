@@ -9,7 +9,10 @@ import pytest
 
 import mynews.application.prepare as prepare_module
 from mynews.application.candidates import (
+    MAX_CONTENT_CHARS,
+    MAX_SUMMARY_CHARS,
     build_candidate_payload,
+    candidate_contract_schema,
     read_candidate_payload,
     validate_candidate_payload,
 )
@@ -172,6 +175,90 @@ def test_conservative_cross_source_group_and_contract() -> None:
     assert candidate["multiSources"] == ["publisher-a", "publisher-b"]
     assert candidate["repeat_count"] == 3
     assert candidate["firstSeenAt"] == "2026-08-10T08:00:00Z"
+
+
+def test_candidate_contract_schema_and_text_limits_are_publicly_stable() -> None:
+    public_schema = json.loads(
+        Path("docs/reference/candidate-contract-v1.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert candidate_contract_schema() == public_schema
+
+    candidate = Candidate.model_validate(
+        {
+            "source_id": "fixture",
+            "title_original": "Long candidate",
+            "url": "https://fixture.example/long",
+            "excerpt": "s" * (MAX_SUMMARY_CHARS + 100),
+            "content": "c" * (MAX_CONTENT_CHARS + 100),
+        }
+    )
+    payload = build_candidate_payload(
+        [candidate],
+        business_date="2026-08-11",
+        generated_at=datetime(2026, 8, 11, 23, 59, 59, tzinfo=UTC),
+        observations={},
+    )
+    exported = payload["candidates"][0]
+    assert len(exported["summaryOriginal"]) <= MAX_SUMMARY_CHARS
+    assert len(exported["contentExcerpt"]) <= MAX_CONTENT_CHARS
+
+
+def test_candidate_validator_rejects_public_schema_violations() -> None:
+    payload = {
+        "schemaVersion": "1.0",
+        "date": "2026-08-11",
+        "generatedAt": "2026-08-11T12:00:00Z",
+        "stats": {},
+        "candidates": [
+            {
+                "id": "candidate-1",
+                "title": "Candidate",
+                "url": "https://fixture.example/item",
+                "source": "Fixture",
+                "firstSeenAt": "2026-08-11T00:00:00Z",
+                "firstSeenPrecision": "unknown",
+                "unexpected": "must be rejected",
+            }
+        ],
+    }
+    issues = validate_candidate_payload(payload)
+    assert {issue["field"] for issue in issues} >= {
+        "stats.candidateCount",
+        "candidates.0.firstSeenPrecision",
+        "candidates.0.unexpected",
+    }
+
+
+def test_prepare_privacy_gate_covers_manual_markdown(tmp_path: Path) -> None:
+    config = tmp_path / "config"
+    config.mkdir()
+    (config / "manual-watchlist.json").write_text(
+        json.dumps(
+            [
+                {
+                    "id": "unsafe",
+                    "name": "Unsafe",
+                    "url": "https://example.example/",
+                    "role": "manual",
+                    "note": "API_KEY=leaked-secret",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    http = FixtureHttp(
+        "<rss><channel><item><title>Fixture</title>"
+        "<link>https://fixture.example/item</link></item></channel></rss>"
+    )
+    registry = SourceRegistry([_feed()], http=http)
+
+    with pytest.raises(ValueError, match="输出安全检查失败") as raised:
+        prepare_editorial_pack("2026-08-11", root=tmp_path, registry=registry)
+
+    assert "leaked-secret" not in str(raised.value)
+    assert not (tmp_path / "output/editorial/2026-08-11/candidates.md").exists()
 
 
 def test_all_source_failure_preserves_previous_candidate_output(tmp_path: Path) -> None:
