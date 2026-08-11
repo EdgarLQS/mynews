@@ -17,7 +17,7 @@ owner: project-maintainers
 
 | 计划 | 文档状态 | 实现状态 | 下一门槛 |
 | --- | --- | --- | --- |
-| [v1.5 扩展来源与安全交接计划](v1.5-expanded-sources-safe-handoff-plan.md) | Current | Implemented | P1–P5 已通过离线门禁；下一门槛是 P6 逐来源真实 probe 和扩展组合采集 |
+| [v1.5 扩展来源与安全交接计划](v1.5-expanded-sources-safe-handoff-plan.md) | Current | Implemented | P1–P6 记录已完成；下一阶段必须从已合入交付的最新 `main` 创建新分支 |
 
 ## 已完成计划
 

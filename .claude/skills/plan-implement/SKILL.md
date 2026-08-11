@@ -9,7 +9,7 @@ description: Maintain the current project phase and produce repository-grounded 
 
 ## 工作流
 
-1. 确认 `pwd`、当前分支、Git 状态、未提交和未跟踪文件；保护不属于本任务的变更。
+1. 确认 `pwd`、当前分支、Git 状态、未提交和未跟踪文件；保护不属于本任务的变更。新阶段实施必须以已包含上一阶段交付的最新 `main` HEAD 为基线，再创建新的 `codex/<phase>` 分支；不得直接从旧阶段分支续做。
 2. 从 `docs/README.md` 进入文档体系，读取功能矩阵、`docs/planning/README.md` 和唯一 Current 计划，再按变更类型读取架构、来源目录、ADR 和数据契约。用户要求验收时完整读取 `docs/testing/acceptance-rules.md`。
 3. 以 `docs/README.md` 和功能矩阵判断实现状态；用 `Proposed`、`Implemented`、`Verified`、`BLOCKED`、`FAIL` 区分设计、离线实现和真实能力。发现用户口径与文档冲突时，指出冲突并要求实际证据，不能自行改写状态。
 4. 判断请求类型：
@@ -35,6 +35,7 @@ description: Maintain the current project phase and produce repository-grounded 
 实施说明必须明确：
 
 - 从哪个基线创建什么 `codex/` 分支；是否允许修改和提交。
+- 基线必须是已合入上一阶段交付的最新 `main`；若 `main` 未包含上一阶段提交，先停止并报告，不从旧阶段分支绕行。
 - 本阶段目标、非目标、公共 CLI/JSON/模块接口和兼容规则。
 - 涉及来源或插件时，明确每个 source_id、角色、官方边界、安装/显式加载方式，以及普通采集如何保持兼容。
 - 需要同步的计划、架构、ADR、功能矩阵、README、数据契约和 AI 入口。
