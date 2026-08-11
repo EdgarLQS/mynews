@@ -23,7 +23,7 @@ owner: project-maintainers
 
 | 计划 | 文档状态 | 实现状态 | 开始条件 |
 | --- | --- | --- | --- |
-| [v1.6 newsFromAI 数据能力完整吸收计划](v1.6-newsfromai-parity-plan.md) | Draft | Proposed | 确认方案 1；从包含 `4c3b250` 的最新 `main` 创建新分支 |
+| [v1.6 newsFromAI 数据能力完整吸收计划](v1.6-newsfromai-parity-plan.md) | Draft | Proposed | 确认方案 1；从包含 `1d32de2` 的最新 `main` 创建新分支 |
 
 ## 已完成计划
 
