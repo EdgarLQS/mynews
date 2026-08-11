@@ -3,7 +3,7 @@ title: mynews 规划文档状态索引
 doc_type: index
 status: current
 implementation_status: implemented
-version: 1.6
+version: 1.7
 created: 2026-08-02
 updated: 2026-08-11
 owner: project-maintainers
@@ -17,12 +17,13 @@ owner: project-maintainers
 
 | 计划 | 文档状态 | 实现状态 | 下一门槛 |
 | --- | --- | --- | --- |
-| [v1.6 newsFromAI 数据能力完整吸收计划](v1.6-newsfromai-parity-plan.md) | Current | Implemented | P0–P6 已完成；P7 真实来源验收按环境记录 |
+| [v1.7 分时情报分析与人工反馈闭环计划](v1.7-intelligence-loop-plan.md) | Current | Proposed | 实施 P0–P4；P5 真实 Codex 双档验收需单独授权 |
 
 ## 已完成计划
 
 | 计划 | 文档状态 | 实现状态 | 替代关系 |
 | --- | --- | --- | --- |
+| [v1.6 newsFromAI 数据能力完整吸收计划](../archive/plan/2026/v1.6-newsfromai-parity-plan.md) | Archived | Implemented | 被 v1.7 分时情报分析与人工反馈闭环计划替代；来源与 Candidate 能力继续保留 |
 | [v1.4 外部来源插件计划](../archive/plan/2026/v1.4-source-plugins-plan.md) | Archived | Implemented | 被 v1.5 扩展来源与安全交接计划替代；外部插件仍保持显式加载和受信任本地代码边界 |
 | [v1.5 扩展来源与安全交接计划](../archive/plan/2026/v1.5-expanded-sources-safe-handoff-plan.md) | Archived | Implemented | 被 v1.6 newsFromAI 数据能力完整吸收计划替代；来源插件和安全边界继续保留 |
 | [v1.1 信息质量闭环与可读报告计划](../archive/plan/2026/v1.1-information-quality-plan.md) | Archived | Implemented | 被 v1.2 增量核验与证据生命周期计划替代；discovery G6-V 未完成的记录保留在原文 |

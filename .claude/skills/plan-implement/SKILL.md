@@ -27,7 +27,8 @@ description: Maintain the current project phase and produce repository-grounded 
 - 离线测试只能证明 `Implemented`；依赖真实网络、生产 Codex 或定时器的能力必须执行对应真实验收后才可写 `Verified`。外部阻断写 `BLOCKED`，程序错误写 `FAIL`。
 - 任何来源失败、Codex 失败或存储失败都必须结构化记录，不能静默成功、污染 `latest.json` 或覆盖历史 run。
 - 外部来源计划必须区分主 wheel、独立插件分发包、默认 built-in、plugin-only 和追加扩展模式；来源清单以 Current 计划和来源目录为准，不能从另一个仓库的旧测试推断。
-- v1.5 P1–P5 已 Implemented 时，必须同时核对 `--plugin`、`--with-plugin`、watchlist、输出隐私门禁和 report 原子写入；真实来源 probe 仍单独标为 Verified、BLOCKED 或 FAIL。
+- v1.6 已按 Implemented 归档，收集功能没有新的计划缺口；来源健康、真实 Codex 和定时结果仍分别标为 Verified、BLOCKED 或 FAIL。
+- v1.7 是 Current / Proposed：分析层使用 `news-task.md`，不得新增核心 Briefing 模型或放宽 Digest 主榜；只有 publication/feedback 人工回填进入确定性 CLI。
 - 默认不操作真实 launchd，不修改或提交 `output/`、`state/`、`logs/` 运行产物。
 
 ## 实施交接要求
@@ -41,6 +42,7 @@ description: Maintain the current project phase and produce repository-grounded 
 - 需要同步的计划、架构、ADR、功能矩阵、README、数据契约和 AI 入口。
 - 最小相关测试、静态检查、全量测试、真实环境门禁和成功判定。
 - 不得顺带重构、扩展未经批准的来源、绕过访问控制或把 mock 当作真实验收。
+- v1.7 实施不得自动注册 Codex 任务、操作真实 launchd、修改运行台账或生成平台素材；真实任务只在用户明确授权后执行。
 
 ## 验收交接要求
 
@@ -52,6 +54,7 @@ description: Maintain the current project phase and produce repository-grounded 
 - 对真实来源、生产 Codex、隔离回溯和定时能力分别判定；只能 mock 或外部阻断不得 PASS。
 - 外部来源变更分别验收 entry-point 发现、工厂加载、默认采集、plugin-only、追加扩展采集和每个 source_id 的 live probe；插件未准备不得静默跳过。
 - 输出安全或人工清单变更检查敏感值不回显、无网络/Store 副作用、原子失败恢复和旧输出保护。
+- v1.7 还要检查 task 双档/latest-only、verified/lead 隔离、报告先于状态推进，以及 publication/feedback 的人工确认、幂等和冲突规则。
 - 首轮只读后，逐项记录问题、严重性、文件和证据；修复作为独立开发步骤，不能在首轮验收中顺手修改。
 - 修复完成后重新运行受影响门禁和完整验收；只有复验无未解决问题时才能给 `PASS`。外部阻断为 `BLOCKED`，程序问题为 `FAIL`。
 - 报告使用“计划、执行、验证”结构，并分别说明首轮发现、修复结果和复验结果。

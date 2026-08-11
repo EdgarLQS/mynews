@@ -76,7 +76,7 @@ flowchart LR
 
 ### v1.5/v1.6 Implemented 扩展 seam
 
-以下边界已按 [v1.6 当前计划](../planning/v1.6-newsfromai-parity-plan.md) 复用并扩展；v1.5
+以下边界已按 [v1.6 归档计划](../archive/plan/2026/v1.6-newsfromai-parity-plan.md) 复用并扩展；v1.5
 P1–P6 实现；逐来源真实 probe 仍是 v1.6 P7 独立门槛：
 
 - `ExternalPluginLoader` 和 SourcePlugin 1.0 协议保持不变；`--with-plugin` 只在 CLI

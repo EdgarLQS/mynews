@@ -3,7 +3,7 @@ title: mynews 历史文档归档索引
 doc_type: archive-index
 status: current
 implementation_status: not_applicable
-version: 1.6
+version: 1.7
 created: 2026-08-02
 updated: 2026-08-11
 owner: project-maintainers
@@ -32,7 +32,8 @@ archive/
 | `docs/testing/v1.2-real-environment-acceptance.md` | `testing/2026/v1.2-real-environment-acceptance.md` | 2026-08-09 | v1.2 真实验收清单已完成回写；G6-V 仍为 `BLOCKED`，不再作为当前验收入口 | [v1.3 归档计划](plan/2026/v1.3-intelligence-digest-plan.md) |
 | `docs/planning/v1.3-intelligence-digest-plan.md` | `plan/2026/v1.3-intelligence-digest-plan.md` | 2026-08-09 | v1.3 已按 Implemented 完成并被 v1.4 外部来源插件计划替代；真实 Digest Codex `BLOCKED` 记录保留 | [v1.4 归档计划](plan/2026/v1.4-source-plugins-plan.md) |
 | `docs/planning/v1.4-source-plugins-plan.md` | `plan/2026/v1.4-source-plugins-plan.md` | 2026-08-11 | v1.4 已按 Implemented 完成并被 v1.5 扩展来源与安全交接计划替代 | [v1.5 归档计划](plan/2026/v1.5-expanded-sources-safe-handoff-plan.md) |
-| `docs/planning/v1.5-expanded-sources-safe-handoff-plan.md` | `plan/2026/v1.5-expanded-sources-safe-handoff-plan.md` | 2026-08-11 | v1.5 已按 Implemented 完成并被 v1.6 newsFromAI 数据能力完整吸收计划替代 | [v1.6 当前计划](../planning/v1.6-newsfromai-parity-plan.md) |
+| `docs/planning/v1.5-expanded-sources-safe-handoff-plan.md` | `plan/2026/v1.5-expanded-sources-safe-handoff-plan.md` | 2026-08-11 | v1.5 已按 Implemented 完成并被 v1.6 newsFromAI 数据能力完整吸收计划替代 | [v1.6 归档计划](plan/2026/v1.6-newsfromai-parity-plan.md) |
+| `docs/planning/v1.6-newsfromai-parity-plan.md` | `plan/2026/v1.6-newsfromai-parity-plan.md` | 2026-08-11 | v1.6 已完成 datacollection 能力吸收并被 v1.7 分时情报分析与人工反馈闭环计划替代 | [v1.7 当前计划](../planning/v1.7-intelligence-loop-plan.md) |
 | `docs/planning/v1-implementation-plan.md` | `plan/2026/v1-implementation-plan.md` | 2026-08-03 | v1 完成并由信息质量闭环 v1.1 替代 | [v1.1 归档计划](plan/2026/v1.1-information-quality-plan.md) |
 
 ## 归档要求

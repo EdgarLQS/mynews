@@ -31,7 +31,7 @@ v1.1 将来源详细等级写入 `SourceHealth`/`SourceResult`。`experimental` 
 
 ## v1.5 Implemented 外部来源包
 
-下表是 [v1.6 当前计划](../planning/v1.6-newsfromai-parity-plan.md) 复用的 v1.5 来源
+下表是 [v1.6 归档计划](../archive/plan/2026/v1.6-newsfromai-parity-plan.md) 复用的 v1.5 来源
 清单。独立分发包、entry-point、fixture 和离线隔离测试已经 Implemented；它们是否安装和
 真实可用仍由逐来源 probe 证明。它们只能通过独立分发包和显式扩展模式接入；普通 built-in
 采集保持不变。

@@ -3,7 +3,7 @@ title: mynews 项目验收规则
 doc_type: test
 status: current
 implementation_status: implemented
-version: 1.1
+version: 1.2
 created: 2026-08-02
 updated: 2026-08-11
 owner: project-maintainers
@@ -18,7 +18,7 @@ owner: project-maintainers
 - 通用触发语：`按项目验收规则开始验收` 或 `开始验收`。
 - Claude Code：输入 `/acceptance`；可在后面补充文件、提交或功能范围。
 - 未指定范围时：验收当前工作树相对 `HEAD` 的全部已跟踪和未跟踪变更。
-- v1.2 的真实 G6-S、G6-V、G7 结果见[归档验收清单](../archive/testing/2026/v1.2-real-environment-acceptance.md)；当前开发按唯一 [v1.6 Current 计划](../planning/v1.6-newsfromai-parity-plan.md) 的 P0–P7 执行。
+- v1.2 的真实 G6-S、G6-V、G7 结果见[归档验收清单](../archive/testing/2026/v1.2-real-environment-acceptance.md)；当前开发按唯一 [v1.7 Current 计划](../planning/v1.7-intelligence-loop-plan.md) 的 P0–P5 执行。
 
 验收默认只读。除非用户明确要求“验收并修复”，验收人员不得修改、格式化、提交或删除项目文件。
 
@@ -59,6 +59,7 @@ owner: project-maintainers
 | 核验器或 verified 判定 | G0、G1、G2、G3、G5、G6-V |
 | JSON Schema、Store、latest、状态快照 | G0、G1、G2、G3、G4、G5 |
 | 人工清单、可分享输出安全或原子文本输出 | G0、G1、G2、G3、G4、G5 |
+| Codex 任务文档、分时报告或任务状态 | G0、G1、G1-S、G4、G5；执行真实 Codex 或定时任务时增加 G6-V、G7 |
 | launchd、安装脚本或运行脚本 | G0、G1、G2、G3、G7 |
 | v1 阶段完成或发布候选 | G0 至 G7 全部适用项 |
 
@@ -86,7 +87,7 @@ owner: project-maintainers
 - `plugin list` 发现了 entry-point，却没有执行工厂、真实 probe 或扩展采集。
 - 只验证新增插件来源，却没有回归普通 collect/probe 的原有来源选择。
 
-### v1.5/v1.6 来源与 editorial 专项判定
+### v1.5/v1.6 来源与 editorial 继承判定
 
 - 当前 v1.6 代码状态：P0–P6 的离线实现可以标为 `Implemented`；P7 已执行逐源
   `prepare` registry probe，但受限/人工入口必须继续记录为 `BLOCKED` 或 `partial`，不得
@@ -96,7 +97,7 @@ owner: project-maintainers
   分发包或入口写 `FAIL`。
 - 普通 collect/probe 必须保持只使用 built-in；`--plugin` 继续 plugin-only；
   `--with-plugin` 才允许在同一运行中追加插件来源。
-- Current v1.6 计划列出的 17 个 source_id 必须逐一判定；`qwen-blog-rss` 和
+- v1.6 归档计划列出的 17 个 source_id 必须逐一判定；`qwen-blog-rss` 和
   `hacker-news` 是 prepare registry 中的配置来源，不能把旧 built-in 选择重复加入同一
   次 prepare；不存在于当前来源配置的 arXiv 测试期望不得被计入覆盖率。
 - fixture 与隔离 entry-point 测试最高证明 Implemented。单个来源只有真实 probe
@@ -105,6 +106,23 @@ owner: project-maintainers
   `.tmp`；不得通过关闭检查或改写已保存证据来获得 PASS。
 - editorial 输出还必须确认无 refresh 不重新请求来源，refresh 才追加观察，候选包不超过
   500 条，并且 `firstSeenAt <= generatedAt`。
+
+### v1.7 分时任务与人工反馈专项判定
+
+- `news-task.md` 是 Proposed 阶段计划交付，不等于已注册或运行的 Codex 任务；静态文档、
+  mock 或单次人工摘要最多证明 Implemented，真实 09:00/18:00 双档和 latest-only 补跑
+  完成后才可判定对应 Verified。
+- 正式情报只能引用 Digest `main_items` 的 `verified` 条目；Candidate、manual watchlist、
+  discovery 和 `lead_items` 只能作为待核查线索，不能通过任务文案升级事实状态。
+- `prepare`/collect 返回 `3 (partial)` 时必须保留结构化失败并检查必要输出；返回 `1/2`、
+  evidence validation 失败或输出不完整时不得覆盖已有报告或推进成功档位。
+- 任务报告必须先原子提交，再更新状态；`reportedEvents` 只能保存事件键、时间、哈希和
+  相对路径，不得包含密钥、Cookie、授权头或个人绝对路径。
+- 分时任务不得自动修改 publication ledger 或 weekly feedback，不得生成平台素材或发布。
+- `publication add` 必须校验 Candidate event ID、完整公开链接和带时区时间；多事件分别
+  记录，完全重复幂等，缺失信息不得写占位行。
+- `feedback record` 必须校验 ISO 周和非负指标；冲突默认失败，只有显式 `--replace` 才能
+  替换稳定区块。两个回填命令都必须无网络/Store/Codex 副作用，并通过隐私和原子恢复测试。
 
 ### 4. 区分新增问题与既有问题
 
