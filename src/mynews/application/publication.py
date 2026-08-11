@@ -52,6 +52,15 @@ def add_publication(
     clean_platform = _required_text(platform, "平台")
     clean_url = _public_https_url(url)
     published = _aware_datetime(published_at)
+    ensure_safe_output(
+        {
+            "title": clean_title,
+            "platform": clean_platform,
+            "url": clean_url,
+            "published_at": published.isoformat(),
+        },
+        root="publicationInput",
+    )
     payload = _load_candidates(candidate_path)
     matched = _match_events(payload["candidates"], clean_ids)
     rows, fields = _read_ledger(output_path)

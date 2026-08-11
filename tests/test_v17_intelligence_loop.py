@@ -81,6 +81,18 @@ def test_publication_add_matches_group_then_fallback_and_is_idempotent(
     assert second.status == "unchanged"
     assert ledger.read_bytes() == previous
 
+    with pytest.raises(ValueError, match="输出安全检查失败"):
+        add_publication(
+            candidate,
+            ["event-a"],
+            title="API_KEY=do-not-leak",
+            platform="平台 A",
+            url="https://social.example/posts/1",
+            published_at="2026-08-11T19:00:00+08:00",
+            output_path=ledger,
+        )
+    assert ledger.read_bytes() == previous
+
 
 def test_publication_mismatch_and_missing_timezone_do_not_write(
     tmp_path: Path,
