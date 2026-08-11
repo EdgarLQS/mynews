@@ -13,7 +13,15 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from mynews.domain.models import Candidate, NewsItem
 
 _TRACKING_QUERY_KEYS = {"fbclid", "gclid", "ref", "referrer"}
-_SOURCE_ROLES = {"discovery", "primary", "monitor", "manual"}
+_SOURCE_ROLES = {
+    "discovery",
+    "primary",
+    "monitor",
+    "manual",
+    "research",
+    "incident",
+    "benchmark",
+}
 _ROLE_ALIASES = {
     "official": "primary",
     "source": "primary",

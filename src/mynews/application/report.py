@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+import os
+import tempfile
 from pathlib import Path
 
+from mynews.application.output_safety import ensure_safe_output
 from mynews.domain.models import NewsItem, RunReport, SourceResult
 
 
 def render_report(report: RunReport) -> str:
+    ensure_safe_output(
+        report.model_dump(mode="json", by_alias=True),
+        root="report",
+    )
     stats = report.verification_stats
     lines = [
         "# mynews 信息报告",
@@ -33,12 +40,35 @@ def render_report(report: RunReport) -> str:
 
 
 def write_report(report: RunReport, path: Path) -> None:
+    text = render_report(report)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(render_report(report), encoding="utf-8")
+    handle = tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        dir=path.parent,
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        delete=False,
+    )
+    try:
+        with handle:
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(handle.name, path)
+    finally:
+        try:
+            os.unlink(handle.name)
+        except FileNotFoundError:
+            pass
 
 
 def load_report(path: Path) -> RunReport:
-    return RunReport.model_validate_json(path.read_text(encoding="utf-8"))
+    try:
+        payload = path.read_text(encoding="utf-8")
+    except OSError as error:
+        raise OSError("无法读取 RunReport 文件") from error
+    return RunReport.model_validate_json(payload)
 
 
 def _items(report: RunReport, status: str, include_pricing: bool) -> list[NewsItem]:

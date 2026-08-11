@@ -14,6 +14,11 @@ from mynews.application.collector import PipelineCollector, SourceCollector
 from mynews.application.digest import DigestBuildConfig, DigestBuilder
 from mynews.application.report import load_report, render_report, write_report
 from mynews.application.validation import RunValidation, validate_run_file, write_schema
+from mynews.application.watchlist import (
+    load_watchlist,
+    render_watchlist,
+    write_watchlist,
+)
 from mynews.domain.models import CollectionRequest
 from mynews.sources.external import ExternalPluginLoader, PluginLoadReport
 from mynews.sources.registry import SourceRegistry, built_in_registry
@@ -87,6 +92,12 @@ def build_parser() -> ChineseArgumentParser:
     source_selector.add_argument(
         "--plugin", dest="plugin_ids", action="append", help="显式加载并选择外部插件"
     )
+    collect.add_argument(
+        "--with-plugin",
+        dest="with_plugin_ids",
+        action="append",
+        help="在 built-in 来源之外追加显式外部插件，可重复指定",
+    )
     collect.add_argument("--verification-model", metavar="模型", help="Codex 核验模型")
     collect.add_argument(
         "--verification-budget",
@@ -126,6 +137,12 @@ def build_parser() -> ChineseArgumentParser:
     )
     probe_selector.add_argument(
         "--plugin", dest="plugin_ids", action="append", help="显式加载并检查外部插件"
+    )
+    probe.add_argument(
+        "--with-plugin",
+        dest="with_plugin_ids",
+        action="append",
+        help="在 built-in 来源之外追加显式外部插件，可重复指定",
     )
 
     validate = commands.add_parser(
@@ -172,6 +189,24 @@ def build_parser() -> ChineseArgumentParser:
         help="要读取的 RunReport JSON，默认 output/latest.json",
     )
     report.add_argument(
+        "--out",
+        metavar="路径",
+        help="Markdown 输出路径；不提供时打印到标准输出",
+    )
+    watchlist = commands.add_parser(
+        "watchlist",
+        help="校验并渲染人工来源清单",
+        description="离线校验人工清单并生成确定性 Markdown，不访问网络或 Store。",
+        add_help=False,
+    )
+    watchlist.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    watchlist.add_argument(
+        "--file",
+        required=True,
+        metavar="路径",
+        help="人工清单 JSON 文件",
+    )
+    watchlist.add_argument(
         "--out",
         metavar="路径",
         help="Markdown 输出路径；不提供时打印到标准输出",
@@ -385,6 +420,13 @@ def _request_from_namespace(
     )
 
 
+def _validate_plugin_mode(
+    args: argparse.Namespace, parser: ChineseArgumentParser
+) -> None:
+    if getattr(args, "plugin_ids", None) and getattr(args, "with_plugin_ids", None):
+        parser.error("--plugin 不能与 --with-plugin 混用")
+
+
 def build_collection_request(
     arguments: Sequence[str], *, now: datetime | None = None
 ) -> CollectionRequest:
@@ -411,6 +453,40 @@ def _load_external_selection(
 
 def _selected_external_source_ids(report: PluginLoadReport) -> tuple[str, ...]:
     return tuple(item.plugin.metadata.source_id for item in report.loaded)
+
+
+def _relative_output_path(path: Path, root: Path) -> str:
+    try:
+        return path.relative_to(root).as_posix()
+    except ValueError:
+        return path.name
+
+
+def _safe_cli_error(error: Exception, suggestion: str) -> str:
+    reason = error.strerror if isinstance(error, OSError) else str(error)
+    return f"{reason or '文件操作失败'}；{suggestion}"
+
+
+def _actual_selection(
+    args: argparse.Namespace,
+    builtin_ids: Sequence[str],
+    plugin_ids: Sequence[str],
+    parser: ChineseArgumentParser,
+) -> tuple[str, ...]:
+    source_ids = getattr(args, "source_ids", None)
+    if source_ids is not None:
+        if getattr(args, "with_plugin_ids", None):
+            unknown = [
+                source_id for source_id in source_ids if source_id not in builtin_ids
+            ]
+            if unknown:
+                parser.error(f"--source 只能选择 built-in 来源：{', '.join(unknown)}")
+        selected = (*source_ids, *plugin_ids)
+    elif getattr(args, "plugin_ids", None):
+        selected = tuple(plugin_ids)
+    else:
+        selected = (*builtin_ids, *plugin_ids)
+    return tuple(dict.fromkeys(selected))
 
 
 def main(
@@ -441,8 +517,14 @@ def main(
             return SourceCollector.exit_code(health)
         parser.print_help()
         return 2
-    if getattr(args, "plugin_ids", None):
-        prepared = _load_external_selection(active_registry, args.plugin_ids)
+    if args.command in {"collect", "probe"}:
+        _validate_plugin_mode(args, parser)
+    builtin_ids = getattr(active_registry, "source_ids", ())
+    requested_plugins = getattr(args, "plugin_ids", None) or getattr(
+        args, "with_plugin_ids", None
+    )
+    if requested_plugins:
+        prepared = _load_external_selection(active_registry, requested_plugins)
         if prepared is None:
             return 1
         active_registry, plugin_report = prepared
@@ -455,11 +537,29 @@ def main(
             report = load_report(Path(args.run))
             if args.out:
                 write_report(report, Path(args.out))
-                print(f"报告已写入：{args.out}")
+                print("报告已写入")
             else:
                 print(render_report(report), end="")
         except (OSError, ValueError) as error:
-            print(f"报告生成失败：{error}")
+            print(
+                "报告生成失败："
+                f"{_safe_cli_error(error, '请检查输入内容、输出路径和文件权限')}"
+            )
+            return 1
+        return 0
+    if args.command == "watchlist":
+        try:
+            items = load_watchlist(Path(args.file))
+            if args.out:
+                write_watchlist(items, Path(args.out))
+                print("人工清单已写入")
+            else:
+                print(render_watchlist(items), end="")
+        except (OSError, ValueError) as error:
+            print(
+                "人工清单生成失败："
+                f"{_safe_cli_error(error, '请检查 JSON 格式、输出路径和文件权限')}"
+            )
             return 1
         return 0
     if args.command == "validate":
@@ -501,7 +601,10 @@ def main(
             )
             history_path, latest_json, latest_markdown = digest_store.write(digest)
         except (DigestStoreError, OSError, ValueError) as error:
-            print(f"简报生成失败：{error}")
+            print(
+                "简报生成失败："
+                f"{_safe_cli_error(error, '请检查输入内容、输出路径和文件权限')}"
+            )
             return 1
         print(
             json.dumps(
@@ -509,9 +612,15 @@ def main(
                     "status": digest.status,
                     "digest_id": digest.digest_id,
                     "run_id": digest.run_id,
-                    "history": str(history_path),
-                    "latest_json": str(latest_json),
-                    "latest_markdown": str(latest_markdown),
+                    "history": _relative_output_path(
+                        history_path, Path(args.out_dir)
+                    ),
+                    "latest_json": _relative_output_path(
+                        latest_json, Path(args.out_dir)
+                    ),
+                    "latest_markdown": _relative_output_path(
+                        latest_markdown, Path(args.out_dir)
+                    ),
                 },
                 ensure_ascii=False,
                 indent=2,
@@ -520,15 +629,15 @@ def main(
         return 0 if digest.status == "complete" else 3
     if args.command == "collect":
         request = _request_from_namespace(args, parser, None)
-        if selected_plugin_source_ids:
-            request = request.model_copy(
-                update={"source_ids": list(selected_plugin_source_ids)}
-            )
+        selected_source_ids = _actual_selection(
+            args, builtin_ids, selected_plugin_source_ids, parser
+        )
+        request = request.model_copy(update={"source_ids": list(selected_source_ids)})
         verification_config = _verification_config(args)
         try:
             if registry is not None and store is None:
                 result = collector.collect(
-                    request, list(selected_plugin_source_ids) or args.source_ids
+                    request, selected_source_ids
                 )
                 print(collector.collection_json(result))
                 return collector.exit_code(result.health)
@@ -539,7 +648,7 @@ def main(
                 verification_config=verification_config,
             )
             report = pipeline.collect(
-                request, list(selected_plugin_source_ids) or args.source_ids
+                request, selected_source_ids
             )
         except KeyError as error:
             parser.error(str(error).strip("'"))
@@ -563,10 +672,11 @@ def main(
         )
         return {"complete": 0, "partial": 3, "failed": 1}[report.status]
     if args.command == "probe":
+        selected_source_ids = _actual_selection(
+            args, builtin_ids, selected_plugin_source_ids, parser
+        )
         try:
-            health = collector.probe(
-                list(selected_plugin_source_ids) or args.source_ids
-            )
+            health = collector.probe(selected_source_ids)
         except KeyError as error:
             parser.error(str(error).strip("'"))
         print(collector.probe_json(health))

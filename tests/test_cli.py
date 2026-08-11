@@ -184,12 +184,27 @@ def test_report_command_writes_chinese_markdown_offline(
     result = main(["report", "--run", str(fixture), "--out", str(output)])
 
     assert result == 0
-    assert "报告已写入" in capsys.readouterr().out
+    message = capsys.readouterr().out
+    assert message.strip() == "报告已写入"
+    assert str(output) not in message
     text = output.read_text(encoding="utf-8")
     assert "## 已核验" in text
     assert "## 待核验" in text
     assert "## 价格变化" in text
     assert "## 来源状态" in text
+
+
+def test_report_failure_does_not_echo_absolute_input_path(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    run_path = tmp_path / "missing-run.json"
+
+    result = main(["report", "--run", str(run_path)])
+
+    assert result == 1
+    output = capsys.readouterr().out
+    assert str(run_path) not in output
+    assert "请检查输入内容、输出路径和文件权限" in output
 
 
 def test_digest_command_writes_atomic_outputs_without_codex(
@@ -215,11 +230,38 @@ def test_digest_command_writes_atomic_outputs_without_codex(
     )
 
     assert result == 0
-    payload = json.loads(capsys.readouterr().out)
+    output = capsys.readouterr().out
+    payload = json.loads(output)
     assert payload["status"] == "complete"
+    assert str(tmp_path) not in output
+    assert not Path(payload["history"]).is_absolute()
+    assert payload["latest_json"] == "digest-latest.json"
+    assert payload["latest_markdown"] == "digest-latest.md"
     assert (tmp_path / "digest-latest.json").is_file()
     assert (tmp_path / "digest-latest.md").is_file()
     assert list((tmp_path / "digests").glob("*.json"))
+
+
+def test_digest_failure_does_not_echo_absolute_input_path(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    run_path = tmp_path / "missing-run.json"
+
+    result = main(
+        [
+            "digest",
+            "--run",
+            str(run_path),
+            "--out-dir",
+            str(tmp_path / "digest"),
+            "--no-codex",
+        ]
+    )
+
+    assert result == 1
+    output = capsys.readouterr().out
+    assert str(run_path) not in output
+    assert "请检查输入内容、输出路径和文件权限" in output
 
 
 def test_digest_rejects_failed_run_without_writing_latest(

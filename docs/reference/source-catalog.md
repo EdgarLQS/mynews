@@ -29,11 +29,12 @@ v1.1 将来源详细等级写入 `SourceHealth`/`SourceResult`。`experimental` 
 状态的实验等级；`stable-planned`、`adapter-planned` 等其余当前内置等级按稳定来源处理，
 其异常仍会使 Run 变为 `partial` 或 `failed`。这使来源质量和 Run 状态在 JSON 与 report 中可解释。
 
-## v1.5 Proposed 外部来源包
+## v1.5 Implemented 外部来源包
 
 下表是 [v1.5 当前计划](../planning/v1.5-expanded-sources-safe-handoff-plan.md) 的权威来源
-清单，均为 Planned，不表示已经安装、实现或通过真实 probe。它们只能通过独立分发包和
-显式扩展模式接入；普通 built-in 采集保持不变。
+清单。独立分发包、entry-point、fixture 和离线隔离测试已经 Implemented；它们是否安装和
+真实可用仍由逐来源 probe 证明。它们只能通过独立分发包和显式扩展模式接入；普通 built-in
+采集保持不变。
 
 | 来源 ID | 角色 | 等级 | 官方入口 | 官方边界 |
 | --- | --- | --- | --- | --- |

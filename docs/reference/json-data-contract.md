@@ -89,6 +89,10 @@ logs/
 
 `requested_range.verification_budget` 必须记录本次实际预算。`requested_range.verification_reasoning_effort` 记录本次核验实际使用的 Codex 推理强度，允许 `low`、`medium`、`high`、`xhigh`、`max`；旧输入可以没有该可选字段，读取器必须保持兼容。两项输入都可以省略，由应用配置注入；新生成的持久化报告会记录有效值。推理强度只影响 Codex 运行时配置，不放宽第一方证据、域名、日期、摘录、哈希或安全回退门槛。
 
+新 CLI 运行会将 `requested_range.source_ids` 写成实际选择顺序：普通采集为 built-in
+来源，`--plugin` 为 plugin-only，`--with-plugin` 为 built-in 与显式插件的合并选择。
+历史 `source_ids: []` 仍可读取，表示调用方未保存具体选择。
+
 ## NewsItem
 
 ```json
@@ -248,9 +252,23 @@ SourceResult 保留 `source_id`、`role`、`stability`、`health`、抓取/接�
 `empty_capabilities`、`duplicate_source_id` 和 `builtin_source_id_conflict`。
 
 `plugin probe --plugin <id>` 成功时在既有 `status`/`sources` 外附带 `plugins`；
-`collect/probe --plugin <id>` 仍按既有 RunReport 或 SourceCollection 输出。外部工厂
+`collect/probe --plugin <id>` 仍表示 plugin-only，`collect/probe --with-plugin <id>`
+表示 built-in + 显式插件，并按实际选择写入 RunReport 的 `requested_range.source_ids`。
+外部工厂
 只能返回 SourcePlugin 1.0；插件代码没有 Store、Codex 或 Verifier 的公共参数，但
 由于它是受信任本地 Python 代码，系统不承诺进程级沙箱。
+
+## 人工清单 1.0
+
+`mynews watchlist --file config/manual-watchlist.json [--out PATH]` 只读取本地 JSON
+数组，每项固定包含 `id`、`name`、`url`、`role`、`note`；`url` 必须是 HTTPS，`role`
+为 `primary`、`monitor` 或 `manual`。命令不访问网络、不调用 Codex、不创建 Candidate、
+不修改 Store，输出按 `id` 稳定排序。
+
+report、digest 和 watchlist 的可分享文本统一拒绝个人绝对路径、疑似密钥赋值以及
+`token`/`signature` 等敏感 URL 查询参数。失败只报告字段路径和稳定原因，不回显敏感值。
+report 写入使用同目录临时文件、`flush`、`fsync` 和 `os.replace`；替换失败保留旧文件
+并清理临时文件。Digest 继续使用既有三文件事务。
 
 ## validate 和 report
 

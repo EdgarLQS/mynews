@@ -26,7 +26,7 @@
 - 单个函数尽量不超过 50 行；优先类型明确、职责单一和可测试的实现，避免为未来猜测做过度抽象。
 - 面向用户的 CLI 帮助和参数错误使用中文；日志和 JSON 字段保持稳定、机器可读。
 - 任何来源失败都必须显式记录，不得静默丢失、伪装成功或污染 `latest.json`。
-- v1.4 已实现的外部来源只通过 Python entry-point group `mynews.source_plugins` 接入；当前只有显式 `--plugin <id>` 才加载无参数工厂。v1.5 Proposed 允许新增显式 `--with-plugin <id>` 追加模式，但实施和验收前不得当作现有能力。外部插件是受信任本地 Python 代码，显式允许不是进程级沙箱；插件不得接触 Store、Codex、Verifier 或修改 `verified`。
+- 外部来源只通过 Python entry-point group `mynews.source_plugins` 接入；`plugin list` 不执行工厂，`--plugin <id>` 表示 plugin-only，`--with-plugin <id>` 表示 built-in + 显式插件追加，均只加载无参数工厂。外部插件是受信任本地 Python 代码，显式允许不是进程级沙箱；插件不得接触 Store、Codex、Verifier 或修改 `verified`。v1.5 的 15 个来源实现位于独立分发包，真实 probe 仍需单独记录状态。
 
 ## 新闻与证据规则
 

@@ -19,7 +19,8 @@ dev = [
 mynews = "mynews.cli:main"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "plugins/newsfromai-source-pack/tests"]
+pythonpath = ["plugins/newsfromai-source-pack/src"]
 addopts = "-ra"
 
 [tool.ruff]

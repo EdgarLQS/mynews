@@ -1,0 +1,65 @@
+[
+  {
+    "id": "baidu-comate",
+    "name": "百度 Comate",
+    "url": "https://cloud.baidu.com/doc/COMATE/index.html",
+    "role": "manual",
+    "note": "人工检查官方文档、更新和价格变化。"
+  },
+  {
+    "id": "codebuddy",
+    "name": "CodeBuddy",
+    "url": "https://www.codebuddy.cn/docs/ide/Account/pricing",
+    "role": "manual",
+    "note": "人工检查官方文档和价格页面。"
+  },
+  {
+    "id": "cursor",
+    "name": "Cursor",
+    "url": "https://cursor.com/changelog",
+    "role": "manual",
+    "note": "人工检查官方 Changelog 和产品变更。"
+  },
+  {
+    "id": "doubao-volcengine",
+    "name": "豆包 / 火山引擎",
+    "url": "https://www.volcengine.com/product/doubao",
+    "role": "manual",
+    "note": "人工检查官方产品和 API 文档。"
+  },
+  {
+    "id": "glm-codegeex",
+    "name": "GLM / CodeGeeX",
+    "url": "https://bigmodel.cn/",
+    "role": "manual",
+    "note": "人工检查官方平台和产品更新。"
+  },
+  {
+    "id": "kimi-code",
+    "name": "Kimi / Kimi Code",
+    "url": "https://www.kimi.com/zh-cn/products/",
+    "role": "manual",
+    "note": "人工检查官方产品、价格和 Release。"
+  },
+  {
+    "id": "minimax",
+    "name": "MiniMax",
+    "url": "https://www.minimaxi.com/",
+    "role": "manual",
+    "note": "人工检查官方新闻和开放平台。"
+  },
+  {
+    "id": "tongyi-lingma",
+    "name": "通义灵码",
+    "url": "https://lingma.aliyun.com/",
+    "role": "manual",
+    "note": "人工检查官方产品和文档页面。"
+  },
+  {
+    "id": "windsurf",
+    "name": "Windsurf / Devin Desktop",
+    "url": "https://docs.devin.ai/desktop/changelog",
+    "role": "manual",
+    "note": "人工确认产品归属后检查官方 Changelog。"
+  }
+]

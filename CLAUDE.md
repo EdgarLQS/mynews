@@ -8,3 +8,4 @@
 - 用户要求“实施验收”时，采用“只读首轮验收 → 独立修复 → 修复后复验”的三段式流程；首轮不修改文件，最终以复验结果为准。
 - 详细验收标准只维护在 `docs/testing/acceptance-rules.md`，不得在本文件创建第二套标准。
 - 当前扩展来源与安全交接的实施顺序和验收门槛见 [v1.5 计划](docs/planning/v1.5-expanded-sources-safe-handoff-plan.md)；具体规则仍以 `AGENTS.md` 为准。
+- v1.5 P1–P5 已有离线实现；`--plugin`、`--with-plugin`、`watchlist` 和独立来源包的真实验收仍必须按计划记录，fixture/mock 不能升级为 `Verified`。

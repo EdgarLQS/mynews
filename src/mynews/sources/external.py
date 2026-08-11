@@ -302,6 +302,9 @@ def _validate_metadata(plugin_id: str, metadata: SourceMetadata) -> PluginIssue 
         "primary",
         "monitor",
         "discovery",
+        "research",
+        "incident",
+        "benchmark",
     }:
         return PluginIssue(
             plugin_id,

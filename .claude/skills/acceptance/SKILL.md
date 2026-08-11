@@ -10,6 +10,7 @@ description: Run an independent, evidence-backed acceptance pass for current pro
 3. Perform the first acceptance pass read-only. Do not fix, format, install plugins, stage, commit, switch branches, or delete files during this pass.
 4. Select every required gate from the change-type matrix and run the applicable commands instead of inferring results.
 5. For source/plugin work, record the prepared plugin environment and separately verify entry-point discovery, factory loading, unchanged default collection, plugin-only selection, additive expanded collection, and every affected source's live probe.
+   For v1.5, also verify `watchlist` has no network/Store/Codex side effects and that report/digest/watchlist output rejects sensitive values without echoing them.
 6. Treat fixtures and temporary `.dist-info` as Implemented evidence only. A source is Verified only after its own real probe is healthy and parses a valid record; missing environment or external denial is BLOCKED, while missing planned code or a broken contract is FAIL.
 7. For watchlist or output-safety work, verify no network/Store/Codex side effects, no sensitive-value echo, atomic failure recovery, and preservation of prior outputs.
 8. Distinguish failures introduced by the scoped changes from pre-existing or unconfirmed failures, and return the exact conclusion vocabulary and self-contained report structure defined by the acceptance rules.

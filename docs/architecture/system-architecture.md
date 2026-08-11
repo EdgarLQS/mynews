@@ -24,7 +24,7 @@ owner: project-maintainers
 
 ```mermaid
 flowchart LR
-    CLI["CLI: collect / probe / validate / report / digest / plugin"] --> EXT["ExternalPluginLoader: explicit --plugin"]
+    CLI["CLI: collect / probe / validate / report / watchlist / digest / plugin"] --> EXT["ExternalPluginLoader: explicit plugin selection"]
     EXT --> REG["SourceRegistry + SourcePlugin"]
     CLI --> REG
     CLI --> COL["PipelineCollector"]
@@ -66,23 +66,27 @@ flowchart LR
 | DigestSummaryRunner | `run(prompt, model, timeout, reasoning_effort)` | 只读取已保存证据的可替换摘要调用；非法输出只能触发安全回退 |
 | DigestFileStore | `load_latest`、`write` | 历史 Digest、latest JSON 和 Markdown 的同批次原子提交 |
 
-外部插件的 entry-point 名称是 CLI 的插件 ID；只有 `--plugin` 选择才执行工厂，
+外部插件的 entry-point 名称是 CLI 的插件 ID；只有 `--plugin` 或 `--with-plugin` 选择才执行工厂，
 `plugin list` 只读取分发元数据。通过校验的插件使用 `SourceRegistry.with_plugins` 与
 内置来源共享既有 collect/probe 隔离和 RunReport 1.x 结构。插件是受信任的本地 Python
 代码，显式允许清单不是进程级沙箱；不开放核验器插件。
 
-### v1.5 Proposed 扩展 seam
+### v1.5 Implemented 扩展 seam
 
-以下边界仅为 [v1.5 当前计划](../planning/v1.5-expanded-sources-safe-handoff-plan.md) 的
-Proposed 设计，尚未实现：
+以下边界已按 [v1.5 当前计划](../planning/v1.5-expanded-sources-safe-handoff-plan.md) 的
+P1–P5 实现；逐来源真实 probe 仍是 P6 独立门槛：
 
-- `ExternalPluginLoader` 和 SourcePlugin 1.0 协议保持不变；新增 `--with-plugin` 只在
-  CLI 应用层把显式插件追加到 built-in 选择，普通 collect/probe 仍不加载插件。
+- `ExternalPluginLoader` 和 SourcePlugin 1.0 协议保持不变；`--with-plugin` 只在 CLI
+  应用层把显式插件追加到 built-in 选择，普通 collect/probe 仍不加载插件。
 - 既有 `--plugin` 继续表示 plugin-only，不能与 `--source` 或 `--with-plugin` 混用。
 - 主 wheel 提供不含来源配置的通用 RSS/Atom 插件辅助接口；15 个来源及 entry-point
   位于独立分发包，不进入主 wheel，也不能接触 Store、Verifier 或 Codex。
 - `research`、`incident`、`benchmark` 只扩展来源角色与筛选语义，不放宽第一方证据和
   `verified` 门槛；准确来源清单以[信息来源目录](../reference/source-catalog.md)为准。
+- 主 wheel 的 `mynews.sources.feed.RssFeedPlugin` 是不含来源配置的 RSS/Atom 辅助 seam；
+  15 个来源位于 `plugins/newsfromai-source-pack/`，每个 entry-point 是无参数工厂。
+- `watchlist` 只校验本地 JSON 并渲染确定性 Markdown；report、digest、watchlist 共用
+  输出敏感值检查，report 文本使用同目录临时文件、`flush`、`fsync` 和 `os.replace`。
 
 Digest 的信任边界：只有 RunReport 中严格保存的 `primary_evidence` 可以形成 `evidence_refs`；Codex 不能增加 URL、事实或引用。主榜只接收 `verified`，线索观察只接收 `unverified`，两类输出在 Pydantic Schema 和 Markdown 渲染层同时隔离。
 
@@ -168,7 +172,9 @@ src/mynews/
 │   ├── evidence_review.py
 │   ├── validation.py
 │   ├── digest.py
-│   └── report.py
+│   ├── report.py
+│   ├── output_safety.py
+│   └── watchlist.py
 ├── domain/
 │   ├── models.py
 │   ├── normalization.py
@@ -176,6 +182,7 @@ src/mynews/
 │   └── relevance.py
 ├── sources/
 │   ├── protocol.py
+│   ├── feed.py
 │   ├── registry.py
 │   ├── external.py
 │   └── builtins/

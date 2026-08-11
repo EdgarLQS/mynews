@@ -7,6 +7,7 @@ import os
 import tempfile
 from pathlib import Path
 
+from mynews.application.output_safety import ensure_safe_output
 from mynews.domain.models import Digest, DigestItem
 
 
@@ -36,7 +37,7 @@ class DigestFileStore:
             )
         except (OSError, ValueError) as error:
             raise DigestStoreError(
-                f"无法读取上一期 Digest：{self._latest_json}"
+                "无法读取上一期 Digest：文件不可读或内容无效"
             ) from error
 
     def write(self, digest: Digest) -> tuple[Path, Path, Path]:
@@ -56,6 +57,7 @@ class DigestFileStore:
 
 def render_digest(digest: Digest) -> str:
     """渲染可读中文简报，不重新计算事实或核验状态。"""
+    ensure_safe_output(digest.model_dump(mode="json"), root="digest")
     lines = [
         "# mynews 情报简报",
         "",
