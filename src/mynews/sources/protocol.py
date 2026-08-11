@@ -36,6 +36,7 @@ class SourceMetadata:
     stability: str = "stable-planned"
     publication_time_semantics: str = "source-provided"
     plugin_api_version: str = "1.0"
+    freshness_days: int = 2
 
     def __post_init__(self) -> None:
         if not self.source_id.strip():

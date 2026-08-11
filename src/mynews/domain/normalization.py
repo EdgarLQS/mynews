@@ -101,6 +101,7 @@ class Normalizer:
             event_key=event_key,
             event_type=normalize_event_type(candidate.event_type, title, content),
             title_original=title,
+            source_name=_clean_optional(candidate.source_name),
             language_original=normalize_language(
                 candidate.language_original or candidate.language or title
             ),
@@ -119,6 +120,12 @@ class Normalizer:
             canonical_url=canonical_url,
             entities=entities,
             source_roles=[role],
+            authors=list(candidate.authors),
+            tags=list(candidate.tags),
+            summary_original=_clean_optional(candidate.excerpt),
+            content_excerpt=_clean_optional(candidate.content),
+            external_links=list(candidate.external_links),
+            extraction_status=candidate.extraction_status,
         )
 
 
@@ -258,6 +265,13 @@ def _clean_text(value: str) -> str:
     if not cleaned:
         raise ValueError("候选文本不能为空")
     return cleaned
+
+
+def _clean_optional(value: str | None) -> str | None:
+    if value is None:
+        return None
+    cleaned = " ".join(unicodedata.normalize("NFKC", value).split())
+    return cleaned or None
 
 
 def _as_utc(value: datetime | None) -> datetime | None:

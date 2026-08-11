@@ -17,19 +17,14 @@ owner: project-maintainers
 
 | 计划 | 文档状态 | 实现状态 | 下一门槛 |
 | --- | --- | --- | --- |
-| [v1.5 扩展来源与安全交接计划](v1.5-expanded-sources-safe-handoff-plan.md) | Current | Implemented | P1–P6 记录已完成；下一阶段必须从已合入交付的最新 `main` 创建新分支 |
-
-## 下一阶段草案
-
-| 计划 | 文档状态 | 实现状态 | 开始条件 |
-| --- | --- | --- | --- |
-| [v1.6 newsFromAI 数据能力完整吸收计划](v1.6-newsfromai-parity-plan.md) | Draft | Proposed | 确认方案 1；从包含 `1d32de2` 的最新 `main` 创建新分支 |
+| [v1.6 newsFromAI 数据能力完整吸收计划](v1.6-newsfromai-parity-plan.md) | Current | Implemented | P0–P6 已完成；P7 真实来源验收按环境记录 |
 
 ## 已完成计划
 
 | 计划 | 文档状态 | 实现状态 | 替代关系 |
 | --- | --- | --- | --- |
 | [v1.4 外部来源插件计划](../archive/plan/2026/v1.4-source-plugins-plan.md) | Archived | Implemented | 被 v1.5 扩展来源与安全交接计划替代；外部插件仍保持显式加载和受信任本地代码边界 |
+| [v1.5 扩展来源与安全交接计划](../archive/plan/2026/v1.5-expanded-sources-safe-handoff-plan.md) | Archived | Implemented | 被 v1.6 newsFromAI 数据能力完整吸收计划替代；来源插件和安全边界继续保留 |
 | [v1.1 信息质量闭环与可读报告计划](../archive/plan/2026/v1.1-information-quality-plan.md) | Archived | Implemented | 被 v1.2 增量核验与证据生命周期计划替代；discovery G6-V 未完成的记录保留在原文 |
 | [v1.2 增量核验与证据生命周期计划](../archive/plan/2026/v1.2-evidence-lifecycle-plan.md) | Archived | Implemented | 被 v1.3 情报简报计划替代；真实 G6-V `BLOCKED` 和 G7 限制保留在原文 |
 | [v1.3 情报简报计划](../archive/plan/2026/v1.3-intelligence-digest-plan.md) | Archived | Implemented | 被 v1.4 外部来源插件计划替代；真实 Digest Codex `BLOCKED` 记录保留在原文 |

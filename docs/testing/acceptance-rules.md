@@ -18,7 +18,7 @@ owner: project-maintainers
 - 通用触发语：`按项目验收规则开始验收` 或 `开始验收`。
 - Claude Code：输入 `/acceptance`；可在后面补充文件、提交或功能范围。
 - 未指定范围时：验收当前工作树相对 `HEAD` 的全部已跟踪和未跟踪变更。
-- v1.2 的真实 G6-S、G6-V、G7 结果见[归档验收清单](../archive/testing/2026/v1.2-real-environment-acceptance.md)；当前开发按唯一 [v1.5 Current 计划](../planning/v1.5-expanded-sources-safe-handoff-plan.md) 的 P1–P6 执行。
+- v1.2 的真实 G6-S、G6-V、G7 结果见[归档验收清单](../archive/testing/2026/v1.2-real-environment-acceptance.md)；当前开发按唯一 [v1.6 Current 计划](../planning/v1.6-newsfromai-parity-plan.md) 的 P0–P7 执行。
 
 验收默认只读。除非用户明确要求“验收并修复”，验收人员不得修改、格式化、提交或删除项目文件。
 
@@ -86,22 +86,25 @@ owner: project-maintainers
 - `plugin list` 发现了 entry-point，却没有执行工厂、真实 probe 或扩展采集。
 - 只验证新增插件来源，却没有回归普通 collect/probe 的原有来源选择。
 
-### v1.5 扩展来源专项判定
+### v1.5/v1.6 来源与 editorial 专项判定
 
-- 当前代码状态：P1–P5 的离线实现可以最高标为 `Implemented`；P6 仍必须在隔离环境
-  显式安装来源包，逐一执行真实 probe，并将外部阻断记为 `BLOCKED`。不得把离线 fixture、
-  `plugin list` 或 mock 结果写成 `Verified`。
-- 先确认主 wheel 与独立来源分发包的安装边界；首轮只读验收不得临时安装或改写
-  环境。必需插件未准备导致无法执行时写 `BLOCKED`，仓库缺少计划内分发包或入口写
-  `FAIL`。
+- 当前 v1.6 代码状态：P0–P6 的离线实现可以标为 `Implemented`；P7 已执行逐源
+  `prepare` registry probe，但受限/人工入口必须继续记录为 `BLOCKED` 或 `partial`，不得
+  把 fixture、mock 或空 Feed 结果写成 `Verified`。
+- v1.5 的独立来源分发包、`--plugin` 和 `--with-plugin` 兼容边界继续有效；首轮只读验收
+  不得临时安装或改写环境。必需插件未准备导致无法执行时写 `BLOCKED`，仓库缺少计划内
+  分发包或入口写 `FAIL`。
 - 普通 collect/probe 必须保持只使用 built-in；`--plugin` 继续 plugin-only；
   `--with-plugin` 才允许在同一运行中追加插件来源。
-- Current 计划列出的 source_id 必须逐一判定；重复的 Qwen/Hacker News 和不存在于
-  当前来源配置的 arXiv 测试期望不得被计入新增来源。
+- Current v1.6 计划列出的 17 个 source_id 必须逐一判定；`qwen-blog-rss` 和
+  `hacker-news` 是 prepare registry 中的配置来源，不能把旧 built-in 选择重复加入同一
+  次 prepare；不存在于当前来源配置的 arXiv 测试期望不得被计入覆盖率。
 - fixture 与隔离 entry-point 测试最高证明 Implemented。单个来源只有真实 probe
   `healthy` 且解析到有效记录后才可写 Verified；网络或访问限制写 BLOCKED。
 - 可分享输出安全测试必须确认异常不回显敏感值，原子写入失败不覆盖旧文件且不遗留
   `.tmp`；不得通过关闭检查或改写已保存证据来获得 PASS。
+- editorial 输出还必须确认无 refresh 不重新请求来源，refresh 才追加观察，候选包不超过
+  500 条，并且 `firstSeenAt <= generatedAt`。
 
 ### 4. 区分新增问题与既有问题
 

@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 
 from mynews.application.collector import PipelineCollector, SourceCollector
 from mynews.application.digest import DigestBuildConfig, DigestBuilder
+from mynews.application.prepare import prepare_editorial_pack
 from mynews.application.report import load_report, render_report, write_report
 from mynews.application.validation import RunValidation, validate_run_file, write_schema
 from mynews.application.watchlist import (
@@ -261,6 +262,22 @@ def build_parser() -> ChineseArgumentParser:
         "--no-codex",
         action="store_true",
         help="不调用 Codex，全部使用安全回退文本",
+    )
+    prepare = commands.add_parser(
+        "prepare",
+        help="生成或稳定重放指定日期的编辑候选包",
+        description=(
+            "采集 17 个 newsFromAI 自动 Feed，生成 candidates.json/md；"
+            "不调用 Codex 或自动发布。"
+        ),
+        add_help=False,
+    )
+    prepare.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    prepare.add_argument(
+        "--date", required=True, metavar="日期", help="业务日期，格式 YYYY-MM-DD"
+    )
+    prepare.add_argument(
+        "--refresh", action="store_true", help="重新抓取当天数据并更新候选包"
     )
     plugin = commands.add_parser(
         "plugin",
@@ -532,6 +549,40 @@ def main(
     else:
         selected_plugin_source_ids = ()
     collector = SourceCollector(active_registry)
+    if args.command == "prepare":
+        try:
+            prepare_result = prepare_editorial_pack(
+                args.date,
+                root=Path.cwd(),
+                refresh=args.refresh,
+            )
+        except (OSError, ValueError) as error:
+            print(
+                json.dumps(
+                    {
+                        "status": "failed",
+                        "error": {"code": "prepare_error", "message": str(error)},
+                    },
+                    ensure_ascii=False,
+                )
+            )
+            return 1
+        print(
+            json.dumps(
+                {
+                    "status": prepare_result.status,
+                    "outputDir": _relative_output_path(
+                        prepare_result.output_dir, Path.cwd()
+                    ),
+                    "candidateCount": prepare_result.candidate_count,
+                    "sourceFailureCount": prepare_result.source_failures,
+                    "refreshed": prepare_result.refreshed,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return {"complete": 0, "partial": 3, "failed": 1}[prepare_result.status]
     if args.command == "report":
         try:
             report = load_report(Path(args.run))
@@ -612,9 +663,7 @@ def main(
                     "status": digest.status,
                     "digest_id": digest.digest_id,
                     "run_id": digest.run_id,
-                    "history": _relative_output_path(
-                        history_path, Path(args.out_dir)
-                    ),
+                    "history": _relative_output_path(history_path, Path(args.out_dir)),
                     "latest_json": _relative_output_path(
                         latest_json, Path(args.out_dir)
                     ),
@@ -636,20 +685,16 @@ def main(
         verification_config = _verification_config(args)
         try:
             if registry is not None and store is None:
-                result = collector.collect(
-                    request, selected_source_ids
-                )
-                print(collector.collection_json(result))
-                return collector.exit_code(result.health)
+                collection_result = collector.collect(request, selected_source_ids)
+                print(collector.collection_json(collection_result))
+                return collector.exit_code(collection_result.health)
             pipeline = PipelineCollector(
                 active_registry,
                 store or JsonNewsStore(Path.cwd()),
                 verifier=CodexVerifier(active_registry.http),
                 verification_config=verification_config,
             )
-            report = pipeline.collect(
-                request, selected_source_ids
-            )
+            report = pipeline.collect(request, selected_source_ids)
         except KeyError as error:
             parser.error(str(error).strip("'"))
         except (JsonStoreError, ValueError) as error:

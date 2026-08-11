@@ -28,7 +28,15 @@ class WatchlistItem(BaseModel):
     id: str = Field(min_length=1)
     name: str = Field(min_length=1)
     url: AnyHttpUrl
-    role: Literal["primary", "monitor", "manual"]
+    role: Literal[
+        "primary",
+        "monitor",
+        "manual",
+        "discovery",
+        "research",
+        "incident",
+        "benchmark",
+    ]
     note: str = Field(min_length=1)
 
     @field_validator("id", "name", "note")

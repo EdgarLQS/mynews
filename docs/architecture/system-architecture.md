@@ -3,7 +3,7 @@ title: mynews 系统架构与代码结构
 doc_type: architecture
 status: current
 implementation_status: implemented
-version: 1.5
+version: 1.6
 created: 2026-08-02
 updated: 2026-08-11
 owner: project-maintainers
@@ -24,7 +24,7 @@ owner: project-maintainers
 
 ```mermaid
 flowchart LR
-    CLI["CLI: collect / probe / validate / report / watchlist / digest / plugin"] --> EXT["ExternalPluginLoader: explicit plugin selection"]
+    CLI["CLI: collect / probe / prepare / validate / report / watchlist / digest / plugin"] --> EXT["ExternalPluginLoader: explicit plugin selection"]
     EXT --> REG["SourceRegistry + SourcePlugin"]
     CLI --> REG
     CLI --> COL["PipelineCollector"]
@@ -47,6 +47,9 @@ flowchart LR
     PREV["上一期 Digest"] --> DIGEST
     DIGEST --> SUMMARY["Evidence-grounded Codex summary"]
     DIGEST --> DIGEST_STORE["Atomic DigestFileStore"]
+    CLI --> PREPARE["Prepare: cached editorial collection"]
+    PREPARE --> EDITORIAL["Candidate Contract v1 + candidates JSON/Markdown"]
+    PREPARE --> OBS["JSON observations + publication hints"]
 ```
 
 ## Module 与 seam
@@ -71,10 +74,10 @@ flowchart LR
 内置来源共享既有 collect/probe 隔离和 RunReport 1.x 结构。插件是受信任的本地 Python
 代码，显式允许清单不是进程级沙箱；不开放核验器插件。
 
-### v1.5 Implemented 扩展 seam
+### v1.5/v1.6 Implemented 扩展 seam
 
-以下边界已按 [v1.5 当前计划](../planning/v1.5-expanded-sources-safe-handoff-plan.md) 的
-P1–P5 实现；逐来源真实 probe 仍是 P6 独立门槛：
+以下边界已按 [v1.6 当前计划](../planning/v1.6-newsfromai-parity-plan.md) 复用并扩展；v1.5
+P1–P6 实现；逐来源真实 probe 仍是 v1.6 P7 独立门槛：
 
 - `ExternalPluginLoader` 和 SourcePlugin 1.0 协议保持不变；`--with-plugin` 只在 CLI
   应用层把显式插件追加到 built-in 选择，普通 collect/probe 仍不加载插件。
@@ -87,6 +90,14 @@ P1–P5 实现；逐来源真实 probe 仍是 P6 独立门槛：
   15 个来源位于 `plugins/newsfromai-source-pack/`，每个 entry-point 是无参数工厂。
 - `watchlist` 只校验本地 JSON 并渲染确定性 Markdown；report、digest、watchlist 共用
   输出敏感值检查，report 文本使用同目录临时文件、`flush`、`fsync` 和 `os.replace`。
+
+### v1.6 editorial prepare seam
+
+`Prepare` 复用 `SourcePlugin`、`SourceRegistry` 和 `SourceCollector` 获取候选，使用业务日期
+（`Asia/Shanghai`）及每来源 freshness 规则过滤当天和前一天；它不复制 SQLite，也不绕过
+`EvidenceVerifier`。采集快照、观察历史和失败状态写入 JSON，候选包使用同目录临时文件、
+`fsync` 和 `os.replace`；失败恢复时旧候选包与既有 Store 保持不变。`publication-ledger.csv`
+和 `weekly-feedback.md` 仅为人工只读提示，不参与事实、聚类或 `verified` 判定。
 
 Digest 的信任边界：只有 RunReport 中严格保存的 `primary_evidence` 可以形成 `evidence_refs`；Codex 不能增加 URL、事实或引用。主榜只接收 `verified`，线索观察只接收 `unverified`，两类输出在 Pydantic Schema 和 Markdown 渲染层同时隔离。
 
@@ -174,7 +185,9 @@ src/mynews/
 │   ├── digest.py
 │   ├── report.py
 │   ├── output_safety.py
-│   └── watchlist.py
+│   ├── watchlist.py
+│   ├── candidates.py
+│   └── prepare.py
 ├── domain/
 │   ├── models.py
 │   ├── normalization.py
@@ -183,6 +196,7 @@ src/mynews/
 ├── sources/
 │   ├── protocol.py
 │   ├── feed.py
+│   ├── newsfromai.py
 │   ├── registry.py
 │   ├── external.py
 │   └── builtins/

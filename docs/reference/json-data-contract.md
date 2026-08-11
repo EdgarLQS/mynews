@@ -3,7 +3,7 @@ title: mynews JSON 数据契约
 doc_type: reference
 status: current
 implementation_status: implemented
-version: 1.4
+version: 1.6
 created: 2026-08-02
 updated: 2026-08-09
 owner: project-maintainers
@@ -38,6 +38,17 @@ state/
 ├── price_snapshots/
 └── source_snapshots/
 logs/
+output/editorial/
+├── publication-ledger.csv
+├── weekly-feedback.md
+└── YYYY-MM-DD/
+    ├── candidates.json
+    └── candidates.md
+state/editorial/
+└── YYYY-MM-DD/
+    ├── collection.json
+    └── failures.json
+state/editorial-observations.json
 ```
 
 - 历史 run 追加保存。
@@ -46,6 +57,23 @@ logs/
 - 一次成功提交中的 run、latest、dedup 和 pending 具有同一逻辑事务边界。
 - `output/`、`state/`、`logs/` 必须被 Git 忽略。
 - Digest 历史文件位于 `output/digests/`；`digest-latest.json` 和 `digest-latest.md` 与历史文件同一原子提交。Digest 失败不得覆盖旧 latest，也不得留下 `.tmp`。
+
+## Candidate Contract v1
+
+`mynews prepare --date YYYY-MM-DD` 生成 editorial 候选包；`--refresh` 才重新抓取当天
+来源。无 refresh 时从 `state/editorial/<date>/collection.json` 稳定重放，并可重新读取
+publication ledger 生成提示，不调用 Codex、不自动发布。
+
+- 公开 Schema：[`candidate-contract-v1.schema.json`](candidate-contract-v1.schema.json)。
+- 顶层 `schemaVersion` 为 `"1.0"`；未知 major 或未来不兼容版本拒绝，旧的
+  newsFromAI `categories` 候选可兼容读取。
+- `candidates` 最多 500 条；每项含 `candidateRef`、`idScope`、`match`、`sourceRole`、
+  `firstSeenAt`、`firstSeenPrecision`、`duplicateGroupId`、`multiSources`、`repeat_count`
+  和 HTTPS `evidence`。
+- `firstSeenAt` 不得晚于 `generatedAt`；`verified` 仍只能由既有 EvidenceVerifier 产生，
+  候选包中的 Feed 或媒体链接不能单独升级真实性。
+- 观察状态保存在 JSON 文件而非 SQLite；来源失败写入 `failures.json`，全来源失败时不
+  更新旧候选包或 mynews Store。
 
 ## RunReport 1.2
 

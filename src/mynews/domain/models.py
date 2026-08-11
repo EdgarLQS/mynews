@@ -36,6 +36,8 @@ class CollectionRequest(ContractModel):
     source_ids: list[str] = Field(default_factory=list)
     verification_budget: int | None = Field(default=None, ge=0)
     verification_reasoning_effort: ReasoningEffort | None = None
+    freshness_filter: bool = False
+    freshness_days: int = Field(default=2, ge=1, le=30)
 
     @field_validator("from_", "to")
     @classmethod
@@ -64,6 +66,7 @@ class Candidate(ContractModel):
     """来源 Adapter 产生的未经规范化候选。"""
 
     source_id: str = Field(min_length=1)
+    source_name: str | None = None
     title_original: str = Field(min_length=1)
     url: AnyHttpUrl
     published_at: datetime | None = None
@@ -79,6 +82,11 @@ class Candidate(ContractModel):
     summary_zh: str | None = None
     heat_score: int | None = Field(default=None, ge=0, le=100)
     relevance_score: int | None = Field(default=None, ge=0, le=100)
+    authors: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+    external_links: list[AnyHttpUrl] = Field(default_factory=list)
+    image_candidates: list[dict[str, str]] = Field(default_factory=list)
+    extraction_status: Literal["complete", "partial", "failed"] = "complete"
 
     @field_validator("published_at")
     @classmethod
@@ -86,9 +94,7 @@ class Candidate(ContractModel):
         cls,
         value: datetime | None,
     ) -> datetime | None:
-        if value is not None and (
-            value.tzinfo is None or value.utcoffset() is None
-        ):
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
             raise ValueError("发布时间必须包含时区")
         return value
 
@@ -129,9 +135,7 @@ class Evidence(ContractModel):
         cls,
         value: datetime | None,
     ) -> datetime | None:
-        if value is not None and (
-            value.tzinfo is None or value.utcoffset() is None
-        ):
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
             raise ValueError("证据时间必须包含时区")
         return value
 
@@ -153,9 +157,7 @@ class VerificationRetry(ContractModel):
         cls,
         value: datetime | None,
     ) -> datetime | None:
-        if value is not None and (
-            value.tzinfo is None or value.utcoffset() is None
-        ):
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
             raise ValueError("重试时间必须包含时区")
         return value
 
@@ -167,6 +169,7 @@ class NewsItem(ContractModel):
     event_key: str = Field(min_length=1)
     event_type: str = Field(min_length=1)
     title_original: str = Field(min_length=1)
+    source_name: str | None = None
     language_original: str = Field(min_length=1)
     title_zh: str = Field(min_length=1)
     summary_zh: str = Field(min_length=1)
@@ -183,6 +186,12 @@ class NewsItem(ContractModel):
     canonical_url: str | None = None
     entities: list[str] = Field(default_factory=list)
     source_roles: list[str] = Field(default_factory=list)
+    authors: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+    summary_original: str | None = None
+    content_excerpt: str | None = None
+    external_links: list[AnyHttpUrl] = Field(default_factory=list)
+    extraction_status: Literal["complete", "partial", "failed"] = "complete"
 
     @field_validator("published_at", "first_seen_at")
     @classmethod
@@ -190,9 +199,7 @@ class NewsItem(ContractModel):
         cls,
         value: datetime | None,
     ) -> datetime | None:
-        if value is not None and (
-            value.tzinfo is None or value.utcoffset() is None
-        ):
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
             raise ValueError("新闻时间必须包含时区")
         return value
 
@@ -208,9 +215,7 @@ class NewsItem(ContractModel):
             and evidence.validation.excerpt_matched
             for evidence in self.primary_evidence
         ):
-            raise ValueError(
-                "verified 条目的 primary_evidence 必须通过 validation"
-            )
+            raise ValueError("verified 条目的 primary_evidence 必须通过 validation")
         return self
 
 
@@ -246,9 +251,7 @@ class PendingVerificationEntry(ContractModel):
         cls,
         value: datetime | None,
     ) -> datetime | None:
-        if value is not None and (
-            value.tzinfo is None or value.utcoffset() is None
-        ):
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
             raise ValueError("pending 时间必须包含时区")
         return value
 
@@ -268,9 +271,7 @@ class PendingVerificationEntry(ContractModel):
             publisher=self.publisher,
             excerpt=self.excerpt,
             official_domains=tuple(self.official_domains),
-            official_github_organizations=tuple(
-                self.official_github_organizations
-            ),
+            official_github_organizations=tuple(self.official_github_organizations),
             source_role=self.source_role,
         )
 
@@ -399,9 +400,7 @@ class DigestEvidenceRef(ContractModel):
         cls,
         value: datetime | None,
     ) -> datetime | None:
-        if value is not None and (
-            value.tzinfo is None or value.utcoffset() is None
-        ):
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
             raise ValueError("Digest 证据时间必须包含时区")
         return value
 
@@ -438,9 +437,7 @@ class DigestItem(ContractModel):
         cls,
         value: datetime | None,
     ) -> datetime | None:
-        if value is not None and (
-            value.tzinfo is None or value.utcoffset() is None
-        ):
+        if value is not None and (value.tzinfo is None or value.utcoffset() is None):
             raise ValueError("Digest 条目时间必须包含时区")
         return value
 
@@ -493,9 +490,7 @@ class RunReport(ContractModel):
     sources: list[SourceResult] = Field(default_factory=list)
     stats: dict[str, int] = Field(default_factory=dict)
     reason_counts: dict[str, int] = Field(default_factory=dict)
-    verification_stats: VerificationStats = Field(
-        default_factory=VerificationStats
-    )
+    verification_stats: VerificationStats = Field(default_factory=VerificationStats)
     evidence_reviews: list[EvidenceReview] = Field(default_factory=list)
     items: list[NewsItem] = Field(default_factory=list)
 
@@ -529,13 +524,10 @@ class RunReport(ContractModel):
         if item.verification_status != "verified":
             return
         valid = any(
-            _strict_evidence_valid(evidence)
-            for evidence in item.primary_evidence
+            _strict_evidence_valid(evidence) for evidence in item.primary_evidence
         )
         if not valid:
-            raise ValueError(
-                "RunReport 1.2 的 verified 条目必须通过完整证据校验"
-            )
+            raise ValueError("RunReport 1.2 的 verified 条目必须通过完整证据校验")
 
 
 def _strict_evidence_valid(evidence: Evidence) -> bool:
@@ -553,7 +545,4 @@ def _strict_evidence_valid(evidence: Evidence) -> bool:
         return False
     if validation.lifecycle_status == "changed_supporting":
         return evidence.previous_content_hash is not None
-    return (
-        validation.lifecycle_status == "current"
-        and validation.content_hash_matched
-    )
+    return validation.lifecycle_status == "current" and validation.content_hash_matched
