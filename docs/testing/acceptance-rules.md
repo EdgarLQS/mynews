@@ -3,9 +3,9 @@ title: mynews 项目验收规则
 doc_type: test
 status: current
 implementation_status: implemented
-version: 1.0
+version: 1.1
 created: 2026-08-02
-updated: 2026-08-09
+updated: 2026-08-11
 owner: project-maintainers
 ---
 
@@ -18,7 +18,7 @@ owner: project-maintainers
 - 通用触发语：`按项目验收规则开始验收` 或 `开始验收`。
 - Claude Code：输入 `/acceptance`；可在后面补充文件、提交或功能范围。
 - 未指定范围时：验收当前工作树相对 `HEAD` 的全部已跟踪和未跟踪变更。
-- v1.2 的真实 G6-S、G6-V、G7 结果见[归档验收清单](../archive/testing/2026/v1.2-real-environment-acceptance.md)；当前开发按 v1.3 计划的 D1–D6 执行。
+- v1.2 的真实 G6-S、G6-V、G7 结果见[归档验收清单](../archive/testing/2026/v1.2-real-environment-acceptance.md)；当前开发按唯一 [v1.5 Current 计划](../planning/v1.5-expanded-sources-safe-handoff-plan.md) 的 P1–P6 执行。
 
 验收默认只读。除非用户明确要求“验收并修复”，验收人员不得修改、格式化、提交或删除项目文件。
 
@@ -55,8 +55,10 @@ owner: project-maintainers
 | CLI、日期解析、退出码 | G0、G1、G2、G3、G4 |
 | 领域模型、规范化、排序、去重 | G0、G1、G2、G3、G5 |
 | SourcePlugin 或来源配置 | G0、G1、G2、G3、G5、G6-S |
+| 外部插件分发包、插件选择或扩展采集脚本 | G0、G1、G2、G3、G4、G5、G6-S；涉及调度时再加 G7 |
 | 核验器或 verified 判定 | G0、G1、G2、G3、G5、G6-V |
 | JSON Schema、Store、latest、状态快照 | G0、G1、G2、G3、G4、G5 |
+| 人工清单、可分享输出安全或原子文本输出 | G0、G1、G2、G3、G4、G5 |
 | launchd、安装脚本或运行脚本 | G0、G1、G2、G3、G7 |
 | v1 阶段完成或发布候选 | G0 至 G7 全部适用项 |
 
@@ -66,12 +68,12 @@ owner: project-maintainers
 | --- | --- | --- |
 | G0 | 范围与需求一致性 | 对照需求、计划和功能矩阵检查漏项、越界改动和状态夸大 |
 | G1 | 仓库与文档质量 | `python3 scripts/check_docs.py` 和 `git diff --check` 通过；索引和状态同步无误 |
-| G1-S | AI 技能有效性 | `SKILL.md` frontmatter 和目录名有效；入口只引用权威验收规则；目录匹配目标工具的官方发现位置，目标工具可用时再检查实际发现 |
+| G1-S | AI 技能有效性 | `SKILL.md` frontmatter 和目录名有效；入口只引用权威计划/验收规则；关联 UI metadata 与技能描述一致；目标工具可用时再检查实际发现 |
 | G2 | 静态质量 | `uv run ruff check .` 与 `uv run mypy src` 通过；尚未建立代码骨架时仅文档变更可记为不适用 |
 | G3 | 自动化测试 | 先运行受影响测试，再运行 `uv run pytest`；报告测试数量、失败和跳过 |
-| G4 | 外部契约 | 全局/子命令/脚本 help、非法参数、退出码和 JSON Schema 兼容测试通过 |
-| G5 | 离线集成 | Adapter fixture、Fake Verifier、跨运行去重、原子写入和失败恢复覆盖对应变更 |
-| G6-S | 真实来源 | 对受影响来源执行 live probe，记录时间、来源、状态和限制；实验来源允许如实 `blocked`，但不能伪装成功 |
+| G4 | 外部契约 | 全局/子命令/脚本 help、非法参数、退出码和 JSON Schema 兼容测试通过；插件选择变化还要覆盖默认、plugin-only 和追加模式 |
+| G5 | 离线集成 | Adapter fixture、Fake Verifier、跨运行去重、原子写入和失败恢复覆盖对应变更；扩展采集必须证明同一 Run 同时保留 built-in 与插件来源，未安装插件不得静默降级 |
+| G6-S | 真实来源 | 对每个受影响 source_id 独立执行 live probe，记录时间、插件安装状态、状态、抓取/接受数和限制；实验来源允许如实 `blocked`，但不能伪装成功或用其他来源代替 |
 | G6-V | 真实核验 | 至少一个已知候选完成真实 Codex 核验和程序二次校验；第一方 URL、域名、日期与摘录可复查 |
 | G7 | 运维与回溯 | 脚本 help 可执行，`plutil -lint` 通过；涉及 v1 完成时执行七天回溯并校验 JSON 与 verified 证据 |
 
@@ -81,6 +83,22 @@ owner: project-maintainers
 - 只运行 mock，却声称真实来源、Codex 或 launchd 已验证。
 - 使用搜索摘要、转载或模型回答证明新闻真实。
 - 因命令预计会失败而省略执行，却不标记 `SKIPPED` 或 `BLOCKED`。
+- `plugin list` 发现了 entry-point，却没有执行工厂、真实 probe 或扩展采集。
+- 只验证新增插件来源，却没有回归普通 collect/probe 的原有来源选择。
+
+### v1.5 扩展来源专项判定
+
+- 先确认主 wheel 与独立来源分发包的安装边界；首轮只读验收不得临时安装或改写
+  环境。必需插件未准备导致无法执行时写 `BLOCKED`，仓库缺少计划内分发包或入口写
+  `FAIL`。
+- 普通 collect/probe 必须保持只使用 built-in；`--plugin` 继续 plugin-only；
+  `--with-plugin` 才允许在同一运行中追加插件来源。
+- Current 计划列出的 source_id 必须逐一判定；重复的 Qwen/Hacker News 和不存在于
+  当前来源配置的 arXiv 测试期望不得被计入新增来源。
+- fixture 与隔离 entry-point 测试最高证明 Implemented。单个来源只有真实 probe
+  `healthy` 且解析到有效记录后才可写 Verified；网络或访问限制写 BLOCKED。
+- 可分享输出安全测试必须确认异常不回显敏感值，原子写入失败不覆盖旧文件且不遗留
+  `.tmp`；不得通过关闭检查或改写已保存证据来获得 PASS。
 
 ### 4. 区分新增问题与既有问题
 

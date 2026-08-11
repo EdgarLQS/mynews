@@ -3,9 +3,9 @@ title: mynews 信息来源目录
 doc_type: reference
 status: current
 implementation_status: implemented
-version: 1.1
+version: 1.2
 created: 2026-08-02
-updated: 2026-08-02
+updated: 2026-08-11
 owner: project-maintainers
 ---
 
@@ -28,6 +28,33 @@ owner: project-maintainers
 v1.1 将来源详细等级写入 `SourceHealth`/`SourceResult`。`experimental` 是不影响 Run
 状态的实验等级；`stable-planned`、`adapter-planned` 等其余当前内置等级按稳定来源处理，
 其异常仍会使 Run 变为 `partial` 或 `failed`。这使来源质量和 Run 状态在 JSON 与 report 中可解释。
+
+## v1.5 Proposed 外部来源包
+
+下表是 [v1.5 当前计划](../planning/v1.5-expanded-sources-safe-handoff-plan.md) 的权威来源
+清单，均为 Planned，不表示已经安装、实现或通过真实 probe。它们只能通过独立分发包和
+显式扩展模式接入；普通 built-in 采集保持不变。
+
+| 来源 ID | 角色 | 等级 | 官方入口 | 官方边界 |
+| --- | --- | --- | --- | --- |
+| openai-news | primary | stable-planned | https://openai.com/news/rss.xml | `openai.com` |
+| google-blog | primary | stable-planned | https://blog.google/rss/ | `blog.google` |
+| github-changelog | primary | stable-planned | https://github.blog/changelog/feed/ | `github.blog` |
+| hugging-face-blog | primary | stable-planned | https://huggingface.co/blog/feed.xml | `huggingface.co` |
+| google-deepmind | primary | stable-planned | https://deepmind.google/blog/rss.xml | `deepmind.google` |
+| nvidia-ai | primary | stable-planned | https://blogs.nvidia.com/blog/category/deep-learning/feed/ | `blogs.nvidia.com` |
+| aws-machine-learning | primary | stable-planned | https://aws.amazon.com/blogs/machine-learning/feed/ | `aws.amazon.com` |
+| kimi-k2-releases | research | stable-planned | https://github.com/MoonshotAI/Kimi-K2/releases.atom | `github.com/MoonshotAI` |
+| glm-releases | research | stable-planned | https://github.com/THUDM/GLM/releases.atom | `github.com/THUDM` |
+| deepseek-status | incident | experimental | https://status.deepseek.com/history.atom | `status.deepseek.com` |
+| openai-status | incident | experimental | https://status.openai.com/history.rss | `status.openai.com` |
+| anthropic-status | incident | experimental | https://status.anthropic.com/history.rss | `status.anthropic.com` |
+| github-status | incident | experimental | https://www.githubstatus.com/history.atom | `githubstatus.com` |
+| techcrunch-ai | discovery | experimental | https://techcrunch.com/category/artificial-intelligence/feed/ | `techcrunch.com` |
+| paperswithcode-daily | benchmark | experimental | https://paperswithcode.co/feeds/daily.xml | `paperswithcode.co` |
+
+`qwen-blog-rss` 和 Hacker News RSS 与当前 built-in 重复，不计入新增来源；当前配置不存在
+的 `arxiv-cs-ai`、`arxiv-cs-cl`、`arxiv-cs-lg` 测试期望也不计入计划覆盖。
 
 ## 阶段 4.5 来源覆盖
 
@@ -61,6 +88,9 @@ TRAE 的入口由实现前的公开页面检查确认。若 live probe 受本机
 - `discovery`：发现热点，只能产生候选，不能单独证明事实。
 - `primary`：厂商公告、官方文档、官方 Release 或论文原文，可作为第一方证据。
 - `monitor`：价格、套餐、状态或更新日志页面，需要快照比较。
+- `research`：官方研究仓库、论文或 Release，可作为对应研究产物的第一方候选。
+- `incident`：官方服务状态与事故历史，只能证明对应服务事件，不能证明产品发布。
+- `benchmark`：聚合基准、论文或代码线索，只负责发现，不能单独证明事实。
 - `manual`：没有可靠机器入口时保留官方检查入口，不宣称自动采集。
 
 ## 稳定等级

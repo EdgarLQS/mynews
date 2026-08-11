@@ -3,9 +3,9 @@ title: mynews 规划文档状态索引
 doc_type: index
 status: current
 implementation_status: implemented
-version: 1.4
+version: 1.5
 created: 2026-08-02
-updated: 2026-08-09
+updated: 2026-08-11
 owner: project-maintainers
 ---
 
@@ -17,12 +17,13 @@ owner: project-maintainers
 
 | 计划 | 文档状态 | 实现状态 | 下一门槛 |
 | --- | --- | --- | --- |
-| [v1.4 外部来源插件计划](v1.4-source-plugins-plan.md) | Current | In progress | P1–P6：entry-point、显式加载、结构化失败、Store 保护和隔离分发包 |
+| [v1.5 扩展来源与安全交接计划](v1.5-expanded-sources-safe-handoff-plan.md) | Current | Proposed | P1–P6：角色/Feed seam、15 来源插件包、扩展采集、安全输出、离线与真实验收 |
 
 ## 已完成计划
 
 | 计划 | 文档状态 | 实现状态 | 替代关系 |
 | --- | --- | --- | --- |
+| [v1.4 外部来源插件计划](../archive/plan/2026/v1.4-source-plugins-plan.md) | Archived | Implemented | 被 v1.5 扩展来源与安全交接计划替代；外部插件仍保持显式加载和受信任本地代码边界 |
 | [v1.1 信息质量闭环与可读报告计划](../archive/plan/2026/v1.1-information-quality-plan.md) | Archived | Implemented | 被 v1.2 增量核验与证据生命周期计划替代；discovery G6-V 未完成的记录保留在原文 |
 | [v1.2 增量核验与证据生命周期计划](../archive/plan/2026/v1.2-evidence-lifecycle-plan.md) | Archived | Implemented | 被 v1.3 情报简报计划替代；真实 G6-V `BLOCKED` 和 G7 限制保留在原文 |
 | [v1.3 情报简报计划](../archive/plan/2026/v1.3-intelligence-digest-plan.md) | Archived | Implemented | 被 v1.4 外部来源插件计划替代；真实 Digest Codex `BLOCKED` 记录保留在原文 |

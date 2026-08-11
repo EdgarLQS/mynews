@@ -3,9 +3,9 @@ title: mynews 系统架构与代码结构
 doc_type: architecture
 status: current
 implementation_status: implemented
-version: 1.4
+version: 1.5
 created: 2026-08-02
-updated: 2026-08-09
+updated: 2026-08-11
 owner: project-maintainers
 ---
 
@@ -70,6 +70,19 @@ flowchart LR
 `plugin list` 只读取分发元数据。通过校验的插件使用 `SourceRegistry.with_plugins` 与
 内置来源共享既有 collect/probe 隔离和 RunReport 1.x 结构。插件是受信任的本地 Python
 代码，显式允许清单不是进程级沙箱；不开放核验器插件。
+
+### v1.5 Proposed 扩展 seam
+
+以下边界仅为 [v1.5 当前计划](../planning/v1.5-expanded-sources-safe-handoff-plan.md) 的
+Proposed 设计，尚未实现：
+
+- `ExternalPluginLoader` 和 SourcePlugin 1.0 协议保持不变；新增 `--with-plugin` 只在
+  CLI 应用层把显式插件追加到 built-in 选择，普通 collect/probe 仍不加载插件。
+- 既有 `--plugin` 继续表示 plugin-only，不能与 `--source` 或 `--with-plugin` 混用。
+- 主 wheel 提供不含来源配置的通用 RSS/Atom 插件辅助接口；15 个来源及 entry-point
+  位于独立分发包，不进入主 wheel，也不能接触 Store、Verifier 或 Codex。
+- `research`、`incident`、`benchmark` 只扩展来源角色与筛选语义，不放宽第一方证据和
+  `verified` 门槛；准确来源清单以[信息来源目录](../reference/source-catalog.md)为准。
 
 Digest 的信任边界：只有 RunReport 中严格保存的 `primary_evidence` 可以形成 `evidence_refs`；Codex 不能增加 URL、事实或引用。主榜只接收 `verified`，线索观察只接收 `unverified`，两类输出在 Pydantic Schema 和 Markdown 渲染层同时隔离。
 

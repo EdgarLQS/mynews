@@ -10,6 +10,7 @@
 范围：<模块、CLI、JSON、文档、测试>
 非目标：<明确不做的内容>
 接口与兼容：<公共命令/字段/Schema/模块 seam>
+来源/插件：<主 wheel 与独立分发包、source_id、官方边界、默认/plugin-only/追加模式>
 文档同步：<计划、架构、ADR、矩阵、README、AI 入口>
 验收准备：<离线门禁、真实网络/Codex/回溯要求>
 禁止：不得伪造 Verified、绕过访问控制、操作真实 launchd 或污染 output/state/logs。
@@ -29,6 +30,8 @@
 2. Ruff、Mypy、受影响测试、全量测试和中文 CLI help。
 3. JSON Schema、兼容规则、失败恢复、状态机、第一方证据门槛和退出码。
 4. 真实来源、生产 Codex、隔离运行或定时能力；只用 mock 或外部阻断不得 PASS。
+5. 来源/插件变更分别检查 discovery、factory、默认采集、plugin-only、追加扩展采集和逐 source_id live probe。
+6. 人工清单/输出安全变更检查无网络或 Store 副作用、敏感值不回显、原子恢复和旧输出保护。
 
 报告按“计划、执行、验证”，先列问题、文件和证据，再给 PASS、PASS_WITH_LIMITATIONS、BLOCKED 或 FAIL。
 未执行项标记 SKIPPED 并说明原因；不修复问题。

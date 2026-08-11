@@ -3,9 +3,9 @@ title: mynews 文档总览与当前状态
 doc_type: index
 status: current
 implementation_status: implemented
-version: 1.4
+version: 1.5
 created: 2026-08-02
-updated: 2026-08-09
+updated: 2026-08-11
 owner: project-maintainers
 ---
 
@@ -19,7 +19,8 @@ owner: project-maintainers
 | --- | --- | --- |
 | 产品范围 | Current | 聚焦 AI 与科技，继续覆盖模型、AI 编程工具和开发者平台 |
 | v1.3 情报简报计划 | Archived / Implemented | DigestBuilder、Digest Schema 1.0、主榜/线索隔离、摘要回退和原子输出已完成；真实 Digest Codex 验收记录仍为 `BLOCKED`，原文保留在归档 |
-| v1.4 外部来源插件计划 | Current / Implemented | Python entry-point 外部 SourcePlugin、显式插件选择、严格加载校验、结构化失败和 Store 保护已通过离线门禁；不宣称进程级沙箱或真实定时 Verified |
+| v1.4 外部来源插件计划 | Archived / Implemented | Python entry-point 外部 SourcePlugin、显式插件选择、严格加载校验、结构化失败和 Store 保护已通过离线门禁；历史计划已归档 |
+| v1.5 扩展来源与安全交接计划 | Current / Proposed | 计划以独立插件分发包新增 15 个来源、保留默认采集、增加扩展采集、人工清单和安全输出；代码尚未实施 |
 | v1.2 计划与真实验收 | Archived / In Progress | 实际命令、两次 Run ID、G6-S 限制、G6-V `BLOCKED` 和 G7 结果已归档；真实发布门禁未完成，不能写成 Verified |
 | 系统架构 | Current / Implemented | SourcePlugin、registry、规范化/去重、EvidenceVerifier、pending、证据生命周期、NewsStore 和 Digest seam 已实现 |
 | AI 开发说明 | Current / Implemented | Codex 与 Claude Code 共用一套项目规则 |
@@ -45,7 +46,7 @@ owner: project-maintainers
 
 1. [功能矩阵](product/feature-matrix.md)：确认当前、未来和明确不做的范围。
 2. [项目验收规则](testing/acceptance-rules.md)：了解每次开发完成后的统一质量门禁。
-3. [v1.4 当前计划](planning/v1.4-source-plugins-plan.md)：查看当前实施顺序和验收门槛；v1.3 真实 Digest Codex `BLOCKED` 记录见归档。
+3. [v1.5 当前计划](planning/v1.5-expanded-sources-safe-handoff-plan.md)：查看扩展来源、兼容边界、实施顺序和逐来源验收门槛；v1.4 已归档。
 4. [系统架构](architecture/system-architecture.md)：理解采集、核验、Digest 模块和数据流。
 5. [信息来源目录](reference/source-catalog.md)：查看渠道角色、稳定等级和核验规则。
 6. [JSON 数据契约](reference/json-data-contract.md)：查看 RunReport 和 Digest 格式。
@@ -71,7 +72,7 @@ owner: project-maintainers
 
 | 文档 | 状态 | 实现状态 |
 | --- | --- | --- |
-| [v1.4 当前计划](planning/v1.4-source-plugins-plan.md) | Current | Implemented |
+| [v1.5 当前计划](planning/v1.5-expanded-sources-safe-handoff-plan.md) | Current | Proposed |
 | [系统架构](architecture/system-architecture.md) | Current | Implemented |
 | [功能矩阵](product/feature-matrix.md) | Current | Implemented |
 | [项目验收规则](testing/acceptance-rules.md) | Current | Implemented |
