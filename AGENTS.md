@@ -29,6 +29,13 @@
 - 任何来源失败都必须显式记录，不得静默丢失、伪装成功或污染 `latest.json`。
 - 外部来源只通过 Python entry-point group `mynews.source_plugins` 接入；`plugin list` 不执行工厂，`--plugin <id>` 表示 plugin-only，`--with-plugin <id>` 表示 built-in + 显式插件追加，均只加载无参数工厂。外部插件是受信任本地 Python 代码，显式允许不是进程级沙箱；插件不得接触 Store、Codex、Verifier 或修改 `verified`。v1.5 的 15 个来源实现位于独立分发包，真实 probe 仍需单独记录状态。
 
+## v1.7 分时情报与人工回填边界
+
+- 根目录 `news-task.md` 固定 `Asia/Shanghai`、`09:00`/`18:00`、`catch_up=latest_only` 和每档 `0–6` 条正式情报；它是离线任务契约，不代表已注册 Codex 或 launchd 任务。
+- 固定顺序为 `prepare --refresh`、`scripts/collect-expanded.sh --days 2`、`validate --check-evidence`、`digest`、报告生成；只有 Digest `main_items` 的 `verified` 条目能进入正式情报，Candidate、manual watchlist、discovery 和 `lead_items` 只能进入待核查线索。
+- 报告必须先原子写入 `output/editorial/automation/reports/`，成功后才推进 `state/editorial/automation/state.json`；失败不得更新成功档位，任务不得修改 publication ledger、weekly feedback 或生成发布素材。
+- `publication add` 与 `feedback record` 只处理作者明确提供的本地事实，必须离线、复用隐私门禁和原子写入，不得接触 Store、Codex、网络、Candidate/Digest Schema 或 `verified`。
+
 ## 新闻与证据规则
 
 - 热榜、媒体和社区只负责发现线索，不能单独证明新闻真实。

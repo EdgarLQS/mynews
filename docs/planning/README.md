@@ -17,7 +17,7 @@ owner: project-maintainers
 
 | 计划 | 文档状态 | 实现状态 | 下一门槛 |
 | --- | --- | --- | --- |
-| [v1.7 分时情报分析与人工反馈闭环计划](v1.7-intelligence-loop-plan.md) | Current | Proposed | 实施 P0–P4；P5 真实 Codex 双档验收需单独授权 |
+| [v1.7 分时情报分析与人工反馈闭环计划](v1.7-intelligence-loop-plan.md) | Current | Implemented | P0–P4 离线门禁完成；P5 真实 Codex 双档验收需单独授权 |
 
 ## 已完成计划
 

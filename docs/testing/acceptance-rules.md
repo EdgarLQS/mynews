@@ -109,7 +109,7 @@ owner: project-maintainers
 
 ### v1.7 分时任务与人工反馈专项判定
 
-- `news-task.md` 是 Proposed 阶段计划交付，不等于已注册或运行的 Codex 任务；静态文档、
+- `news-task.md` 是已实施的离线任务契约，不等于已注册或运行的 Codex 任务；静态文档、
   mock 或单次人工摘要最多证明 Implemented，真实 09:00/18:00 双档和 latest-only 补跑
   完成后才可判定对应 Verified。
 - 正式情报只能引用 Digest `main_items` 的 `verified` 条目；Candidate、manual watchlist、

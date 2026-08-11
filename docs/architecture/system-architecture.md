@@ -3,7 +3,7 @@ title: mynews 系统架构与代码结构
 doc_type: architecture
 status: current
 implementation_status: implemented
-version: 1.6
+version: 1.7
 created: 2026-08-02
 updated: 2026-08-11
 owner: project-maintainers
@@ -24,7 +24,7 @@ owner: project-maintainers
 
 ```mermaid
 flowchart LR
-    CLI["CLI: collect / probe / prepare / validate / report / watchlist / digest / plugin"] --> EXT["ExternalPluginLoader: explicit plugin selection"]
+    CLI["CLI: collect / probe / prepare / validate / report / watchlist / digest / plugin / publication / feedback"] --> EXT["ExternalPluginLoader: explicit plugin selection"]
     EXT --> REG["SourceRegistry + SourcePlugin"]
     CLI --> REG
     CLI --> COL["PipelineCollector"]
@@ -50,6 +50,10 @@ flowchart LR
     CLI --> PREPARE["Prepare: cached editorial collection"]
     PREPARE --> EDITORIAL["Candidate Contract v1 + candidates JSON/Markdown"]
     PREPARE --> OBS["JSON observations + publication hints"]
+    DIGEST --> AUTOMATION["Automation report: verified main items only"]
+    AUTOMATION --> AUTOMATION_STATE["Atomic report then state"]
+    CLI --> HUMAN["Manual publication / weekly feedback"]
+    HUMAN --> LEDGER["CSV ledger + stable Markdown blocks"]
 ```
 
 ## Module 与 seam
@@ -68,6 +72,9 @@ flowchart LR
 | DigestBuilder | `build(report, previous, config)` | 保守事件聚合、确定性排序、生命周期与主榜/线索隔离；不改变 RunReport |
 | DigestSummaryRunner | `run(prompt, model, timeout, reasoning_effort)` | 只读取已保存证据的可替换摘要调用；非法输出只能触发安全回退 |
 | DigestFileStore | `load_latest`、`write` | 历史 Digest、latest JSON 和 Markdown 的同批次原子提交 |
+| AutomationOutput | `commit_automation_output` | 先原子写分时报告，再推进受约束的任务状态；不修改 Store、verified 或人工台账 |
+| PublicationLedger | `add_publication` | 只读校验 Candidate，按 `duplicateGroupId` 优先匹配并原子追加人工确认记录 |
+| WeeklyFeedback | `record_weekly_feedback` | 校验 ISO 周和非负指标，维护周/平台稳定 Markdown 区块；冲突必须显式 replace |
 
 外部插件的 entry-point 名称是 CLI 的插件 ID；只有 `--plugin` 或 `--with-plugin` 选择才执行工厂，
 `plugin list` 只读取分发元数据。通过校验的插件使用 `SourceRegistry.with_plugins` 与
@@ -98,6 +105,18 @@ P1–P6 实现；逐来源真实 probe 仍是 v1.6 P7 独立门槛：
 `EvidenceVerifier`。采集快照、观察历史和失败状态写入 JSON，候选包使用同目录临时文件、
 `fsync` 和 `os.replace`；失败恢复时旧候选包与既有 Store 保持不变。`publication-ledger.csv`
 和 `weekly-feedback.md` 仅为人工只读提示，不参与事实、聚类或 `verified` 判定。
+
+### v1.7 intelligence loop seam
+
+根目录 `news-task.md` 只描述 `Asia/Shanghai` 的 `09:00`/`18:00`、latest-only 补跑、固定命令
+顺序和报告事实边界；它不是已注册的定时任务。Automation 输出把报告目录和状态文件分开，
+先用同目录临时文件、`flush`、`fsync`、`os.replace` 提交报告，再写状态；状态只接受 schema、
+时刻、完成档位、相对报告路径和事件哈希，不保存密钥、Cookie、授权头或绝对路径。
+
+`publication add` 和 `feedback record` 是人工明确调用的离线命令。它们只依赖 Candidate、CSV、
+Markdown 文件和输出安全门禁，不调用网络、Store 或 Codex；它们不会改变 Candidate、Digest、
+RunReport 或 `verified`。发布记录按 `duplicateGroupId` 优先、缺失时按 `candidateRef`/`id` 匹配；
+周反馈按 ISO 周与平台定位稳定区块，默认冲突失败，`--replace` 才替换。
 
 Digest 的信任边界：只有 RunReport 中严格保存的 `primary_evidence` 可以形成 `evidence_refs`；Codex 不能增加 URL、事实或引用。主榜只接收 `verified`，线索观察只接收 `unverified`，两类输出在 Pydantic Schema 和 Markdown 渲染层同时隔离。
 
@@ -187,7 +206,11 @@ src/mynews/
 │   ├── output_safety.py
 │   ├── watchlist.py
 │   ├── candidates.py
-│   └── prepare.py
+│   ├── prepare.py
+│   ├── editorial_io.py
+│   ├── automation.py
+│   ├── publication.py
+│   └── feedback.py
 ├── domain/
 │   ├── models.py
 │   ├── normalization.py

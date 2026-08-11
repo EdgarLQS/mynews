@@ -3,9 +3,9 @@ title: mynews JSON 数据契约
 doc_type: reference
 status: current
 implementation_status: implemented
-version: 1.6
+version: 1.7
 created: 2026-08-02
-updated: 2026-08-09
+updated: 2026-08-11
 owner: project-maintainers
 ---
 
@@ -49,6 +49,10 @@ state/editorial/
     ├── collection.json
     └── failures.json
 state/editorial-observations.json
+state/editorial/automation/
+└── state.json
+output/editorial/automation/reports/
+└── YYYY-MM-DD-HHmm.md
 ```
 
 - 历史 run 追加保存。
@@ -57,6 +61,8 @@ state/editorial-observations.json
 - 一次成功提交中的 run、latest、dedup 和 pending 具有同一逻辑事务边界。
 - `output/`、`state/`、`logs/` 必须被 Git 忽略。
 - Digest 历史文件位于 `output/digests/`；`digest-latest.json` 和 `digest-latest.md` 与历史文件同一原子提交。Digest 失败不得覆盖旧 latest，也不得留下 `.tmp`。
+- 分时报告位于 `output/editorial/automation/reports/`，状态位于 `state/editorial/automation/state.json`；报告先原子提交，状态后推进。
+- `output/`、`state/`、`logs/` 及其 editorial 运行产物均不提交；状态中的报告路径必须是相对路径。
 
 ## Candidate Contract v1
 
@@ -74,6 +80,47 @@ publication ledger 生成提示，不调用 Codex、不自动发布。
   候选包中的 Feed 或媒体链接不能单独升级真实性。
 - 观察状态保存在 JSON 文件而非 SQLite；来源失败写入 `failures.json`，全来源失败时不
   更新旧候选包或 mynews Store。
+
+## v1.7 Automation 状态
+
+分时任务状态固定为：
+
+```json
+{
+  "schemaVersion": 1,
+  "lastAttemptAt": "2026-08-11T09:00:00+08:00",
+  "lastSuccessAt": "2026-08-11T09:05:00+08:00",
+  "lastCompletedSlot": "2026-08-11 09:00",
+  "lastReport": "output/editorial/automation/reports/2026-08-11-0900.md",
+  "reportedEvents": {
+    "event-key": {
+      "lastReportedAt": "2026-08-11T09:05:00+08:00",
+      "contentHash": "sha256:...",
+      "reportPath": "output/editorial/automation/reports/2026-08-11-0900.md"
+    }
+  }
+}
+```
+
+`reportedEvents` 只保存事件键、上次报告时间、内容哈希和相对报告路径。它不参与 Digest Schema、
+Candidate Schema 或 `verified` 判定；任务失败时不得更新成功档位。
+
+## v1.7 人工回填文件
+
+`publication-ledger.csv` 保持既有列顺序：
+`date,event_id,title,platform,url,published_at`。`publication add` 只在 Candidate 事件匹配、
+标题/平台非空、链接为 HTTPS、发布时间带时区时追加；同一事件、平台和链接重复时返回幂等状态。
+
+`weekly-feedback.md` 使用以下稳定标记定位周/平台区块：
+
+```text
+<!-- mynews:weekly-feedback:start week=2026-W32 platform=平台 -->
+...
+<!-- mynews:weekly-feedback:end week=2026-W32 platform=平台 -->
+```
+
+反馈记录校验 ISO 周以及阅读、收藏、转发、新增关注四项非负整数；相同内容幂等，冲突只有
+显式 `--replace` 才能替换。两类人工文件不是 RunReport、Digest 或 Store 的输入事实。
 
 ## RunReport 1.2
 

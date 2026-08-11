@@ -28,7 +28,7 @@ description: Maintain the current project phase and produce repository-grounded 
 - 任何来源失败、Codex 失败或存储失败都必须结构化记录，不能静默成功、污染 `latest.json` 或覆盖历史 run。
 - 外部来源计划必须区分主 wheel、独立插件分发包、默认 built-in、plugin-only 和追加扩展模式；来源清单以 Current 计划和来源目录为准，不能从另一个仓库的旧测试推断。
 - v1.6 已按 Implemented 归档，收集功能没有新的计划缺口；来源健康、真实 Codex 和定时结果仍分别标为 Verified、BLOCKED 或 FAIL。
-- v1.7 是 Current / Proposed：分析层使用 `news-task.md`，不得新增核心 Briefing 模型或放宽 Digest 主榜；只有 publication/feedback 人工回填进入确定性 CLI。
+- v1.7 P0–P4 是 Current / Implemented：分析层使用根目录 `news-task.md`，固定 Asia/Shanghai 双档、latest-only、报告先于状态；不得新增核心 Briefing 模型或放宽 Digest 主榜；只有 publication/feedback 人工回填进入确定性 CLI，P5 真实双档仍待授权。
 - 默认不操作真实 launchd，不修改或提交 `output/`、`state/`、`logs/` 运行产物。
 
 ## 实施交接要求
@@ -43,6 +43,7 @@ description: Maintain the current project phase and produce repository-grounded 
 - 最小相关测试、静态检查、全量测试、真实环境门禁和成功判定。
 - 不得顺带重构、扩展未经批准的来源、绕过访问控制或把 mock 当作真实验收。
 - v1.7 实施不得自动注册 Codex 任务、操作真实 launchd、修改运行台账或生成平台素材；真实任务只在用户明确授权后执行。
+- v1.7 人工回填必须验证 Candidate 的 `duplicateGroupId` 优先匹配、带时区 HTTPS 链接、ISO 周非负指标、幂等/冲突/replace，以及隐私和原子恢复；不得调用网络、Store、Codex 或修改 `verified`。
 
 ## 验收交接要求
 
