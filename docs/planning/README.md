@@ -3,7 +3,7 @@ title: mynews 规划文档状态索引
 doc_type: index
 status: current
 implementation_status: implemented
-version: 1.5
+version: 1.6
 created: 2026-08-02
 updated: 2026-08-11
 owner: project-maintainers
@@ -18,6 +18,12 @@ owner: project-maintainers
 | 计划 | 文档状态 | 实现状态 | 下一门槛 |
 | --- | --- | --- | --- |
 | [v1.5 扩展来源与安全交接计划](v1.5-expanded-sources-safe-handoff-plan.md) | Current | Implemented | P1–P6 记录已完成；下一阶段必须从已合入交付的最新 `main` 创建新分支 |
+
+## 下一阶段草案
+
+| 计划 | 文档状态 | 实现状态 | 开始条件 |
+| --- | --- | --- | --- |
+| [v1.6 newsFromAI 数据能力完整吸收计划](v1.6-newsfromai-parity-plan.md) | Draft | Proposed | 确认方案 1；从包含 `4c3b250` 的最新 `main` 创建新分支 |
 
 ## 已完成计划
 
