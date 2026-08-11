@@ -4,8 +4,42 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from mynews.domain.models import SourceError
 from mynews.sources.feed import RssFeedPlugin
-from mynews.sources.protocol import SourceMetadata, SourcePlugin
+from mynews.sources.protocol import (
+    ProbeContext,
+    SourceBatch,
+    SourceBlockedError,
+    SourceContext,
+    SourceHealth,
+    SourceMetadata,
+    SourcePlugin,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class ManualSourcePlugin:
+    """没有可靠机器入口时，明确保留为人工检查来源。"""
+
+    metadata: SourceMetadata
+    reason: str
+
+    def collect(self, context: SourceContext) -> SourceBatch:
+        del context
+        raise SourceBlockedError("manual_source", self.reason)
+
+    def probe(self, context: ProbeContext) -> SourceHealth:
+        return SourceHealth(
+            source_id=self.metadata.source_id,
+            role=self.metadata.role,
+            stability=self.metadata.stability,
+            health="blocked",
+            fetched_count=0,
+            accepted_count=0,
+            duration_ms=0,
+            checked_at=context.clock.now(),
+            error=SourceError(code="manual_source", message=self.reason),
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -17,6 +51,7 @@ class SourceSpec:
     stability: str
     official_domains: tuple[str, ...]
     official_github_organizations: tuple[str, ...] = ()
+    manual_reason: str | None = None
 
     def metadata(self) -> SourceMetadata:
         return SourceMetadata(
@@ -26,12 +61,16 @@ class SourceSpec:
             homepage=self.feed_url,
             official_domains=self.official_domains,
             official_github_organizations=self.official_github_organizations,
-            capabilities=("rss", "atom"),
+            capabilities=("manual",) if self.manual_reason else ("rss", "atom"),
             stability=self.stability,
-            publication_time_semantics="feed-date",
+            publication_time_semantics=(
+                "manual-check" if self.manual_reason else "feed-date"
+            ),
         )
 
-    def plugin(self) -> RssFeedPlugin:
+    def plugin(self) -> SourcePlugin:
+        if self.manual_reason:
+            return ManualSourcePlugin(self.metadata(), self.manual_reason)
         return RssFeedPlugin(self.metadata(), self.feed_url)
 
 
@@ -129,10 +168,10 @@ SOURCE_SPECS: tuple[SourceSpec, ...] = (
     SourceSpec(
         "anthropic-status",
         "Anthropic Status",
-        "https://status.anthropic.com/history.rss",
+        "https://status.claude.com/history.rss",
         "incident",
         "experimental",
-        ("status.anthropic.com",),
+        ("status.claude.com",),
     ),
     SourceSpec(
         "github-status",
@@ -153,15 +192,16 @@ SOURCE_SPECS: tuple[SourceSpec, ...] = (
     SourceSpec(
         "paperswithcode-daily",
         "Papers with Code Daily",
-        "https://paperswithcode.co/feeds/daily.xml",
+        "https://huggingface.co/papers",
         "benchmark",
-        "experimental",
-        ("paperswithcode.co",),
+        "manual",
+        ("huggingface.co",),
+        manual_reason="当前没有可确认的官方 RSS/Atom daily 入口，需人工检查官方页面",
     ),
 )
 
 
-def plugin_for(source_id: str) -> RssFeedPlugin:
+def plugin_for(source_id: str) -> SourcePlugin:
     for spec in SOURCE_SPECS:
         if spec.source_id == source_id:
             return spec.plugin()
@@ -251,4 +291,10 @@ FACTORIES: dict[str, object] = {
 }
 
 
-__all__ = ["FACTORIES", "SOURCE_SPECS", "SourceSpec", "plugin_for"]
+__all__ = [
+    "FACTORIES",
+    "SOURCE_SPECS",
+    "ManualSourcePlugin",
+    "SourceSpec",
+    "plugin_for",
+]

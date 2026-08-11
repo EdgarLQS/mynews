@@ -11,7 +11,7 @@ owner: project-maintainers
 
 # mynews 功能矩阵
 
-本表是产品范围和实现状态的唯一真相来源。v1.4 外部来源插件已按 Implemented 归档；v1.5 P1–P5 扩展来源与安全交接已 Implemented，P6 真实来源验收仍独立记录。外部插件仍是受信任本地 Python 代码，显式清单只控制加载，不承诺进程级沙箱。真实 launchd 按验收边界不加载。
+本表是产品范围和实现状态的唯一真相来源。v1.4 外部来源插件已按 Implemented 归档；v1.5 P1–P5 扩展来源与安全交接已 Implemented，P6 真实来源验收仍独立记录；`paperswithcode-daily` 当前为 manual/blocked。外部插件仍是受信任本地 Python 代码，显式清单只控制加载，不承诺进程级沙箱。真实 launchd 按验收边界不加载。
 
 状态：`Planned`、`In progress`、`Implemented`、`Verified`、`Future`、`Out`。
 
@@ -37,7 +37,7 @@ owner: project-maintainers
 | SRC-05 | 来源 | Bloomberg 实验 Adapter | Implemented | 公开元数据 fixture；不读取付费墙内容 |
 | SRC-06 | 来源 | 国内外 AI 与重点科技官方来源 | Verified | 既有真实来源验收；v1.2 目标环境重新记录 G6-S 限制 |
 | SRC-07 | 来源 | CC Switch 官方 Changelog 新功能监控 | Verified | fixture 与既有真实 probe |
-| SRC-08 | 来源 | newsFromAI 核对得到的 15 个独立 RSS/Atom 插件来源 | Implemented | 每来源 fixture、entry-point、域名/组织校验和隔离测试；G6-S 逐来源结果已记录，11 个有效、2 个空 Feed、2 个 FAIL |
+| SRC-08 | 来源 | newsFromAI 核对得到的 15 个独立来源插件（含 1 个 manual） | Implemented | 14 个 RSS/Atom fixture、1 个明确 manual/blocked entry-point、entry-point、域名/组织校验和隔离测试；修复后 G6-S 已复验：12 个有效记录、2 个合法空 Feed、1 个 manual/blocked |
 | PIPE-01 | 处理 | 规范化、相关性、热度分离 | Implemented | Normalizer 与相关性回归测试 |
 | PIPE-02 | 处理 | 跨来源、跨日期、跨运行去重 | Implemented | 批内与跨运行状态恢复测试；目标环境 G7 |
 | PIPE-03 | 处理 | discovery AI/科技确定性筛选与质量统计 | Implemented | 词边界、HTML/URL 清理和统计测试 |

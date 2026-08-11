@@ -370,7 +370,9 @@ def _health_status(
     health: Sequence[SourceHealth],
 ) -> Literal["complete", "partial", "failed"]:
     stable_health = tuple(
-        item for item in health if item.stability != "experimental"
+        item
+        for item in health
+        if item.stability not in {"experimental", "manual"}
     )
     if not stable_health:
         return "complete"

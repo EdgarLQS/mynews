@@ -49,13 +49,18 @@ v1.1 将来源详细等级写入 `SourceHealth`/`SourceResult`。`experimental` 
 | glm-releases | research | stable-planned | https://github.com/THUDM/GLM/releases.atom | `github.com/THUDM` |
 | deepseek-status | incident | experimental | https://status.deepseek.com/history.atom | `status.deepseek.com` |
 | openai-status | incident | experimental | https://status.openai.com/history.rss | `status.openai.com` |
-| anthropic-status | incident | experimental | https://status.anthropic.com/history.rss | `status.anthropic.com` |
+| anthropic-status | incident | experimental | https://status.claude.com/history.rss | `status.claude.com` |
 | github-status | incident | experimental | https://www.githubstatus.com/history.atom | `githubstatus.com` |
 | techcrunch-ai | discovery | experimental | https://techcrunch.com/category/artificial-intelligence/feed/ | `techcrunch.com` |
-| paperswithcode-daily | benchmark | experimental | https://paperswithcode.co/feeds/daily.xml | `paperswithcode.co` |
+| paperswithcode-daily | benchmark | manual | https://huggingface.co/papers | `huggingface.co` |
 
 `qwen-blog-rss` 和 Hacker News RSS 与当前 built-in 重复，不计入新增来源；当前配置不存在
 的 `arxiv-cs-ai`、`arxiv-cs-cl`、`arxiv-cs-lg` 测试期望也不计入计划覆盖。
+
+`paperswithcode-daily` 当前没有可确认的官方 RSS/Atom daily 入口；旧官方页面当前转到
+Hugging Face Daily Papers，因此保留 `https://huggingface.co/papers` 作为人工检查入口。
+显式插件 probe/collect 必须结构化为 `blocked`/`manual_source`，不得请求猜测的 Feed URL，
+也不得用 fixture 结果把它标为 healthy 或 Verified。
 
 ## 阶段 4.5 来源覆盖
 
