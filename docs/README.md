@@ -5,7 +5,7 @@ status: current
 implementation_status: implemented
 version: 1.7
 created: 2026-08-02
-updated: 2026-08-11
+updated: 2026-08-20
 owner: project-maintainers
 ---
 
@@ -51,10 +51,11 @@ owner: project-maintainers
 3. [v1.7 当前计划](planning/v1.7-intelligence-loop-plan.md)：查看分时情报分析和人工反馈闭环的实施范围与验收门槛。
 4. [newsFromAI 映射表](reference/newsfromai-v16-mapping.md)：查看 17 个 Feed 与全部人工清单覆盖率。
 5. [系统架构](architecture/system-architecture.md)：理解采集、核验、Digest 模块和数据流。
-6. [信息来源目录](reference/source-catalog.md)：查看渠道角色、稳定等级和核验规则。
-7. [JSON 数据契约](reference/json-data-contract.md)：查看 RunReport 和 Digest 格式。
-8. [架构决策记录](decisions/README.md)：查看关键设计及其理由。
-9. [历史归档](archive/README.md)：追溯 v1.2 计划、真实验收和更早历史。
+6. [架构方向审查](architecture/architecture-direction-review-2026-08-20.md)：查看当前设计整理、问题证据和 Proposed 改进候选。
+7. [信息来源目录](reference/source-catalog.md)：查看渠道角色、稳定等级和核验规则。
+8. [JSON 数据契约](reference/json-data-contract.md)：查看 RunReport 和 Digest 格式。
+9. [架构决策记录](decisions/README.md)：查看关键设计及其理由。
+10. [历史归档](archive/README.md)：追溯 v1.2 计划、真实验收和更早历史。
 
 ## 文档职责
 
@@ -85,3 +86,9 @@ owner: project-maintainers
 | [ADR-0002](decisions/ADR-0002-controlled-resolution-and-evidence-lifecycle.md) | Accepted | Implemented |
 | [ADR-0003](decisions/ADR-0003-evidence-grounded-intelligence-digest.md) | Accepted | Implemented；未执行真实 Digest Codex 验收 |
 | [ADR-0004](decisions/ADR-0004-external-source-plugins.md) | Accepted | Implemented；外部插件为受信任本地代码，不提供进程级沙箱 |
+
+## Draft 设计提案
+
+| 文档 | 状态 | 实现状态 |
+| --- | --- | --- |
+| [架构方向审查](architecture/architecture-direction-review-2026-08-20.md) | Draft | Proposed；整理当前设计、问题证据与候选方向，不替代系统架构或 v1.7 当前计划 |
