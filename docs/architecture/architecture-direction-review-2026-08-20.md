@@ -23,8 +23,9 @@ owner: project-maintainers
 - 证据、Digest 和外部插件边界仍由 [ADR-0001 至 ADR-0004](../decisions/README.md) 约束；
 - 本文中的候选方向在单独确认、设计、实施和验收前，不能写成 Implemented。
 
-本轮只做静态设计审查，没有执行真实网络、Codex 分时任务或调度验收。因此 v1.7 P5 仍是
-`BLOCKED`，本文不把任何真实能力上调为 Verified。
+本轮只做静态设计审查，没有执行真实网络、Codex 分时任务或调度验收。因此 v1.7 P5 记为
+`SKIPPED（待单独授权）`，本文不把任何真实能力上调为 Verified。只有实际执行后受到网络、
+Codex、sandbox 或调度环境阻断，才按验收证据记为 `BLOCKED`。
 
 ## 审查口径
 
@@ -180,7 +181,8 @@ flowchart LR
 **ADR 检查**
 
 不改变 SourcePlugin、EvidenceVerifier、NewsStore 或 JSON interface；只是把已有装配移回应用层，
-与 ADR-0001、ADR-0004 一致。若设计要求改变插件加载语义，则必须停止并单独更新 ADR。
+与 ADR-0001、ADR-0004 一致。若设计要求改变插件加载语义，则必须停止，新增替代 ADR，并按
+治理规则把旧 ADR 标为 Superseded；不直接改写已接受结论。
 
 ### ARCH-02：统一文件提交机制，保留不同业务策略
 
@@ -361,7 +363,8 @@ flowchart LR
 ```mermaid
 flowchart TD
     P5[P0：完成 v1.7 P5 真实验收] --> D{P5 结论}
-    D -->|PASS 或已记录 BLOCKED| A1[P1：ARCH-01 CLI 薄化设计]
+    D -->|PASS，v1.7 完成收口| A1[P1：ARCH-01 CLI 薄化设计]
+    D -->|BLOCKED 或 FAIL| H[保持候选提案，不启动新架构实施]
     A1 --> A2[P2：ARCH-02 Artifact commit 收敛]
     A2 --> A3[P3：按真实维护需求选择 ARCH-03 或 ARCH-04]
     D -->|出现重复编排偏差| A5[单独评估 ARCH-05]
@@ -400,7 +403,8 @@ flowchart TD
 2. 列出至少两个可比较方案，不直接冻结本文中的示意形态；
 3. 说明将删除哪些旧实现，通过 deletion test；
 4. 明确 JSON、CLI、来源、verified 和事务语义是否变化；
-5. 若触及已接受 ADR 的决定，先新增或更新 ADR；
+5. 若改变已接受 ADR 的决定，先新增替代 ADR，再把旧 ADR 标为 Superseded；非结论性澄清才可
+   更新原 ADR；
 6. 先写兼容测试和失败测试，再做最小实现；
 7. 相关测试、Ruff、Mypy、全量测试和中文 CLI 均通过；
 8. 离线重构最高标记 Implemented，不能借此上调真实运行状态。
