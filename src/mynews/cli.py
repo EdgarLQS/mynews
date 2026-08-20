@@ -32,6 +32,7 @@ from mynews.verification.codex import CodexVerifier
 from mynews.verification.protocol import REASONING_EFFORTS, VerificationConfig
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
+FEEDBACK_OUTPUT_PATH = Path("output/editorial/weekly-feedback.md")
 
 
 class ChineseArgumentParser(argparse.ArgumentParser):
@@ -57,6 +58,109 @@ class ChineseArgumentParser(argparse.ArgumentParser):
         translated = translated.replace("argument ", "参数 ")
         self.print_usage()
         self.exit(2, f"{self.prog}: 参数错误：{translated}\n")
+
+
+def _add_publication_parser(
+    commands: argparse._SubParsersAction[ChineseArgumentParser],
+) -> None:
+    publication = commands.add_parser(
+        "publication",
+        help="人工记录已发布内容",
+        description="校验 Candidate 后，离线回填 publication ledger，不自动发布内容。",
+        add_help=False,
+    )
+    publication.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    subcommands = publication.add_subparsers(
+        dest="publication_command",
+        title="发布子命令",
+        parser_class=ChineseArgumentParser,
+    )
+    add = subcommands.add_parser(
+        "add",
+        help="添加一篇内容对应的发布记录",
+        description="离线校验 Candidate 和事件 ID，重复记录保持不变。",
+        add_help=False,
+    )
+    add.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    add.add_argument(
+        "--candidate-file",
+        required=True,
+        type=Path,
+        metavar="路径",
+        help="Candidate JSON 文件",
+    )
+    add.add_argument(
+        "--event-id",
+        dest="event_ids",
+        action="append",
+        required=True,
+        metavar="ID",
+        help="事件 ID，可重复指定",
+    )
+    add.add_argument("--title", required=True, metavar="标题", help="发布标题")
+    add.add_argument("--platform", required=True, metavar="平台", help="发布平台")
+    add.add_argument(
+        "--url", required=True, metavar="HTTPS链接", help="公开 HTTPS 链接"
+    )
+    add.add_argument(
+        "--published-at",
+        required=True,
+        metavar="ISO时间",
+        help="带时区的实际发布时间",
+    )
+    add.add_argument(
+        "--out",
+        dest="output_path",
+        type=Path,
+        default=Path("output/editorial/publication-ledger.csv"),
+        metavar="路径",
+        help="ledger 输出路径，默认 output/editorial/publication-ledger.csv",
+    )
+
+
+def _add_feedback_parser(
+    commands: argparse._SubParsersAction[ChineseArgumentParser],
+) -> None:
+    feedback = commands.add_parser(
+        "feedback",
+        help="人工记录每周反馈",
+        description="离线回填周反馈 Markdown 稳定区块，不修改候选事实。",
+        add_help=False,
+    )
+    feedback.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    subcommands = feedback.add_subparsers(
+        dest="feedback_command", title="反馈子命令", parser_class=ChineseArgumentParser
+    )
+    record = subcommands.add_parser(
+        "record",
+        help="记录一个 ISO 周的平台反馈",
+        description="同周同平台相同内容幂等，冲突时必须显式使用 --replace。",
+        add_help=False,
+    )
+    record.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    record.add_argument("--week", required=True, metavar="YYYY-Www", help="ISO 周")
+    record.add_argument("--platform", required=True, metavar="平台", help="反馈平台")
+    metrics = (
+        ("--reads", "reads", "阅读数"),
+        ("--favorites", "favorites", "收藏数"),
+        ("--shares", "shares", "转发数"),
+        ("--new-followers", "new_followers", "新增关注数"),
+    )
+    for option, destination, label in metrics:
+        record.add_argument(
+            option,
+            dest=destination,
+            required=True,
+            type=_nonnegative_int,
+            metavar="数量",
+            help=f"{label}，必须是非负整数",
+        )
+    record.add_argument(
+        "--note", default="", metavar="文本", help="可选的单行典型反馈"
+    )
+    record.add_argument(
+        "--replace", action="store_true", help="显式替换已有稳定区块"
+    )
 
 
 def build_parser() -> ChineseArgumentParser:
@@ -281,161 +385,8 @@ def build_parser() -> ChineseArgumentParser:
     prepare.add_argument(
         "--refresh", action="store_true", help="重新抓取当天数据并更新候选包"
     )
-    publication = commands.add_parser(
-        "publication",
-        help="人工记录已发布内容",
-        description="校验 Candidate 后，离线回填 publication ledger，不自动发布内容。",
-        add_help=False,
-    )
-    publication.add_argument("-h", "--help", action="help", help="显示帮助并退出")
-    publication_commands = publication.add_subparsers(
-        dest="publication_command",
-        title="发布子命令",
-        parser_class=ChineseArgumentParser,
-    )
-    publication_add = publication_commands.add_parser(
-        "add",
-        help="添加一篇内容对应的发布记录",
-        description="离线校验 Candidate 和事件 ID，重复记录保持不变。",
-        add_help=False,
-    )
-    publication_add.add_argument(
-        "-h", "--help", action="help", help="显示帮助并退出"
-    )
-    publication_add.add_argument(
-        "--candidate-file",
-        "--candidate",
-        "--file",
-        dest="candidate_file",
-        required=True,
-        type=Path,
-        metavar="路径",
-        help="Candidate JSON 文件",
-    )
-    publication_add.add_argument(
-        "event_ids",
-        nargs="*",
-        metavar="事件ID",
-        help="一个或多个事件 ID，也可使用 --event-id 重复指定",
-    )
-    publication_add.add_argument(
-        "--event-id",
-        "--event-ids",
-        dest="event_id_options",
-        action="append",
-        metavar="ID",
-        help="事件 ID，可重复指定",
-    )
-    publication_add.add_argument(
-        "--title", "--post-title", required=True, metavar="标题", help="发布标题"
-    )
-    publication_add.add_argument(
-        "--platform", required=True, metavar="平台", help="发布平台"
-    )
-    publication_add.add_argument(
-        "--url",
-        "--public-url",
-        required=True,
-        metavar="HTTPS链接",
-        help="公开 HTTPS 链接",
-    )
-    publication_add.add_argument(
-        "--published-at",
-        "--time",
-        required=True,
-        metavar="ISO时间",
-        help="带时区的实际发布时间",
-    )
-    publication_add.add_argument(
-        "--out",
-        "--ledger",
-        dest="output_path",
-        type=Path,
-        default=Path("output/editorial/publication-ledger.csv"),
-        metavar="路径",
-        help="ledger 输出路径，默认 output/editorial/publication-ledger.csv",
-    )
-    feedback = commands.add_parser(
-        "feedback",
-        help="人工记录每周反馈",
-        description="离线回填周反馈 Markdown 稳定区块，不修改候选事实。",
-        add_help=False,
-    )
-    feedback.add_argument("-h", "--help", action="help", help="显示帮助并退出")
-    feedback_commands = feedback.add_subparsers(
-        dest="feedback_command", title="反馈子命令", parser_class=ChineseArgumentParser
-    )
-    feedback_record = feedback_commands.add_parser(
-        "record",
-        help="记录一个 ISO 周的平台反馈",
-        description="同周同平台相同内容幂等，冲突时必须显式使用 --replace。",
-        add_help=False,
-    )
-    feedback_record.add_argument("-h", "--help", action="help", help="显示帮助并退出")
-    feedback_record.add_argument(
-        "--week", "--iso-week", required=True, metavar="YYYY-Www", help="ISO 周"
-    )
-    feedback_record.add_argument(
-        "--platform", required=True, metavar="平台", help="反馈平台"
-    )
-    feedback_record.add_argument(
-        "--reads",
-        "--reading",
-        "--views",
-        dest="reads",
-        required=True,
-        type=_nonnegative_int,
-        metavar="数量",
-        help="阅读数，必须是非负整数",
-    )
-    feedback_record.add_argument(
-        "--favorites",
-        "--likes",
-        "--collects",
-        dest="favorites",
-        required=True,
-        type=_nonnegative_int,
-        metavar="数量",
-        help="收藏数，必须是非负整数",
-    )
-    feedback_record.add_argument(
-        "--shares",
-        "--forwards",
-        dest="shares",
-        required=True,
-        type=_nonnegative_int,
-        metavar="数量",
-        help="转发数，必须是非负整数",
-    )
-    feedback_record.add_argument(
-        "--new-followers",
-        "--new-follows",
-        "--followers",
-        dest="new_followers",
-        required=True,
-        type=_nonnegative_int,
-        metavar="数量",
-        help="新增关注数，必须是非负整数",
-    )
-    feedback_record.add_argument(
-        "--note",
-        "--feedback",
-        "--comment",
-        dest="note",
-        default="",
-        metavar="文本",
-        help="可选的单行典型反馈",
-    )
-    feedback_record.add_argument(
-        "--replace", action="store_true", help="显式替换已有稳定区块"
-    )
-    feedback_record.add_argument(
-        "--out",
-        type=Path,
-        default=Path("output/editorial/weekly-feedback.md"),
-        metavar="路径",
-        help="反馈输出路径，默认 output/editorial/weekly-feedback.md",
-    )
+    _add_publication_parser(commands)
+    _add_feedback_parser(commands)
     plugin = commands.add_parser(
         "plugin",
         help="发现和显式检查外部来源插件",
@@ -663,6 +614,81 @@ def _actual_selection(
     return tuple(dict.fromkeys(selected))
 
 
+def _run_publication_command(
+    args: argparse.Namespace, parser: ChineseArgumentParser
+) -> int:
+    if args.publication_command != "add":
+        parser.print_help()
+        return 2
+    try:
+        result = add_publication(
+            args.candidate_file,
+            args.event_ids,
+            title=args.title,
+            platform=args.platform,
+            url=args.url,
+            published_at=args.published_at,
+            output_path=args.output_path,
+        )
+    except PublicationArgumentError as error:
+        parser.error(str(error))
+    except (OSError, ValueError) as error:
+        print(
+            "发布记录失败："
+            f"{_safe_cli_error(error, '请检查 Candidate、事件 ID、输出路径和权限')}"
+        )
+        return 1
+    print(
+        json.dumps(
+            {
+                "status": result.status,
+                "event_count": result.event_count,
+                "path": _relative_output_path(result.path, Path.cwd()),
+            },
+            ensure_ascii=False,
+        )
+    )
+    return 0
+
+
+def _run_feedback_command(
+    args: argparse.Namespace, parser: ChineseArgumentParser
+) -> int:
+    if args.feedback_command != "record":
+        parser.print_help()
+        return 2
+    try:
+        result = record_weekly_feedback(
+            week=args.week,
+            platform=args.platform,
+            reads=args.reads,
+            favorites=args.favorites,
+            shares=args.shares,
+            new_followers=args.new_followers,
+            note=args.note,
+            output_path=FEEDBACK_OUTPUT_PATH,
+            replace=args.replace,
+        )
+    except FeedbackArgumentError as error:
+        parser.error(str(error))
+    except (OSError, ValueError) as error:
+        print(
+            "周反馈记录失败："
+            f"{_safe_cli_error(error, '请检查 ISO 周、指标、输出路径和文件权限')}"
+        )
+        return 1
+    print(
+        json.dumps(
+            {
+                "status": result.status,
+                "path": _relative_output_path(result.path, Path.cwd()),
+            },
+            ensure_ascii=False,
+        )
+    )
+    return 0
+
+
 def main(
     argv: Sequence[str] | None = None,
     *,
@@ -692,73 +718,9 @@ def main(
         parser.print_help()
         return 2
     if args.command == "publication":
-        if args.publication_command != "add":
-            parser.print_help()
-            return 2
-        event_ids = [*args.event_ids, *(args.event_id_options or [])]
-        try:
-            publication_result = add_publication(
-                args.candidate_file,
-                event_ids,
-                title=args.title,
-                platform=args.platform,
-                url=args.url,
-                published_at=args.published_at,
-                output_path=args.output_path,
-            )
-        except PublicationArgumentError as error:
-            parser.error(str(error))
-        except (OSError, ValueError) as error:
-            print(
-                "发布记录失败："
-                f"{_safe_cli_error(error, '请检查 Candidate、事件 ID、输出路径和权限')}"
-            )
-            return 1
-        print(
-            json.dumps(
-                {
-                    "status": publication_result.status,
-                    "event_count": publication_result.event_count,
-                    "path": _relative_output_path(publication_result.path, Path.cwd()),
-                },
-                ensure_ascii=False,
-            )
-        )
-        return 0
+        return _run_publication_command(args, parser)
     if args.command == "feedback":
-        if args.feedback_command != "record":
-            parser.print_help()
-            return 2
-        try:
-            feedback_result = record_weekly_feedback(
-                week=args.week,
-                platform=args.platform,
-                reads=args.reads,
-                favorites=args.favorites,
-                shares=args.shares,
-                new_followers=args.new_followers,
-                note=args.note,
-                output_path=args.out,
-                replace=args.replace,
-            )
-        except FeedbackArgumentError as error:
-            parser.error(str(error))
-        except (OSError, ValueError) as error:
-            print(
-                "周反馈记录失败："
-                f"{_safe_cli_error(error, '请检查 ISO 周、指标、输出路径和文件权限')}"
-            )
-            return 1
-        print(
-            json.dumps(
-                {
-                    "status": feedback_result.status,
-                    "path": _relative_output_path(feedback_result.path, Path.cwd()),
-                },
-                ensure_ascii=False,
-            )
-        )
-        return 0
+        return _run_feedback_command(args, parser)
     if args.command in {"collect", "probe"}:
         _validate_plugin_mode(args, parser)
     builtin_ids = getattr(active_registry, "source_ids", ())

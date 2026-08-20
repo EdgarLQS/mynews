@@ -5,7 +5,7 @@ status: current
 implementation_status: not_applicable
 version: 1.0
 created: 2026-08-02
-updated: 2026-08-02
+updated: 2026-08-20
 owner: project-maintainers
 ---
 
@@ -17,7 +17,9 @@ owner: project-maintainers
 
 ## 必填文档头
 
-除根 README、`AGENTS.md`、`CLAUDE.md` 和 AI 技能入口外，当前文档都使用以下头部：
+除根 README、`AGENTS.md`、`CLAUDE.md`、AI 技能入口和根目录机器任务契约
+`news-task.md` 外，当前文档都使用以下头部。`news-task.md` 使用调度器可直接读取的任务
+元数据，不混入文档治理字段：
 
 ```yaml
 ---

@@ -73,7 +73,7 @@ def record_weekly_feedback(
         return FeedbackResult(status, output_path)
     ensure_safe_output(updated, root="weeklyFeedbackMarkdown")
     atomic_write_text(output_path, updated)
-    return FeedbackResult("created" if status == "created" else "replaced", output_path)
+    return FeedbackResult("created", output_path)
 
 
 def render_feedback_block(
@@ -119,7 +119,7 @@ def _text(value: str, field: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise FeedbackArgumentError(f"{field}不能为空")
     cleaned = value.strip()
-    if any(token in cleaned for token in ("\n", "\r", "<!--", "-->") ):
+    if any(token in cleaned for token in ("\n", "\r", "<!--", "-->")):
         raise FeedbackArgumentError(f"{field}包含非法标记")
     return cleaned
 
@@ -127,8 +127,10 @@ def _text(value: str, field: str) -> str:
 def _note(value: str) -> str:
     if not isinstance(value, str):
         raise FeedbackArgumentError("反馈文本必须是单行文本")
-    if "\n" in value or "\r" in value:
-        raise FeedbackArgumentError("反馈文本必须是单行文本")
+    if any(token in value for token in ("\n", "\r", "<!--", "-->")):
+        raise FeedbackArgumentError(
+            "反馈文本必须是单行文本且不能包含 Markdown 注释标记"
+        )
     return value.strip()
 
 

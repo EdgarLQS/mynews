@@ -47,6 +47,8 @@ def add_publication(
 ) -> PublicationResult:
     """校验 Candidate 后，将一篇内容对应的事件写入 CSV。"""
 
+    if candidate_path.resolve() == output_path.resolve():
+        raise PublicationArgumentError("输出路径不能覆盖 Candidate 文件")
     clean_ids = _unique_event_ids(event_ids)
     clean_title = _required_text(title, "标题")
     clean_platform = _required_text(platform, "平台")

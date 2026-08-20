@@ -56,6 +56,8 @@ def _check_value(value: object, path: str) -> None:
         return
     if isinstance(value, Mapping):
         for key, child in value.items():
+            if isinstance(key, str):
+                _check_value(key, f"{path}.<key>")
             _check_value(child, f"{path}.{key}")
         return
     if isinstance(value, Sequence) and not isinstance(value, (bytes, bytearray)):

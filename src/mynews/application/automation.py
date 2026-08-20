@@ -41,6 +41,8 @@ def validate_automation_state(payload: Mapping[str, Any]) -> None:
     missing = [field for field in STATE_FIELDS if field not in payload]
     if missing:
         raise ValueError("automation 状态缺少必要字段")
+    if set(payload) - set(STATE_FIELDS):
+        raise ValueError("automation 状态字段无效")
     if payload["schemaVersion"] != AUTOMATION_SCHEMA_VERSION:
         raise ValueError("automation 状态 schemaVersion 无效")
     for field in ("lastAttemptAt", "lastSuccessAt"):
