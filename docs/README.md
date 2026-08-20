@@ -87,8 +87,9 @@ owner: project-maintainers
 | [ADR-0003](decisions/ADR-0003-evidence-grounded-intelligence-digest.md) | Accepted | Implemented；未执行真实 Digest Codex 验收 |
 | [ADR-0004](decisions/ADR-0004-external-source-plugins.md) | Accepted | Implemented；外部插件为受信任本地代码，不提供进程级沙箱 |
 
-## Draft 设计提案
+## Draft 提案
 
 | 文档 | 状态 | 实现状态 |
 | --- | --- | --- |
 | [架构方向审查](architecture/architecture-direction-review-2026-08-20.md) | Draft | Proposed；整理当前设计、问题证据与候选方向，不替代系统架构或 v1.7 当前计划 |
+| [v1.8-v2.0 产品与技术路线图](planning/v1.8-v2.0-roadmap.md) | Draft | Proposed；只有 v1.7 P5 PASS 并完成收口后，才能按阶段转成独立 Current 计划 |
