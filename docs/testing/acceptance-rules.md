@@ -3,9 +3,9 @@ title: mynews 项目验收规则
 doc_type: test
 status: current
 implementation_status: implemented
-version: 1.2
+version: 1.3
 created: 2026-08-02
-updated: 2026-08-11
+updated: 2026-08-23
 owner: project-maintainers
 ---
 
@@ -18,7 +18,7 @@ owner: project-maintainers
 - 通用触发语：`按项目验收规则开始验收` 或 `开始验收`。
 - Claude Code：输入 `/acceptance`；可在后面补充文件、提交或功能范围。
 - 未指定范围时：验收当前工作树相对 `HEAD` 的全部已跟踪和未跟踪变更。
-- v1.2 的真实 G6-S、G6-V、G7 结果见[归档验收清单](../archive/testing/2026/v1.2-real-environment-acceptance.md)；当前开发按唯一 [v1.7 Current 计划](../planning/v1.7-intelligence-loop-plan.md) 的 P0–P5 执行。
+- v1.2 的真实 G6-S、G6-V、G7 结果见[归档验收清单](../archive/testing/2026/v1.2-real-environment-acceptance.md)；当前开发按唯一[统一开发总计划](../planning/v1.7-v2.0-master-plan.md)的阶段和前置门禁执行。
 
 验收默认只读。除非用户明确要求“验收并修复”，验收人员不得修改、格式化、提交或删除项目文件。
 
@@ -86,6 +86,19 @@ owner: project-maintainers
 - 因命令预计会失败而省略执行，却不标记 `SKIPPED` 或 `BLOCKED`。
 - `plugin list` 发现了 entry-point，却没有执行工厂、真实 probe 或扩展采集。
 - 只验证新增插件来源，却没有回归普通 collect/probe 的原有来源选择。
+
+### 统一总计划阶段判定
+
+- 先从[统一开发总计划](../planning/v1.7-v2.0-master-plan.md)确认本次范围属于 M0-M7 的哪个
+  阶段，再选择该阶段与变更类型共同要求的门禁；不得把 Proposed 的后续命令当作当前能力验收。
+- M0 只允许更新治理、计划、验收和 AI 入口；通过 G0、G1、G1-S 及完整回归后最高标记
+  Implemented，不得把 M1-M7 或旧 P5 准备结果写成 Verified。
+- M1 真实网络、Codex 双档、latest-only 和故障恢复只有用户另行明确授权后才能执行；批准或
+  实施总计划本身不构成授权。M1 未 PASS 并合入本地 `main` 时，M2-M7 均不得启动。
+- M2-M7 必须从包含上一阶段交付的最新本地 `main` 创建独立分支；若前置阶段为 FAIL、BLOCKED
+  或存在必需 SKIPPED 门禁，本阶段结论不能为 PASS。
+- QualityEvaluation、Operations 和 EditorialReview 的真实数据、隔离恢复、四周反馈等门禁
+  通过前，相应能力最高标记 Implemented；离线样本、fixture 或 task 文档不能替代真实验收。
 
 ### v1.5/v1.6 来源与 editorial 继承判定
 

@@ -2,8 +2,8 @@
 title: mynews 规划文档状态索引
 doc_type: index
 status: current
-implementation_status: implemented
-version: 1.7
+implementation_status: in_progress
+version: 2.0
 created: 2026-08-02
 updated: 2026-08-23
 owner: project-maintainers
@@ -17,19 +17,15 @@ owner: project-maintainers
 
 | 计划 | 文档状态 | 实现状态 | 下一门槛 |
 | --- | --- | --- | --- |
-| [v1.7 分时情报分析与人工反馈闭环计划](v1.7-intelligence-loop-plan.md) | Current | Implemented | P0–P4 离线门禁完成；P5 真实 Codex 双档验收需单独授权 |
-
-## Draft 路线图
-
-| 计划 | 文档状态 | 实现状态 | 激活门槛 |
-| --- | --- | --- | --- |
-| [v1.8-v2.0 产品与技术路线图](v1.8-v2.0-roadmap.md) | Draft | Proposed | v1.7 P5 PASS、v1.7 收口归档并从最新 `main` 建立独立 Current 计划 |
-| [P5 外部插件分发准备计划](p5-plugin-distribution-readiness-plan.md) | Draft | Proposed | 构建并安装现有 source pack，15 个 entry-point 可发现后恢复 P5-B |
+| [v1.7 收口至 v2.0 统一开发总计划](v1.7-v2.0-master-plan.md) | Current | In progress | M0 已 Implemented；M1 真实 P5 仍需单独授权，P5 PASS 前不启动 v1.8 |
 
 ## 已完成计划
 
 | 计划 | 文档状态 | 实现状态 | 替代关系 |
 | --- | --- | --- | --- |
+| [v1.7 分时情报分析与人工反馈闭环计划](../archive/plan/2026/v1.7-intelligence-loop-plan.md) | Archived | Implemented | 被统一开发总计划替代；P0-P4 保持 Implemented，P5 未完成记录保留 |
+| [P5 外部插件分发准备计划](../archive/plan/2026/p5-plugin-distribution-readiness-plan.md) | Archived | Proposed | 被统一开发总计划 M1 替代；旧基线准备结果不能作为当前 P5 PASS |
+| [v1.8-v2.0 产品与技术路线图](../archive/plan/2026/v1.8-v2.0-roadmap.md) | Archived | Proposed | 被统一开发总计划 M2-M7 替代；未实施状态保留 |
 | [v1.6 newsFromAI 数据能力完整吸收计划](../archive/plan/2026/v1.6-newsfromai-parity-plan.md) | Archived | Implemented | 被 v1.7 分时情报分析与人工反馈闭环计划替代；来源与 Candidate 能力继续保留 |
 | [v1.4 外部来源插件计划](../archive/plan/2026/v1.4-source-plugins-plan.md) | Archived | Implemented | 被 v1.5 扩展来源与安全交接计划替代；外部插件仍保持显式加载和受信任本地代码边界 |
 | [v1.5 扩展来源与安全交接计划](../archive/plan/2026/v1.5-expanded-sources-safe-handoff-plan.md) | Archived | Implemented | 被 v1.6 newsFromAI 数据能力完整吸收计划替代；来源插件和安全边界继续保留 |
@@ -40,7 +36,7 @@ owner: project-maintainers
 
 ## 计划维护规则
 
-- 同一阶段只能有一份主计划处于 Current。
+- 仓库只能有一份主计划处于 Current；当前总计划内部按阶段和独立分支推进。
 - 任务完成要记录验证命令与结果，不能只勾选完成。
 - 主计划被替代或 v1 完成后，移动到 `../archive/plan/<year>/`，并在本页登记替代关系。
 - 长期设计不写进计划正文，应更新系统架构或新增 ADR。

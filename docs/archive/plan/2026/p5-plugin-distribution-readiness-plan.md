@@ -1,12 +1,13 @@
 ---
 title: mynews P5 外部插件分发准备计划
 doc_type: plan
-status: draft
+status: archived
 implementation_status: proposed
 version: 1.0
 created: 2026-08-23
 updated: 2026-08-23
 owner: project-maintainers
+superseded_by: ../../../planning/v1.7-v2.0-master-plan.md
 ---
 
 # mynews P5 外部插件分发准备计划
@@ -43,7 +44,7 @@ owner: project-maintainers
 
 ## 范围与来源角色
 
-插件 ID、官方入口和域名边界以[信息来源目录](../reference/source-catalog.md)和插件包
+插件 ID、官方入口和域名边界以[信息来源目录](../../../reference/source-catalog.md)和插件包
 `pyproject.toml`为准，不在本计划中重新发明 URL 或 source_id。
 
 | 角色 | entry-point | 验收要求 |

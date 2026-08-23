@@ -5,7 +5,7 @@ status: draft
 implementation_status: proposed
 version: 1.0
 created: 2026-08-20
-updated: 2026-08-20
+updated: 2026-08-23
 owner: project-maintainers
 ---
 
@@ -13,12 +13,12 @@ owner: project-maintainers
 
 ## 文档定位
 
-本文基于本地 `main` 提交 `d1f166d` 的源码、权威文档、四份已接受 ADR 和 v1.7 当前计划，整理
-当前设计、实际代码形态、已发现问题和候选解决方向。
+本文基于本地 `main` 提交 `d1f166d` 的源码、权威文档、四份已接受 ADR 和当时的 v1.7 计划，
+整理当前设计、实际代码形态、已发现问题和候选解决方向；后续取舍已纳入统一开发总计划。
 
 本文是 **Draft / Proposed** 的设计审查快照，不替代以下权威真相：
 
-- 当前实施顺序仍以 [v1.7 当前计划](../planning/v1.7-intelligence-loop-plan.md) 为准；
+- 当前实施顺序以[统一开发总计划](../planning/v1.7-v2.0-master-plan.md)为准；
 - 已实现结构仍以 [系统架构](system-architecture.md) 为准；
 - 证据、Digest 和外部插件边界仍由 [ADR-0001 至 ADR-0004](../decisions/README.md) 约束；
 - 本文中的候选方向在单独确认、设计、实施和验收前，不能写成 Implemented。

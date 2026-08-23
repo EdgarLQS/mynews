@@ -3,9 +3,9 @@ title: mynews 历史文档归档索引
 doc_type: archive-index
 status: current
 implementation_status: not_applicable
-version: 1.7
+version: 2.0
 created: 2026-08-02
-updated: 2026-08-11
+updated: 2026-08-23
 owner: project-maintainers
 ---
 
@@ -33,7 +33,11 @@ archive/
 | `docs/planning/v1.3-intelligence-digest-plan.md` | `plan/2026/v1.3-intelligence-digest-plan.md` | 2026-08-09 | v1.3 已按 Implemented 完成并被 v1.4 外部来源插件计划替代；真实 Digest Codex `BLOCKED` 记录保留 | [v1.4 归档计划](plan/2026/v1.4-source-plugins-plan.md) |
 | `docs/planning/v1.4-source-plugins-plan.md` | `plan/2026/v1.4-source-plugins-plan.md` | 2026-08-11 | v1.4 已按 Implemented 完成并被 v1.5 扩展来源与安全交接计划替代 | [v1.5 归档计划](plan/2026/v1.5-expanded-sources-safe-handoff-plan.md) |
 | `docs/planning/v1.5-expanded-sources-safe-handoff-plan.md` | `plan/2026/v1.5-expanded-sources-safe-handoff-plan.md` | 2026-08-11 | v1.5 已按 Implemented 完成并被 v1.6 newsFromAI 数据能力完整吸收计划替代 | [v1.6 归档计划](plan/2026/v1.6-newsfromai-parity-plan.md) |
-| `docs/planning/v1.6-newsfromai-parity-plan.md` | `plan/2026/v1.6-newsfromai-parity-plan.md` | 2026-08-11 | v1.6 已完成 datacollection 能力吸收并被 v1.7 分时情报分析与人工反馈闭环计划替代 | [v1.7 当前计划](../planning/v1.7-intelligence-loop-plan.md) |
+| `docs/planning/v1.6-newsfromai-parity-plan.md` | `plan/2026/v1.6-newsfromai-parity-plan.md` | 2026-08-11 | v1.6 已完成 datacollection 能力吸收并被 v1.7 分时情报分析与人工反馈闭环计划替代 | [v1.7 归档计划](plan/2026/v1.7-intelligence-loop-plan.md) |
+| `docs/planning/v1.7-intelligence-loop-plan.md` | `plan/2026/v1.7-intelligence-loop-plan.md` | 2026-08-23 | P0-P4 已 Implemented；P5 与后续路线由统一总计划继续管理 | [统一开发总计划](../planning/v1.7-v2.0-master-plan.md) |
+| `docs/planning/p5-plugin-distribution-readiness-plan.md` | `plan/2026/p5-plugin-distribution-readiness-plan.md` | 2026-08-23 | 旧固定基线准备计划被 M1 重新冻结与真实验收流程替代 | [统一开发总计划](../planning/v1.7-v2.0-master-plan.md) |
+| `docs/planning/v1.8-v2.0-roadmap.md` | `plan/2026/v1.8-v2.0-roadmap.md` | 2026-08-23 | Draft 路线被决策完整的 M2-M7 阶段替代 | [统一开发总计划](../planning/v1.7-v2.0-master-plan.md) |
+| P5 临时运行证据 | `testing/2026/v1.7-p5-preparation-evidence-2026-08-23.md` | 2026-08-23 | 保存旧 worktree 的脱敏准备结果与不可复用限制 | [统一开发总计划](../planning/v1.7-v2.0-master-plan.md) |
 | `docs/planning/v1-implementation-plan.md` | `plan/2026/v1-implementation-plan.md` | 2026-08-03 | v1 完成并由信息质量闭环 v1.1 替代 | [v1.1 归档计划](plan/2026/v1.1-information-quality-plan.md) |
 
 ## 归档要求

@@ -30,7 +30,7 @@ uv run mynews feedback record --week 2026-W32 --platform "平台" \
 ## 文档入口
 
 - [文档总览与当前状态](docs/README.md)
-- [v1.7 当前计划](docs/planning/v1.7-intelligence-loop-plan.md)
+- [v1.7 收口至 v2.0 统一开发总计划](docs/planning/v1.7-v2.0-master-plan.md)
 - [newsFromAI 来源与人工清单映射](docs/reference/newsfromai-v16-mapping.md)
 - [v1.4 外部插件归档计划](docs/archive/plan/2026/v1.4-source-plugins-plan.md)
 - [v1.3 Digest 归档与真实验收记录](docs/archive/README.md)
