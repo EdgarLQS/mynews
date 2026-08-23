@@ -5,7 +5,7 @@ status: current
 implementation_status: implemented
 version: 1.7
 created: 2026-08-02
-updated: 2026-08-20
+updated: 2026-08-23
 owner: project-maintainers
 ---
 
@@ -24,6 +24,7 @@ owner: project-maintainers
 | 计划 | 文档状态 | 实现状态 | 激活门槛 |
 | --- | --- | --- | --- |
 | [v1.8-v2.0 产品与技术路线图](v1.8-v2.0-roadmap.md) | Draft | Proposed | v1.7 P5 PASS、v1.7 收口归档并从最新 `main` 建立独立 Current 计划 |
+| [P5 外部插件分发准备计划](p5-plugin-distribution-readiness-plan.md) | Draft | Proposed | 构建并安装现有 source pack，15 个 entry-point 可发现后恢复 P5-B |
 
 ## 已完成计划
 

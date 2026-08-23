@@ -5,7 +5,7 @@ status: current
 implementation_status: implemented
 version: 1.7
 created: 2026-08-02
-updated: 2026-08-20
+updated: 2026-08-23
 owner: project-maintainers
 ---
 
@@ -93,3 +93,4 @@ owner: project-maintainers
 | --- | --- | --- |
 | [架构方向审查](architecture/architecture-direction-review-2026-08-20.md) | Draft | Proposed；整理当前设计、问题证据与候选方向，不替代系统架构或 v1.7 当前计划 |
 | [v1.8-v2.0 产品与技术路线图](planning/v1.8-v2.0-roadmap.md) | Draft | Proposed；只有 v1.7 P5 PASS 并完成收口后，才能按阶段转成独立 Current 计划 |
+| [P5 外部插件分发准备计划](planning/p5-plugin-distribution-readiness-plan.md) | Draft | Proposed；解除插件分发环境阻断的准备计划，不替代 v1.7 当前计划 |
