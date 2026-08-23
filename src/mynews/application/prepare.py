@@ -113,12 +113,6 @@ def prepare_editorial_pack(
         candidate_path: payload,
         output_dir / "candidates.md": markdown,
     }
-    feedback_path = root_path / "output" / "editorial" / "weekly-feedback.md"
-    ledger_path = root_path / "output" / "editorial" / "publication-ledger.csv"
-    if not feedback_path.exists():
-        writes[feedback_path] = _feedback_template()
-    if not ledger_path.exists():
-        writes[ledger_path] = _ledger_template()
     _write_transaction(writes)
     status = "partial" if failures else "complete"
     return PrepareResult(
@@ -365,18 +359,6 @@ def _failure_count(path: Path) -> int:
     if not isinstance(payload, list):
         raise ValueError("失败状态文件必须是数组")
     return len(payload)
-
-
-def _feedback_template() -> str:
-    return (
-        "# 每周反馈\n\n"
-        "只读提示：由人工记录周期、阅读、收藏、转发、新增关注和典型读者反馈。"
-        "不要把反馈写回候选事实或 verified 状态。\n"
-    )
-
-
-def _ledger_template() -> str:
-    return "date,event_id,title,platform,url,published_at\n"
 
 
 def _write_failure_record(path: Path, failures: list[dict[str, str]]) -> None:

@@ -122,6 +122,39 @@ def test_prepare_replay_does_not_fetch_and_refresh_updates_repeat_count(
     assert http.calls == 2
 
 
+def test_prepare_does_not_create_manual_ledgers(tmp_path: Path) -> None:
+    http = FixtureHttp(
+        "<rss><channel><item><title>Stable item</title>"
+        "<link>https://fixture.example/stable</link></item></channel></rss>"
+    )
+    registry = SourceRegistry([_feed()], http=http)
+
+    prepare_editorial_pack("2026-08-11", root=tmp_path, registry=registry)
+
+    assert not (
+        tmp_path / "output/editorial/publication-ledger.csv"
+    ).exists()
+    assert not (tmp_path / "output/editorial/weekly-feedback.md").exists()
+
+
+def test_prepare_preserves_existing_manual_ledgers(tmp_path: Path) -> None:
+    http = FixtureHttp(
+        "<rss><channel><item><title>Stable item</title>"
+        "<link>https://fixture.example/stable</link></item></channel></rss>"
+    )
+    registry = SourceRegistry([_feed()], http=http)
+    ledger = tmp_path / "output/editorial/publication-ledger.csv"
+    feedback = tmp_path / "output/editorial/weekly-feedback.md"
+    ledger.parent.mkdir(parents=True)
+    ledger.write_text("ledger sentinel\n", encoding="utf-8")
+    feedback.write_text("feedback sentinel\n", encoding="utf-8")
+
+    prepare_editorial_pack("2026-08-11", root=tmp_path, registry=registry)
+
+    assert ledger.read_text(encoding="utf-8") == "ledger sentinel\n"
+    assert feedback.read_text(encoding="utf-8") == "feedback sentinel\n"
+
+
 def test_conservative_cross_source_group_and_contract() -> None:
     first = Candidate.model_validate(
         {
