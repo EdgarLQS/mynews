@@ -30,6 +30,7 @@ usage() {
   scripts/collect-expanded.sh collect [--digest] [collect 参数...]
 
 说明：
+  未提供日期选择参数时默认收集最近 1 天；日期参数会继续透传给 collect.sh。
   固定追加 v1.5 计划中的 15 个 --with-plugin 来源。
   日期、核验参数和 --digest 使用数组安全透传，不执行 shell 字符串。
   插件未安装时由 mynews 返回结构化 plugin_not_found，不退化为 built-in-only。

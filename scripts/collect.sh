@@ -7,6 +7,7 @@ PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd -P)"
 COLLECT_SCRIPT="${PROJECT_ROOT}/scripts/collect.sh"
 LABEL="com.mynews.collect"
 PLIST_LOG_DIR="${PROJECT_ROOT}/logs"
+DEFAULT_COLLECT_DAYS=1
 ACTIVE_LOCK_PATH=""
 ACTIVE_TEMP_PATH=""
 
@@ -31,15 +32,18 @@ usage() {
   scripts/collect.sh uninstall [--dry-run]
 
 说明：
-  默认执行 uv run mynews collect，参数会原样安全透传。
+  直接执行时默认执行 uv run mynews collect --days 1，参数会原样安全透传。
+  显式提供 --days、--date、--from 或 --to 时，不会追加默认日期范围。
   只有显式提供 --digest 时，采集成功后才追加 uv run mynews digest。
   运行目录固定为项目根目录，输出追加到项目 logs/collect.log。
+  本地运行数据固定保存在项目内已忽略的 output/、state/ 和 logs/ 目录。
   render-plist 只渲染模板；install、status、uninstall 才会调用 launchctl。
   四个 launchd 动作都支持 --dry-run；预览不会调用 launchctl，也不会写入或删除文件。
   launchd 按主机本地时间每日 09:30 触发；采集进程使用 TZ=Asia/Shanghai，脚本不会修改系统时区。
   代理变量仅继承当前环境，不会打印或写入 plist。
 
 示例：
+  scripts/collect.sh
   scripts/collect.sh --days 7
   scripts/collect.sh render-plist --output /tmp/com.mynews.collect.plist
   scripts/collect.sh install
@@ -164,6 +168,28 @@ log_dir() {
   printf '%s\n' "$value"
 }
 
+has_collection_selector() {
+  local argument
+  for argument in "$@"; do
+    case "$argument" in
+      --days|--days=*|--date|--date=*|--from|--from=*|--to|--to=*)
+        return 0
+        ;;
+    esac
+  done
+  return 1
+}
+
+has_help_argument() {
+  local argument
+  for argument in "$@"; do
+    if [[ "$argument" == "--help" || "$argument" == "-h" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 redact_line() {
   local line="$1"
   local key value
@@ -222,6 +248,12 @@ run_collect() {
     fi
     shift
   done
+  if ((${#collect_args[@]} == 0)); then
+    collect_args=(--days "$DEFAULT_COLLECT_DAYS")
+  elif ! has_collection_selector "${collect_args[@]}" \
+    && ! has_help_argument "${collect_args[@]}"; then
+    collect_args=(--days "$DEFAULT_COLLECT_DAYS" "${collect_args[@]}")
+  fi
   log_root="$(log_dir)"
   /bin/mkdir -p -- "$log_root"
   lock_path="${log_root}/collect.lock"
@@ -294,8 +326,6 @@ render_plist_xml() {
   <array>
     <string>${script_path}</string>
     <string>collect</string>
-    <string>--days</string>
-    <string>7</string>
   </array>
   <key>WorkingDirectory</key>
   <string>${project_root}</string>
@@ -512,8 +542,11 @@ uninstall_launchd() {
 main() {
   local action="${1:-}"
   case "$action" in
-    ''|--help|-h)
+    --help|-h)
       usage
+      ;;
+    '')
+      run_collect "$@"
       ;;
     collect)
       shift

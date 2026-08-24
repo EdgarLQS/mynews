@@ -98,6 +98,50 @@ exit "${FAKE_UV_EXIT:-0}"
     assert "[REDACTED_SECRET]" in log_text
 
 
+@pytest.mark.parametrize("arguments", [(), ("collect",)])
+def test_collect_defaults_to_one_day(
+    tmp_path: Path, arguments: tuple[str, ...]
+) -> None:
+    calls = tmp_path / "calls"
+    uv = _write_executable(
+        tmp_path / "fake-uv",
+        "printf '%s\\n' \"$*\" >> \"$FAKE_UV_CALLS\"\nexit 0",
+    )
+
+    result = _run_script(
+        tmp_path,
+        *arguments,
+        uv=uv,
+        extra_env={"FAKE_UV_CALLS": str(calls)},
+    )
+
+    assert result.returncode == 0
+    assert calls.read_text(encoding="utf-8").splitlines() == [
+        "run mynews collect --days 1"
+    ]
+
+
+def test_collect_does_not_override_an_explicit_date_selector(tmp_path: Path) -> None:
+    calls = tmp_path / "calls"
+    uv = _write_executable(
+        tmp_path / "fake-uv",
+        "printf '%s\\n' \"$*\" >> \"$FAKE_UV_CALLS\"\nexit 0",
+    )
+
+    result = _run_script(
+        tmp_path,
+        "--date",
+        "2026-08-24",
+        uv=uv,
+        extra_env={"FAKE_UV_CALLS": str(calls)},
+    )
+
+    assert result.returncode == 0
+    assert calls.read_text(encoding="utf-8").splitlines() == [
+        "run mynews collect --date 2026-08-24"
+    ]
+
+
 def test_collect_only_runs_digest_when_explicitly_requested(tmp_path: Path) -> None:
     calls = tmp_path / "calls"
     uv = _write_executable(

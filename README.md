@@ -4,7 +4,7 @@
 
 > 当前状态：v1.6 已按 Implemented 归档，v1.7 分时情报分析与人工反馈闭环的 P0–P4 已按离线门禁实现；真实 Codex 双档、latest-only 补跑和失败恢复仍须独立验收。网络受限时保持 `BLOCKED`，不得用任务文档或 mock 代替 Verified。外部插件是受信任本地 Python 代码，显式清单不是进程级沙箱。
 
-日常运行可使用 `scripts/collect.sh --days 7`。脚本固定在项目根目录运行，支持 `render-plist`、`install`、`status` 和 `uninstall`；这些 launchd 动作支持中文 help 和 `--dry-run`，安装动作必须显式执行，任务 label 为 `com.mynews.collect`，计划时间为主机本地时间每日 09:30（采集进程使用 `TZ=Asia/Shanghai`）。采集脚本使用 `logs/collect.lock` 防止定时任务重叠，并保留底层 `collect` 退出码。只有显式加 `--digest` 才会在采集成功后追加简报生成，默认行为不变。运行数据写入 `output/`、`state/`，日志写入 `logs/`，这些目录不提交。需要时可用 `collect --verification-reasoning-effort medium` 和 `digest --summary-reasoning-effort medium` 调整 Codex 推理强度；这不会改变证据核验门槛。外部来源必须显式使用 `mynews plugin list` 发现、`mynews plugin probe --plugin <id>` 检查；`--plugin` 是 plugin-only，`--with-plugin` 才是 built-in + 插件追加，默认命令不会加载外部插件。固定扩展采集使用 `scripts/collect-expanded.sh`。
+日常运行直接执行 `scripts/collect.sh`，默认收集最近 1 天；需要回溯时可使用 `scripts/collect.sh --days 7` 或其他日期选择参数。脚本固定在项目根目录运行，支持 `render-plist`、`install`、`status` 和 `uninstall`；这些 launchd 动作支持中文 help 和 `--dry-run`，安装动作必须显式执行，任务 label 为 `com.mynews.collect`，计划时间为主机本地时间每日 09:30（采集进程使用 `TZ=Asia/Shanghai`）。采集脚本使用 `logs/collect.lock` 防止定时任务重叠，并保留底层 `collect` 退出码。只有显式加 `--digest` 才会在采集成功后追加简报生成。运行数据统一写入项目内专用且不提交的 `output/`、`state/`、`logs/` 目录。需要时可用 `collect --verification-reasoning-effort medium` 和 `digest --summary-reasoning-effort medium` 调整 Codex 推理强度；这不会改变证据核验门槛。外部来源必须显式使用 `mynews plugin list` 发现、`mynews plugin probe --plugin <id>` 检查；`--plugin` 是 plugin-only，`--with-plugin` 才是 built-in + 插件追加，默认命令不会加载外部插件。固定扩展采集使用 `scripts/collect-expanded.sh`。
 
 发布前可执行：
 
