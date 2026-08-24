@@ -256,7 +256,7 @@ def test_watchlist_command_renders_deterministic_markdown_without_store(
     assert not (tmp_path / "output").exists()
 
 
-def test_expanded_script_forwards_fixed_plugins_without_shell_reinterpretation(
+def test_expanded_script_delegates_to_default_compatibility_registry(
     tmp_path: Path,
 ) -> None:
     uv = tmp_path / "fake-uv"
@@ -295,6 +295,4 @@ def test_expanded_script_forwards_fixed_plugins_without_shell_reinterpretation(
     assert result.returncode == 0
     command = calls.read_text(encoding="utf-8").splitlines()[0]
     assert "collect --days 7 --verification-budget 10" in command
-    assert command.count("--with-plugin") == 15
-    assert "openai-news" in command
-    assert "paperswithcode-daily" in command
+    assert "--with-plugin" not in command

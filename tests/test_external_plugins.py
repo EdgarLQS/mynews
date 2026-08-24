@@ -199,6 +199,20 @@ def test_explicit_load_collect_probe_and_source_selection(
     assert plugin_probe["plugins"][0]["id"] == "external-fixture"
 
 
+def test_plugin_only_can_replace_a_configured_source_id(
+    monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    plugin = FixturePlugin(metadata("hacker-news"))
+    loader = loader_for(entry_point(factory=lambda: plugin))
+    monkeypatch.setattr(cli, "ExternalPluginLoader", lambda: loader)
+    registry = SourceRegistry([FixturePlugin(metadata("hacker-news"))])
+
+    assert cli.main(["collect", "--plugin", "external-fixture"], registry=registry) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["sources"][0]["source_id"] == "hacker-news"
+
+
 @pytest.mark.parametrize(
     ("field", "value", "code"),
     [

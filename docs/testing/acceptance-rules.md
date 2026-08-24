@@ -108,9 +108,10 @@ owner: project-maintainers
 - v1.5 的独立来源分发包、`--plugin` 和 `--with-plugin` 兼容边界继续有效；首轮只读验收
   不得临时安装或改写环境。必需插件未准备导致无法执行时写 `BLOCKED`，仓库缺少计划内
   分发包或入口写 `FAIL`。
-- 普通 collect/probe 必须保持只使用 built-in；`--plugin` 继续 plugin-only；
-  `--with-plugin` 才允许在同一运行中追加插件来源。
-- v1.6 归档计划列出的 17 个 source_id 必须逐一判定；`qwen-blog-rss` 和
+- 默认 collect/probe 使用 mynews 内置的 newsFromAI 配置 registry 与旧 built-in 补充来源；
+  外部 entry-point 仍不会被默认加载。`--plugin` 继续 plugin-only；`--with-plugin` 才允许
+  在同一运行中追加未内置的外部插件来源。
+- 当前配置列出的 25 个 source_id 必须逐一判定；`qwen-blog-rss` 和
   `hacker-news` 是 prepare registry 中的配置来源，不能把旧 built-in 选择重复加入同一
   次 prepare；不存在于当前来源配置的 arXiv 测试期望不得被计入覆盖率。
 - fixture 与隔离 entry-point 测试最高证明 Implemented。单个来源只有真实 probe

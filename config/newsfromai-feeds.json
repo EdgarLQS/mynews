@@ -28,6 +28,17 @@
       "lang": "en"
     },
     {
+      "id": "google-ai-blog",
+      "name": "Google AI Blog",
+      "type": "rss",
+      "tier": "core",
+      "source_role": "primary",
+      "enabled": true,
+      "url": "https://blog.google/technology/ai/rss/",
+      "max_age_days": 2,
+      "lang": "en"
+    },
+    {
       "id": "github-changelog",
       "name": "GitHub Changelog",
       "type": "rss",
@@ -113,6 +124,83 @@
       "enabled": true,
       "url": "https://github.com/THUDM/GLM/releases.atom",
       "max_age_days": 7,
+      "lang": "en"
+    },
+    {
+      "id": "claude-code-releases",
+      "name": "Claude Code Releases",
+      "type": "rss",
+      "tier": "core",
+      "source_role": "primary",
+      "enabled": true,
+      "url": "https://github.com/anthropics/claude-code/releases.atom",
+      "max_age_days": 3,
+      "lang": "en"
+    },
+    {
+      "id": "codex-releases",
+      "name": "OpenAI Codex Releases",
+      "type": "rss",
+      "tier": "core",
+      "source_role": "primary",
+      "enabled": true,
+      "url": "https://github.com/openai/codex/releases.atom",
+      "max_age_days": 3,
+      "lang": "en"
+    },
+    {
+      "id": "openai-agents-releases",
+      "name": "OpenAI Agents SDK Releases",
+      "type": "rss",
+      "tier": "supplementary",
+      "source_role": "primary",
+      "enabled": true,
+      "url": "https://github.com/openai/openai-agents-python/releases.atom",
+      "max_age_days": 3,
+      "lang": "en"
+    },
+    {
+      "id": "ollama-releases",
+      "name": "Ollama Releases",
+      "type": "rss",
+      "tier": "supplementary",
+      "source_role": "primary",
+      "enabled": true,
+      "url": "https://github.com/ollama/ollama/releases.atom",
+      "max_age_days": 3,
+      "lang": "en"
+    },
+    {
+      "id": "vercel-ai-releases",
+      "name": "Vercel AI SDK Releases",
+      "type": "rss",
+      "tier": "supplementary",
+      "source_role": "primary",
+      "enabled": true,
+      "url": "https://github.com/vercel/ai/releases.atom",
+      "max_age_days": 3,
+      "lang": "en"
+    },
+    {
+      "id": "langchain-releases",
+      "name": "LangChain Releases",
+      "type": "rss",
+      "tier": "supplementary",
+      "source_role": "primary",
+      "enabled": true,
+      "url": "https://github.com/langchain-ai/langchain/releases.atom",
+      "max_age_days": 3,
+      "lang": "en"
+    },
+    {
+      "id": "mcp-servers-releases",
+      "name": "MCP Servers Releases",
+      "type": "rss",
+      "tier": "supplementary",
+      "source_role": "primary",
+      "enabled": true,
+      "url": "https://github.com/modelcontextprotocol/servers/releases.atom",
+      "max_age_days": 3,
       "lang": "en"
     },
     {

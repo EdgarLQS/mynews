@@ -32,7 +32,9 @@ usage() {
   scripts/collect.sh uninstall [--dry-run]
 
 说明：
-  直接执行时默认执行 uv run mynews collect --days 1，参数会原样安全透传。
+  直接执行时默认执行 uv run mynews collect --days 1；默认 registry 已内置
+  newsFromAI 25 个自动 Feed 和不重复的旧 mynews 来源，运行不依赖外部工程。
+  其余参数会原样安全透传。
   显式提供 --days、--date、--from 或 --to 时，不会追加默认日期范围。
   只有显式提供 --digest 时，采集成功后才追加 uv run mynews digest。
   运行目录固定为项目根目录，输出追加到项目 logs/collect.log。

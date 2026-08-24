@@ -50,7 +50,7 @@ owner: project-maintainers
 1. [功能矩阵](product/feature-matrix.md)：确认当前、未来和明确不做的范围。
 2. [项目验收规则](testing/acceptance-rules.md)：了解每次开发完成后的统一质量门禁。
 3. [统一开发总计划](planning/v1.7-v2.0-master-plan.md)：查看 v1.7 P5 收口至 v2.0 的唯一实施顺序、接口和验收门槛。
-4. [newsFromAI 映射表](reference/newsfromai-v16-mapping.md)：查看 17 个 Feed 与全部人工清单覆盖率。
+4. [newsFromAI 映射表](reference/newsfromai-v16-mapping.md)：查看 25 个 Feed 与全部人工清单覆盖率。
 5. [系统架构](architecture/system-architecture.md)：理解采集、核验、Digest 模块和数据流。
 6. [架构方向审查](architecture/architecture-direction-review-2026-08-20.md)：查看当前设计整理、问题证据和 Proposed 改进候选。
 7. [信息来源目录](reference/source-catalog.md)：查看渠道角色、稳定等级和核验规则。

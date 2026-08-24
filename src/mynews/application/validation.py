@@ -11,7 +11,7 @@ from urllib.parse import urlsplit
 
 from mynews.domain.models import NewsItem, RunReport
 from mynews.sources.protocol import SourceMetadata
-from mynews.sources.registry import SourceRegistry, built_in_registry
+from mynews.sources.registry import SourceRegistry, default_registry
 from mynews.verification.codex import CodexVerifier
 from mynews.verification.protocol import VerificationTarget
 
@@ -76,7 +76,7 @@ def validate_run_file(
             (),
         )
 
-    active_registry = registry or built_in_registry()
+    active_registry = registry or default_registry()
     verifier = CodexVerifier(active_registry.http)
     errors, warnings = _validate_verified_evidence(
         verified_items,

@@ -264,6 +264,25 @@ def built_in_registry(*, http: HttpClient | None = None) -> SourceRegistry:
     )
 
 
+def default_registry(*, http: HttpClient | None = None) -> SourceRegistry:
+    """Return newsFromAI feeds plus non-duplicate legacy built-in sources."""
+    client = http or SharedHttpClient()
+    from mynews.sources.newsfromai import newsfromai_registry
+
+    configured = newsfromai_registry(http=client)
+    legacy = built_in_registry(http=client)
+    configured_ids = set(configured.source_ids)
+    supplements = tuple(
+        plugin
+        for plugin in legacy.plugins
+        if plugin.metadata.source_id not in configured_ids
+    )
+    return SourceRegistry(
+        (*configured.plugins, *supplements),
+        http=client,
+    )
+
+
 def _duration(started: float) -> int:
     return max(0, int((perf_counter() - started) * 1000))
 

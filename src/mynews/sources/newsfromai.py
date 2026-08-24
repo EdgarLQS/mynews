@@ -1,4 +1,4 @@
-"""newsFromAI datacollection 的 17 个自动来源配置适配。
+"""newsFromAI datacollection 的 25 个自动来源配置适配。
 
 这里仅保存来源配置和 SourcePlugin 组装逻辑；事实仍由 mynews 的
 SourceCollection、RunReport 和 JSON Store 承载。
@@ -63,10 +63,10 @@ def load_config(path: Path | str = DEFAULT_CONFIG_PATH) -> dict[str, Any]:
         raise ValueError("newsFromAI Feed 配置缺少 feeds")
     feeds = payload["feeds"]
     if (
-        len(feeds) != 17
-        or len({str(item.get("id")) for item in feeds if isinstance(item, dict)}) != 17
+        len(feeds) != 25
+        or len({str(item.get("id")) for item in feeds if isinstance(item, dict)}) != 25
     ):
-        raise ValueError("newsFromAI Feed 配置必须包含 17 个唯一来源")
+        raise ValueError("newsFromAI Feed 配置必须包含 25 个唯一来源")
     return payload
 
 

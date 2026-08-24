@@ -52,7 +52,7 @@ manual/blocked。外部插件仍是受信任本地 Python 代码，显式清单�
 | SRC-06 | 来源 | 国内外 AI 与重点科技官方来源 | Verified | 既有真实来源验收；v1.2 目标环境重新记录 G6-S 限制 |
 | SRC-07 | 来源 | CC Switch 官方 Changelog 新功能监控 | Verified | fixture 与既有真实 probe |
 | SRC-08 | 来源 | newsFromAI 核对得到的 15 个独立来源插件（含 1 个 manual） | Implemented | 14 个 RSS/Atom fixture、1 个明确 manual/blocked entry-point、entry-point、域名/组织校验和隔离测试；修复后 G6-S 已复验：12 个有效记录、2 个合法空 Feed、1 个 manual/blocked |
-| SRC-09 | 来源 | newsFromAI 当前 17 个自动 Feed 配置映射 | Implemented | `config/newsfromai-feeds.json`、17/17 映射、RSS/Atom 失败隔离和 freshness 测试；真实 probe 仍按 P7 记录 |
+| SRC-09 | 来源 | newsFromAI 当前 25 个自动 Feed 配置映射 | Implemented | `config/newsfromai-feeds.json`、25/25 映射、RSS/Atom 失败隔离和 freshness 测试；真实 probe 仍按 P7 记录 |
 | PIPE-01 | 处理 | 规范化、相关性、热度分离 | Implemented | Normalizer 与相关性回归测试 |
 | PIPE-02 | 处理 | 跨来源、跨日期、跨运行去重 | Implemented | 批内与跨运行状态恢复测试；目标环境 G7 |
 | PIPE-03 | 处理 | discovery AI/科技确定性筛选与质量统计 | Implemented | 词边界、HTML/URL 清理和统计测试 |

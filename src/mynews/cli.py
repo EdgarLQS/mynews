@@ -24,7 +24,7 @@ from mynews.application.watchlist import (
 )
 from mynews.domain.models import CollectionRequest
 from mynews.sources.external import ExternalPluginLoader, PluginLoadReport
-from mynews.sources.registry import SourceRegistry, built_in_registry
+from mynews.sources.registry import SourceRegistry, default_registry
 from mynews.storage.digest_store import DigestFileStore, DigestStoreError
 from mynews.storage.json_store import JsonNewsStore, JsonStoreError
 from mynews.storage.protocol import NewsStore
@@ -373,7 +373,7 @@ def build_parser() -> ChineseArgumentParser:
         "prepare",
         help="生成或稳定重放指定日期的编辑候选包",
         description=(
-            "采集 17 个 newsFromAI 自动 Feed，生成 candidates.json/md；"
+            "采集 25 个 newsFromAI 自动 Feed，生成 candidates.json/md；"
             "不调用 Codex 或自动发布。"
         ),
         add_help=False,
@@ -565,14 +565,18 @@ def build_collection_request(
 def _load_external_selection(
     registry: SourceRegistry,
     plugin_ids: Sequence[str],
+    *,
+    plugin_only: bool = False,
 ) -> tuple[SourceRegistry, PluginLoadReport] | None:
     report = ExternalPluginLoader().load(
         plugin_ids,
-        occupied_source_ids=registry.source_ids,
+        occupied_source_ids=() if plugin_only else registry.source_ids,
     )
     if report.status == "failed":
         print(json.dumps(report.as_payload(), ensure_ascii=False, indent=2))
         return None
+    if plugin_only:
+        return SourceRegistry(report.plugins, http=registry.http), report
     return registry.with_plugins(report.plugins), report
 
 
@@ -697,14 +701,16 @@ def main(
 ) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    active_registry = registry or built_in_registry()
+    active_registry = registry or default_registry()
     if args.command == "plugin":
         if args.plugin_command == "list":
             plugin_list_report = ExternalPluginLoader().list_report()
             print(json.dumps(plugin_list_report, ensure_ascii=False, indent=2))
             return 0 if plugin_list_report["status"] == "complete" else 1
         if args.plugin_command == "probe":
-            prepared = _load_external_selection(active_registry, args.plugin_ids)
+            prepared = _load_external_selection(
+                active_registry, args.plugin_ids, plugin_only=True
+            )
             if prepared is None:
                 return 1
             selected_registry, plugin_report = prepared
@@ -728,7 +734,11 @@ def main(
         args, "with_plugin_ids", None
     )
     if requested_plugins:
-        prepared = _load_external_selection(active_registry, requested_plugins)
+        prepared = _load_external_selection(
+            active_registry,
+            requested_plugins,
+            plugin_only=bool(getattr(args, "plugin_ids", None)),
+        )
         if prepared is None:
             return 1
         active_registry, plugin_report = prepared

@@ -5,6 +5,9 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
+
+import mynews.cli as cli
 from mynews.cli import main
 from mynews.domain.models import Candidate, SourceError
 from mynews.sources.protocol import (
@@ -77,6 +80,17 @@ def test_collect_outputs_raw_candidates_without_store(capsys) -> None:
     assert output["candidates"][0]["title_original"] == "Fixture candidate"
     assert output["sources"][0]["health"] == "healthy"
     assert "run_id" not in output
+
+
+def test_collect_without_injected_registry_uses_compatibility_registry(
+    monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    registry = FakeRegistry((healthy(),))
+    monkeypatch.setattr(cli, "default_registry", lambda: registry)
+
+    assert cli.main(["collect", "--source", "qwen"]) == 0
+    assert registry.collect_calls == [("qwen",)]
+    assert json.loads(capsys.readouterr().out)["status"] == "complete"
 
 
 def test_degraded_health_is_partial_success(capsys) -> None:

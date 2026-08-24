@@ -396,17 +396,17 @@ def test_candidate_v1_minimal_payload_remains_read_compatible() -> None:
     assert validate_candidate_payload(payload) == []
 
 
-def test_newsfromai_inventory_is_17_feeds_and_65_watchlist_items() -> None:
+def test_newsfromai_inventory_is_25_feeds_and_65_watchlist_items() -> None:
     feeds = json.loads(Path("config/newsfromai-feeds.json").read_text(encoding="utf-8"))
     watchlist = json.loads(
         Path("config/manual-watchlist.json").read_text(encoding="utf-8")
     )
-    assert len(feeds["feeds"]) == 17
+    assert len(feeds["feeds"]) == 25
     assert len(watchlist) == 65
     assert len({item["id"] for item in watchlist}) == 65
 
 
-def test_newsfromai_registry_runs_all_17_sources_with_fixture_payloads() -> None:
+def test_newsfromai_registry_runs_all_25_sources_with_fixture_payloads() -> None:
     config = json.loads(Path("config/newsfromai-feeds.json").read_text())
     payloads = {
         item["url"]: (
@@ -428,8 +428,8 @@ def test_newsfromai_registry_runs_all_17_sources_with_fixture_payloads() -> None
         }
     )
     result = SourceCollector(registry).collect(request, registry.source_ids)
-    assert len(registry.source_ids) == 17
-    assert len(result.candidates) == 16
+    assert len(registry.source_ids) == 25
+    assert len(result.candidates) == 24
     papers_health = next(
         item for item in result.health if item.source_id == "paperswithcode-daily"
     )

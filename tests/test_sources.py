@@ -14,7 +14,7 @@ from mynews.sources.protocol import (
     SourceMetadata,
     SourcePluginError,
 )
-from mynews.sources.registry import SourceRegistry, built_in_registry
+from mynews.sources.registry import SourceRegistry, built_in_registry, default_registry
 
 NOW = datetime(2026, 8, 2, 4, 0, tzinfo=UTC)
 REQUEST = CollectionRequest.model_validate(
@@ -192,3 +192,27 @@ def test_built_in_registry_contains_phase_two_sources() -> None:
         "zhihu-hot",
         "bloomberg-ai",
     }.issubset(registry.source_ids)
+
+
+def test_default_registry_contains_newsfromai_feeds_and_legacy_supplements() -> None:
+    registry = default_registry(http=NullHttpClient())
+
+    assert {
+        "openai-news",
+        "claude-code-releases",
+        "codex-releases",
+        "ollama-releases",
+        "vercel-ai-releases",
+        "techcrunch-ai",
+        "anthropic-status",
+        "github-status",
+    }.issubset(registry.source_ids)
+    assert {
+        "cc-switch",
+        "qwen",
+        "openai-pricing",
+        "deepseek-pricing",
+        "zhihu-hot",
+        "bloomberg-ai",
+    }.issubset(registry.source_ids)
+    assert registry.source_ids.count("hacker-news") == 1

@@ -11,14 +11,15 @@ owner: project-maintainers
 
 # newsFromAI datacollection 与 mynews v1.6 映射清单
 
-本清单以 `/Users/edgarlqs/Downloads/newsFromAI/datacollection/config.yaml` 当前快照为输入，证明自动 Feed 17/17、人工清单 65/65 覆盖。重复人工 ID 保留为独立条目并加稳定后缀，不丢失原始 URL、名称和备注。
+本清单固化在 mynews 自己的 `config/newsfromai-feeds.json` 与 `config/manual-watchlist.json` 中，参考 `/Users/edgarlqs/Downloads/newsFromAI/datacollection/config.yaml` 的当前来源定义，证明自动 Feed 25/25、人工清单 65/65 覆盖。运行时不读取或依赖外部 newsFromAI 工程。重复人工 ID 保留为独立条目并加稳定后缀，不丢失原始 URL、名称和备注。
 
-## 自动 Feed 覆盖（17/17）
+## 自动 Feed 覆盖（25/25）
 
 | newsFromAI ID | mynews seam | 角色 | freshness | URL |
 | --- | --- | --- | ---: | --- |
 | `openai-news` | v1.5 `RssFeedPlugin`/SourcePlugin | `primary` | 2 天 | https://openai.com/news/rss.xml |
 | `google-blog` | v1.5 `RssFeedPlugin`/SourcePlugin | `primary` | 2 天 | https://blog.google/rss/ |
+| `google-ai-blog` | v1.5 `RssFeedPlugin`/SourcePlugin | `primary` | 2 天 | https://blog.google/technology/ai/rss/ |
 | `github-changelog` | v1.5 `RssFeedPlugin`/SourcePlugin | `primary` | 2 天 | https://github.blog/changelog/feed/ |
 | `hugging-face-blog` | v1.5 `RssFeedPlugin`/SourcePlugin | `primary` | 2 天 | https://huggingface.co/blog/feed.xml |
 | `google-deepmind` | v1.5 `RssFeedPlugin`/SourcePlugin | `primary` | 2 天 | https://deepmind.google/blog/rss.xml |
@@ -27,6 +28,13 @@ owner: project-maintainers
 | `qwen-blog-rss` | 复用现有 RSS/Atom seam（不复用旧 qwen ID，保持配置 ID） | `primary` | 7 天 | https://qwenlm.github.io/blog/index.xml |
 | `kimi-k2-releases` | v1.5 `RssFeedPlugin`/SourcePlugin | `research` | 7 天 | https://github.com/MoonshotAI/Kimi-K2/releases.atom |
 | `glm-releases` | v1.5 `RssFeedPlugin`/SourcePlugin | `research` | 7 天 | https://github.com/THUDM/GLM/releases.atom |
+| `claude-code-releases` | v1.5 `RssFeedPlugin`/SourcePlugin | `primary` | 3 天 | https://github.com/anthropics/claude-code/releases.atom |
+| `codex-releases` | v1.5 `RssFeedPlugin`/SourcePlugin | `primary` | 3 天 | https://github.com/openai/codex/releases.atom |
+| `openai-agents-releases` | v1.5 `RssFeedPlugin`/SourcePlugin | `primary` | 3 天 | https://github.com/openai/openai-agents-python/releases.atom |
+| `ollama-releases` | v1.5 `RssFeedPlugin`/SourcePlugin | `primary` | 3 天 | https://github.com/ollama/ollama/releases.atom |
+| `vercel-ai-releases` | v1.5 `RssFeedPlugin`/SourcePlugin | `primary` | 3 天 | https://github.com/vercel/ai/releases.atom |
+| `langchain-releases` | v1.5 `RssFeedPlugin`/SourcePlugin | `primary` | 3 天 | https://github.com/langchain-ai/langchain/releases.atom |
+| `mcp-servers-releases` | v1.5 `RssFeedPlugin`/SourcePlugin | `primary` | 3 天 | https://github.com/modelcontextprotocol/servers/releases.atom |
 | `deepseek-status` | v1.5 `RssFeedPlugin`/SourcePlugin | `incident` | 1 天 | https://status.deepseek.com/history.atom |
 | `hacker-news` | 复用现有 Hacker News API 语义并提供 RSS 配置适配 | `discovery` | 1 天 | https://hnrss.org/frontpage |
 | `techcrunch-ai` | v1.5 `RssFeedPlugin`/SourcePlugin | `discovery` | 2 天 | https://techcrunch.com/category/artificial-intelligence/feed/ |
@@ -35,7 +43,7 @@ owner: project-maintainers
 | `anthropic-status` | v1.5 `RssFeedPlugin`/SourcePlugin | `incident` | 1 天 | https://status.anthropic.com/history.rss |
 | `github-status` | v1.5 `RssFeedPlugin`/SourcePlugin | `incident` | 1 天 | https://www.githubstatus.com/history.atom |
 
-自动 Feed 覆盖率：`17 / 17 = 100%`。`qwen-blog-rss` 不把既有 `qwen` 注册成第二个事实来源；prepare 使用配置 ID 以便与来源清单一一对应。`paperswithcode-daily` 没有稳定官方 daily Feed，仍以结构化 `blocked/manual_source` 记录，不伪装健康。
+自动 Feed 覆盖率：`25 / 25 = 100%`。`qwen-blog-rss` 不把既有 `qwen` 注册成第二个事实来源；prepare 使用配置 ID 以便与来源清单一一对应。`paperswithcode-daily` 没有稳定官方 daily Feed，仍以结构化 `blocked/manual_source` 记录，不伪装健康。
 
 ## manual_watchlist 覆盖（65/65）
 
