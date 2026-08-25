@@ -39,6 +39,9 @@ files = ["src"]
 [tool.hatch.build.targets.wheel]
 packages = ["src/mynews"]
 
+[tool.hatch.build.force-include]
+"config/newsfromai-feeds.json" = "mynews/data/newsfromai-feeds.json"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

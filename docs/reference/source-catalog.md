@@ -99,6 +99,10 @@ TRAE 的入口由实现前的公开页面检查确认。若 live probe 受本机
 - `benchmark`：聚合基准、论文或代码线索，只负责发现，不能单独证明事实。
 - `manual`：没有可靠机器入口时保留官方检查入口，不宣称自动采集。
 
+Discovery 来源的主页域名只描述发现渠道，不进入该候选的核验白名单；候选必须交给统一
+Codex 流程回溯 primary、research 或 incident 的第一方证据。程序会在核验目标中清空
+discovery 来源的官方域名和 GitHub 组织，避免把媒体或社区链接直接升级为 `verified`。
+
 ## 稳定等级
 
 - `stable-planned`：有 RSS、Atom、API 或明确结构化入口，仍需 live probe。

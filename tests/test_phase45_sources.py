@@ -24,6 +24,7 @@ from mynews.sources.protocol import ProbeContext, SourceContext, SourcePluginErr
 from mynews.sources.registry import SourceRegistry, built_in_registry
 from mynews.storage.json_store import JsonNewsStore
 from mynews.verification.fake import FakeVerifier
+from mynews.verification.protocol import VerificationTarget
 
 FIXTURES = Path(__file__).parent / "fixtures"
 REQUEST = CollectionRequest.model_validate(
@@ -73,10 +74,17 @@ class IncrementingClock:
 class CountingVerifier:
     def __init__(self) -> None:
         self.calls = 0
+        self.targets: tuple[VerificationTarget, ...] = ()
 
-    def verify(self, candidates: object, *, config: object) -> tuple[object, ...]:
-        del candidates, config
+    def verify(
+        self,
+        candidates: tuple[VerificationTarget, ...],
+        *,
+        config: object,
+    ) -> tuple[object, ...]:
+        del config
         self.calls += 1
+        self.targets = candidates
         return ()
 
 
@@ -279,6 +287,8 @@ def test_relevant_discovery_candidate_enters_verifier(tmp_path: Path) -> None:
     assert len(report.items) == 1
     assert report.items[0].verification_status == "unverified"
     assert verifier.calls == 1
+    assert verifier.targets[0].official_domains == ()
+    assert verifier.targets[0].official_github_organizations == ()
     assert report.stats["verification_attempted"] == 1
     assert report.stats["discovery_verification_attempted"] == 1
     assert report.stats["no_primary_evidence"] == 1

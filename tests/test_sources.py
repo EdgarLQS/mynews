@@ -216,3 +216,12 @@ def test_default_registry_contains_newsfromai_feeds_and_legacy_supplements() -> 
         "bloomberg-ai",
     }.issubset(registry.source_ids)
     assert registry.source_ids.count("hacker-news") == 1
+
+
+def test_discovery_feed_keeps_homepage_metadata_for_source_identity() -> None:
+    registry = default_registry(http=NullHttpClient())
+
+    metadata = registry.source_metadata["techcrunch-ai"]
+
+    assert metadata.role == "discovery"
+    assert metadata.official_domains == ("techcrunch.com",)

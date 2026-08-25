@@ -9,7 +9,7 @@ description: Maintain the current project phase and produce repository-grounded 
 
 ## 工作流
 
-1. 确认 `pwd`、当前分支、Git 状态、未提交和未跟踪文件；保护不属于本任务的变更。新阶段实施必须以已包含上一阶段交付的最新 `main` HEAD 为基线，再创建新的 `codex/<phase>` 分支；不得直接从旧阶段分支续做。
+1. 确认 `pwd`、当前分支、Git 状态、未提交和未跟踪文件；保护不属于本任务的变更。新阶段实施必须以已包含上一阶段交付的最新 `main` HEAD 为基线，直接在 `main` 开发，不创建或切换 `codex/<phase>` 分支。
 2. 从 `docs/README.md` 进入文档体系，读取功能矩阵、`docs/planning/README.md` 和唯一 Current 计划，再按变更类型读取架构、来源目录、ADR 和数据契约。用户要求验收时完整读取 `docs/testing/acceptance-rules.md`。
 3. 以 `docs/README.md` 和功能矩阵判断实现状态；用 `Proposed`、`Implemented`、`Verified`、`BLOCKED`、`FAIL` 区分设计、离线实现和真实能力。发现用户口径与文档冲突时，指出冲突并要求实际证据，不能自行改写状态。
 4. 判断请求类型：
@@ -28,7 +28,7 @@ description: Maintain the current project phase and produce repository-grounded 
 - 任何来源失败、Codex 失败或存储失败都必须结构化记录，不能静默成功、污染 `latest.json` 或覆盖历史 run。
 - 外部来源计划必须区分主 wheel、独立插件分发包、默认 built-in、plugin-only 和追加扩展模式；来源清单以 Current 计划和来源目录为准，不能从另一个仓库的旧测试推断。
 - v1.6 已按 Implemented 归档，收集功能没有新的计划缺口；来源健康、真实 Codex 和定时结果仍分别标为 Verified、BLOCKED 或 FAIL。
-- 唯一 Current 是 `docs/planning/v1.7-v2.0-master-plan.md`；M0–M7 按顺序和独立分支推进，前一阶段未 PASS 并合入最新 `main` 时不得启动下一阶段。
+- 唯一 Current 是 `docs/planning/v1.7-v2.0-master-plan.md`；M0–M7 按顺序直接在 `main` 推进，前一阶段未 PASS 时不得启动下一阶段。
 - v1.7 P0–P4 已归档为 Implemented：分析层使用根目录 `news-task.md`，固定 Asia/Shanghai 双档、latest-only、报告先于状态；不得新增核心 Briefing 模型或放宽 Digest 主榜；只有 publication/feedback 人工回填进入确定性 CLI，P5 真实双档仍待授权。
 - `ApplicationRuntime`、`ArtifactCommitter`、`evaluate`、`ops` 和 `editorial review` 在对应阶段落地前都只是 Planned/Proposed，不能从总计划推断已实现。
 - 默认不操作真实 launchd，不修改或提交 `output/`、`state/`、`logs/` 运行产物。

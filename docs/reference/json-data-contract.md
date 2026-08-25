@@ -254,8 +254,8 @@ Candidate Schema 或 `verified` 判定；任务失败时不得更新成功档位
       "source_id": "hacker-news",
       "publisher": "Hacker News",
       "excerpt": "Candidate excerpt",
-      "official_domains": ["openai.com"],
-      "official_github_organizations": ["openai"],
+      "official_domains": [],
+      "official_github_organizations": [],
       "source_role": "discovery",
       "attempt_count": 1,
       "last_reason": "codex_timeout",
@@ -270,6 +270,11 @@ Candidate Schema 或 `verified` 判定；任务失败时不得更新成功档位
   }
 }
 ```
+
+当 `source_role` 为 `discovery` 时，`official_domains` 和
+`official_github_organizations` 在核验目标中必须为空；来源主页域名只用于识别发现渠道，
+不能成为该条目的第一方证据边界。Codex 只能从全局配置的 primary/research/incident 官方
+边界中寻找证据，成功后校验器再按证据域名匹配对应来源元数据。
 
 - pending 独立于 dedup。
 - `status` 为 `pending` 或 `expired`。

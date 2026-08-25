@@ -490,6 +490,7 @@ def _verification_targets(
             else "unknown"
         )
         metadata = metadata_by_source.get(source_id)
+        authoritative = getattr(metadata, "role", "discovery") != "discovery"
         targets.append(
             VerificationTarget(
                 item=item,
@@ -499,15 +500,15 @@ def _verification_targets(
                     getattr(candidate, "excerpt", None)
                     or getattr(candidate, "content", None)
                 ),
-                official_domains=getattr(
-                    metadata,
-                    "official_domains",
-                    (),
+                official_domains=(
+                    getattr(metadata, "official_domains", ())
+                    if authoritative
+                    else ()
                 ),
-                official_github_organizations=getattr(
-                    metadata,
-                    "official_github_organizations",
-                    (),
+                official_github_organizations=(
+                    getattr(metadata, "official_github_organizations", ())
+                    if authoritative
+                    else ()
                 ),
                 source_role=getattr(
                     metadata,

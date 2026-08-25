@@ -23,7 +23,7 @@ manual/blocked。外部插件仍是受信任本地 Python 代码，显式清单�
 | --- | --- | --- | --- | --- |
 | DOC-01 | 治理 | 文档索引、状态、计划和归档机制 | Implemented | `python3 scripts/check_docs.py`；唯一 Current 计划和运行目录保护 |
 | AI-01 | 协作 | `AGENTS.md` 与 `CLAUDE.md` 共用项目规则 | Implemented | 指令入口检查 |
-| AI-02 | 协作 | `news-task.md` 驱动 09:00/18:00 分时情报任务 | Implemented | 元数据、latest-only、证据隔离和失败停止；真实双档仍待 P5 |
+| AI-02 | 协作 | `news-task.md` 驱动 09:00/18:00 分时情报任务 | Implemented | 元数据、latest-only、证据隔离和失败停止；P5 已开始但 G6-V/真实双档当前 BLOCKED |
 | ARCH-01 | 架构 | 深 `ApplicationRuntime` 与 CLI 薄 Adapter | Planned | 统一总计划 M2；P5 PASS 后实施，公共 CLI/JSON 行为不变 |
 | ARCH-02 | 架构 | 统一 `ArtifactCommitter` 文件提交 module | Planned | 统一总计划 M3；失败恢复、latest 和报告先于状态语义保持兼容 |
 | ARCH-03 | 架构 | 共享结构化 Codex 进程 Adapter | Planned | 统一总计划 M6；只统一进程机制，不合并领域 prompt 或复核 |
@@ -59,7 +59,7 @@ manual/blocked。外部插件仍是受信任本地 Python 代码，显式清单�
 | VER-01 | 核验 | 第一方官方证据直接核验 | Verified | 既有官方直验；v1.2 严格门槛回归通过 |
 | VER-02 | 核验 | 可配置 Codex Verifier、推理强度与单次候选预算 | Implemented | Fake/预算/批次/推理参数测试；strict JSON Schema 兼容回归通过；真实候选 G6-V 仍 BLOCKED |
 | VER-03 | 核验 | URL、域名、重定向、摘录、日期和哈希二次校验 | Implemented | 伪造来源、跨域重定向和严格契约测试 |
-| VER-04 | 核验 | discovery 候选进入生产 Codex，模型不得扩大白名单 | Implemented | 离线 seam 和生产 CLI 协议兼容已通过；真实 `codex_primary_evidence` G6-V 未满足 |
+| VER-04 | 核验 | discovery 候选进入生产 Codex，模型不得扩大白名单 | Implemented | discovery 主页域名不会进入核验白名单；离线 seam 和生产 CLI 协议兼容已通过；真实 `codex_primary_evidence` G6-V 未满足 |
 | VER-05 | 核验 | Pending 独立重试、次数上限和 TTL | Implemented | 越过去重重试、终止原因和失败来源保护测试；目标环境 G7 记录真实样本 |
 | VER-06 | 核验 | 证据生命周期 current/changed_supporting/failed | Implemented | 生命周期、降级和 validate warning 测试 |
 | DATA-00 | 数据 | Pydantic RunReport 1.x 兼容契约 | Implemented | 1.0/1.1 读取兼容和 1.2 严格性测试 |
@@ -69,7 +69,7 @@ manual/blocked。外部插件仍是受信任本地 Python 代码，显式清单�
 | DATA-04 | 数据 | report/digest/watchlist 可分享输出隐私门禁与 report 原子写入 | Implemented | 敏感值不回显、失败不覆盖旧文件、无临时文件残留 |
 | DATA-05 | 数据 | Candidate Contract v1、公开 JSON Schema、兼容读取和匹配统计 | Implemented | Schema/旧 categories 读取、最多 500 条、`firstSeenAt <= generatedAt` 和隐私门禁 |
 | DATA-06 | 数据 | editorial 观察历史、first-seen、source family、重复观察和保守事件聚类 | Implemented | `duplicateGroupId`、`multiSources`、`repeat_count` 和跨来源误合并测试 |
-| DATA-07 | 数据 | 分时报告和任务状态的原子写入与 latest-only 演进 | Implemented | 报告先提交、状态后推进、失败恢复、相对路径和无敏感值；真实双档待 P5 |
+| DATA-07 | 数据 | 分时报告和任务状态的原子写入与 latest-only 演进 | Implemented | 报告先提交、状态后推进、失败恢复、相对路径和无敏感值；P5 真实双档当前 BLOCKED |
 | DATA-08 | 数据 | QualityEvaluation、Operations、EditorialReview 独立 1.0 Schema | Planned | 各阶段独立契约；不修改 RunReport、Candidate、Digest 或 automation state |
 | EDITORIAL-01 | 编辑 | candidates JSON/Markdown、完整 manual watchlist、publication history 和 weekly feedback 提示 | Implemented | 确定性输出、人工只读台账、失败状态和原子多文件写入 |
 | EDITORIAL-02 | 编辑 | 0–6 条四问式情报、中国 AI 单列和人工反馈闭环 | Implemented | verified 主榜边界、重要更新、跳过原因、发布历史和周反馈提示 |

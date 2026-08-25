@@ -149,22 +149,39 @@ def _metadata_for_evidence(
         return None
     host = (parsed.hostname or "").casefold()
     organization = parsed.path.strip("/").split("/", 1)[0].casefold()
-    for source_id in item.discovery_sources:
-        metadata = registry.source_metadata.get(source_id)
-        if metadata is None or metadata.role not in {
-            "primary",
-            "monitor",
-            "research",
-            "incident",
-        }:
-            continue
-        domains = {
-            domain.casefold().strip(".")
-            for domain in metadata.official_domains
-        }
+    source_metadata = registry.source_metadata
+    direct_candidates = [
+        source_metadata[source_id]
+        for source_id in item.discovery_sources
+        if source_id in source_metadata
+        and source_metadata[source_id].role
+        in {"primary", "monitor", "research", "incident"}
+    ]
+    matched = _match_evidence_metadata(direct_candidates, host, organization)
+    if matched is not None:
+        return matched
+    has_discovery_source = any(
+        source_metadata.get(source_id) is not None
+        and source_metadata[source_id].role == "discovery"
+        for source_id in item.discovery_sources
+    )
+    if not has_discovery_source:
+        return None
+    primary_candidates = [
+        metadata
+        for metadata in source_metadata.values()
+        if metadata.role in {"primary", "monitor", "research", "incident"}
+    ]
+    return _match_evidence_metadata(primary_candidates, host, organization)
+
+
+def _match_evidence_metadata(
+    candidates: list[SourceMetadata], host: str, organization: str
+) -> SourceMetadata | None:
+    for metadata in candidates:
+        domains = {domain.casefold().strip(".") for domain in metadata.official_domains}
         organizations = {
-            value.casefold()
-            for value in metadata.official_github_organizations
+            value.casefold() for value in metadata.official_github_organizations
         }
         if host in domains or (
             host == "github.com" and organization in organizations

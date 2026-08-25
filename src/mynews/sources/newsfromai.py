@@ -26,8 +26,14 @@ from mynews.sources.protocol import (
 )
 from mynews.sources.registry import SourceRegistry
 
-DEFAULT_CONFIG_PATH = (
+_SOURCE_CONFIG_PATH = (
     Path(__file__).resolve().parents[3] / "config" / "newsfromai-feeds.json"
+)
+_PACKAGED_CONFIG_PATH = (
+    Path(__file__).resolve().parents[1] / "data" / "newsfromai-feeds.json"
+)
+DEFAULT_CONFIG_PATH = (
+    _SOURCE_CONFIG_PATH if _SOURCE_CONFIG_PATH.is_file() else _PACKAGED_CONFIG_PATH
 )
 
 
@@ -121,7 +127,7 @@ def _plugin_from_config(feed: dict[str, object]) -> SourcePlugin:
         metadata,
         url,
         allow_empty=True,
-        allow_external_links=source_id == "hacker-news",
+        allow_external_links=role == "discovery",
     )
 
 

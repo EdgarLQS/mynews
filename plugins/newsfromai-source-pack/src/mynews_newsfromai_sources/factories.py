@@ -71,7 +71,11 @@ class SourceSpec:
     def plugin(self) -> SourcePlugin:
         if self.manual_reason:
             return ManualSourcePlugin(self.metadata(), self.manual_reason)
-        return RssFeedPlugin(self.metadata(), self.feed_url)
+        return RssFeedPlugin(
+            self.metadata(),
+            self.feed_url,
+            allow_external_links=self.role == "discovery",
+        )
 
 
 SOURCE_SPECS: tuple[SourceSpec, ...] = (

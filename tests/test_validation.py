@@ -20,6 +20,7 @@ from mynews.sources.builtins.official_pages import (
     AnthropicNewsPlugin,
     OpenAiNewsPlugin,
 )
+from mynews.sources.protocol import SourceMetadata
 from mynews.sources.registry import SourceRegistry
 from mynews.verification.codex import _content_hash
 
@@ -38,6 +39,17 @@ class FakeHttp:
             body=BODY.encode(),
             final_url=url,
         )
+
+
+class DiscoveryMetadataPlugin:
+    metadata = SourceMetadata(
+        source_id="hacker-news",
+        name="Hacker News",
+        role="discovery",
+        homepage="https://news.ycombinator.com/",
+        official_domains=("news.ycombinator.com",),
+        capabilities=("api",),
+    )
 
 
 def _report() -> RunReport:
@@ -167,6 +179,49 @@ def test_validate_matches_each_evidence_to_its_official_source(
     )
 
     result = validate_run_file(path, check_evidence=True, registry=registry)
+
+    assert result.passed
+    assert result.errors == ()
+
+
+def test_validate_rechecks_primary_evidence_found_from_discovery_item(
+    tmp_path: Path,
+) -> None:
+    report = _report()
+    item = report.items[0].model_copy(
+        update={
+            "discovery_sources": ["hacker-news"],
+            "source_roles": ["discovery"],
+        }
+    )
+    merged_report = report.model_copy(
+        update={
+            "sources": [
+                SourceResult(
+                    source_id="hacker-news",
+                    role="discovery",
+                    health="healthy",
+                    fetched_count=1,
+                    accepted_count=1,
+                    duration_ms=1,
+                ),
+            ],
+            "items": [item],
+        }
+    )
+    path = tmp_path / "discovery-run.json"
+    path.write_text(
+        json.dumps(merged_report.model_dump(mode="json", by_alias=True)),
+        encoding="utf-8",
+    )
+
+    result = validate_run_file(
+        path,
+        check_evidence=True,
+        registry=SourceRegistry(
+            [DiscoveryMetadataPlugin(), OpenAiNewsPlugin()], http=FakeHttp()
+        ),
+    )
 
     assert result.passed
     assert result.errors == ()

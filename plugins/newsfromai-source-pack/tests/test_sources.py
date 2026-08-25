@@ -88,8 +88,12 @@ def test_every_source_rejects_non_official_feed_link(spec) -> None:
             "THUDM", "WrongOrg"
         )
 
-    with pytest.raises(SourcePluginError, match="官方标题或链接"):
-        plugin.probe(ProbeContext(http=FixtureHttp(bad_payload)))
+    if spec.role == "discovery":
+        health = plugin.probe(ProbeContext(http=FixtureHttp(bad_payload)))
+        assert health.health == "healthy"
+    else:
+        with pytest.raises(SourcePluginError, match="官方标题或链接"):
+            plugin.probe(ProbeContext(http=FixtureHttp(bad_payload)))
 
 
 @pytest.mark.parametrize("spec", SOURCE_SPECS, ids=lambda item: item.source_id)
