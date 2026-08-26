@@ -3,17 +3,19 @@
 from __future__ import annotations
 
 import json
-import subprocess
-import tempfile
 from collections.abc import Sequence
 from datetime import datetime
-from pathlib import Path
 from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from mynews.domain.models import Evidence, ReasoningEffort
 from mynews.infrastructure.clock import Clock, SystemClock
+from mynews.infrastructure.codex_process import (
+    CodexProcessAdapter,
+    CodexProcessError,
+    CodexProcessRequest,
+)
 from mynews.infrastructure.http import HttpClient
 from mynews.verification.lifecycle import (
     EvidenceLifecycleReviewer,
@@ -88,8 +90,14 @@ class CodexBatchResponse(BaseModel):
 class SubprocessCodexRunner:
     """以只读、无 shell、短生命周期方式调用 Codex CLI。"""
 
-    def __init__(self, executable: str = "codex") -> None:
+    def __init__(
+        self,
+        executable: str = "codex",
+        *,
+        adapter: CodexProcessAdapter | None = None,
+    ) -> None:
         self._executable = executable
+        self._adapter = adapter or CodexProcessAdapter()
 
     def run(
         self,
@@ -99,67 +107,19 @@ class SubprocessCodexRunner:
         timeout: float,
         reasoning_effort: ReasoningEffort = "medium",
     ) -> str:
-        with tempfile.TemporaryDirectory(prefix="mynews-codex-") as directory:
-            workdir = Path(directory)
-            output_path = workdir / "output.json"
-            schema_path = workdir / "schema.json"
-            schema_path.write_text(
-                json.dumps(
-                    CodexBatchResponse.model_json_schema(),
-                    ensure_ascii=False,
-                ),
-                encoding="utf-8",
-            )
-            command = [
-                self._executable,
-                "exec",
-                "--ephemeral",
-                "--sandbox",
-                "read-only",
-                "--skip-git-repo-check",
-                "--model",
-                model,
-                "-c",
-                f'model_reasoning_effort="{reasoning_effort}"',
-                "--output-schema",
-                str(schema_path),
-                "--output-last-message",
-                str(output_path),
-                "-",
-            ]
-            try:
-                completed = subprocess.run(
-                    command,
-                    input=prompt,
-                    text=True,
-                    capture_output=True,
+        try:
+            return self._adapter.run(
+                CodexProcessRequest(
+                    prompt=prompt,
+                    model=model,
                     timeout=timeout,
-                    check=False,
-                    shell=False,
-                    cwd=directory,
+                    reasoning_effort=reasoning_effort,
+                    output_schema=CodexBatchResponse.model_json_schema(),
+                    executable=self._executable,
                 )
-            except subprocess.TimeoutExpired as error:
-                raise CodexRunnerError(
-                    "codex_timeout",
-                    "Codex 调用超时",
-                ) from error
-            except OSError as error:
-                raise CodexRunnerError(
-                    "codex_unavailable",
-                    str(error),
-                ) from error
-            if completed.returncode != 0:
-                raise CodexRunnerError(
-                    "codex_failed",
-                    completed.stderr.strip() or "Codex 返回失败状态",
-                )
-            try:
-                return output_path.read_text(encoding="utf-8")
-            except OSError as error:
-                raise CodexRunnerError(
-                    "codex_missing_output",
-                    "Codex 没有返回结构化输出",
-                ) from error
+            )
+        except CodexProcessError as error:
+            raise CodexRunnerError(error.code, str(error)) from error
 
 
 class CodexVerifier:

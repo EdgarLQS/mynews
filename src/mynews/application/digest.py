@@ -5,12 +5,9 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import subprocess
-import tempfile
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -24,6 +21,11 @@ from mynews.domain.models import (
     ReasoningEffort,
     RunReport,
     VerificationRetry,
+)
+from mynews.infrastructure.codex_process import (
+    CodexProcessAdapter,
+    CodexProcessError,
+    CodexProcessRequest,
 )
 
 DEFAULT_DIGEST_MODEL = "gpt-5.6-luna"
@@ -97,8 +99,14 @@ class DigestSummaryResponse(BaseModel):
 class CodexDigestSummaryRunner:
     """以只读、无 shell 的短生命周期方式调用 Codex CLI。"""
 
-    def __init__(self, executable: str = "codex") -> None:
+    def __init__(
+        self,
+        executable: str = "codex",
+        *,
+        adapter: CodexProcessAdapter | None = None,
+    ) -> None:
         self._executable = executable
+        self._adapter = adapter or CodexProcessAdapter()
 
     def run(
         self,
@@ -108,91 +116,20 @@ class CodexDigestSummaryRunner:
         timeout: float,
         reasoning_effort: ReasoningEffort = "medium",
     ) -> str:
-        with tempfile.TemporaryDirectory(prefix="mynews-digest-codex-") as directory:
-            workdir = Path(directory)
-            output_path = workdir / "output.json"
-            schema_path = workdir / "schema.json"
-            _write_digest_schema(schema_path)
-            completed = _run_digest_process(
-                self._executable,
-                prompt,
-                model,
-                timeout,
-                reasoning_effort,
-                directory,
-                schema_path,
-                output_path,
+        try:
+            return self._adapter.run(
+                CodexProcessRequest(
+                    prompt=prompt,
+                    model=model,
+                    timeout=timeout,
+                    reasoning_effort=reasoning_effort,
+                    output_schema=DigestSummaryResponse.model_json_schema(),
+                    executable=self._executable,
+                    temp_prefix="mynews-digest-codex-",
+                )
             )
-            _require_digest_process(completed)
-            return _read_digest_output(output_path)
-
-
-def _write_digest_schema(path: Path) -> None:
-    path.write_text(
-        json.dumps(DigestSummaryResponse.model_json_schema(), ensure_ascii=False),
-        encoding="utf-8",
-    )
-
-
-def _run_digest_process(
-    executable: str,
-    prompt: str,
-    model: str,
-    timeout: float,
-    reasoning_effort: ReasoningEffort,
-    directory: str,
-    schema_path: Path,
-    output_path: Path,
-) -> subprocess.CompletedProcess[str]:
-    command = [
-        executable,
-        "exec",
-        "--ephemeral",
-        "--sandbox",
-        "read-only",
-        "--skip-git-repo-check",
-        "--model",
-        model,
-        "-c",
-        f'model_reasoning_effort="{reasoning_effort}"',
-        "--output-schema",
-        str(schema_path),
-        "--output-last-message",
-        str(output_path),
-        "-",
-    ]
-    try:
-        return subprocess.run(
-            command,
-            input=prompt,
-            text=True,
-            capture_output=True,
-            timeout=timeout,
-            check=False,
-            shell=False,
-            cwd=directory,
-        )
-    except subprocess.TimeoutExpired as error:
-        raise DigestSummaryRunnerError("codex_timeout", "Codex 摘要调用超时") from error
-    except OSError as error:
-        raise DigestSummaryRunnerError("codex_unavailable", str(error)) from error
-
-
-def _require_digest_process(completed: subprocess.CompletedProcess[str]) -> None:
-    if completed.returncode != 0:
-        raise DigestSummaryRunnerError(
-            "codex_failed",
-            completed.stderr.strip() or "Codex 返回失败状态",
-        )
-
-
-def _read_digest_output(path: Path) -> str:
-    try:
-        return path.read_text(encoding="utf-8")
-    except OSError as error:
-        raise DigestSummaryRunnerError(
-            "codex_missing_output", "Codex 没有返回结构化摘要"
-        ) from error
+        except CodexProcessError as error:
+            raise DigestSummaryRunnerError(error.code, str(error)) from error
 
 
 @dataclass(frozen=True, slots=True)

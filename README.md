@@ -2,7 +2,7 @@
 
 面向个人使用的 AI 与科技热点收集器，优先覆盖模型、AI 编程工具、开发者平台及相关重大科技动态。项目从热点渠道发现线索，回溯并验证第一方原始信息，再以结构化 JSON 保存，供后续筛选、分析和产品开发使用。
 
-> 当前状态：v1.6 已按 Implemented 归档，v1.7 分时情报分析与人工反馈闭环的 P0–P4 已按离线门禁实现；M2–M5 的离线能力已按 `Implemented` 交付。真实 Codex 双档、latest-only 补跑、故障恢复和质量验收仍须独立取证。网络受限时保持 `BLOCKED`，不得用任务文档或 mock 代替 Verified。外部插件是受信任本地 Python 代码，显式清单不是进程级沙箱。
+> 当前状态：v1.6 已按 Implemented 归档，v1.7 分时情报分析与人工反馈闭环的 P0–P4 已按离线门禁实现；M2–M6 的离线能力已按 `Implemented` 交付。真实 Codex 双档、latest-only 补跑、故障恢复和质量验收仍须独立取证。网络受限时保持 `BLOCKED`，不得用任务文档或 mock 代替 Verified。外部插件是受信任本地 Python 代码，显式清单不是进程级沙箱。
 
 日常运行直接执行 `scripts/collect.sh`，默认收集最近 1 天；默认 registry 已内置 newsFromAI 当前 25 个自动 Feed，并保留不重复的旧 mynews 来源补充，运行不依赖 `/Users/edgarlqs/Downloads/newsFromAI` 工程。需要回溯时可使用 `scripts/collect.sh --days 7` 或其他日期选择参数。脚本固定在项目根目录运行，支持 `render-plist`、`install`、`status` 和 `uninstall`；这些 launchd 动作支持中文 help 和 `--dry-run`，安装动作必须显式执行，任务 label 为 `com.mynews.collect`，计划时间为主机本地时间每日 09:30（采集进程使用 `TZ=Asia/Shanghai`）。采集脚本使用 `logs/collect.lock` 防止定时任务重叠，并保留底层 `collect` 退出码。只有显式加 `--digest` 才会在采集成功后追加简报生成。运行数据统一写入项目内专用且不提交的 `output/`、`state/`、`logs/` 目录。需要时可用 `collect --verification-reasoning-effort medium` 和 `digest --summary-reasoning-effort medium` 调整 Codex 推理强度；这不会改变证据核验门槛。外部 entry-point 插件仍必须显式使用 `mynews plugin list` 发现、`mynews plugin probe --plugin <id>` 检查；`--plugin` 是 plugin-only，`--with-plugin` 才是 built-in + 插件追加。`scripts/collect-expanded.sh` 仅保留为兼容别名，不再重复加载旧插件来源。
 
@@ -31,6 +31,8 @@ uv run mynews feedback record --week 2026-W32 --platform "平台" \
 `quality-evaluation.md`；指标期望不符返回退出码 `1`，不访问网络、Codex 或定时任务。
 
 运行可靠性命令只读取运行目录并输出 `operations.json` 和 `operations.md`：`diagnose` 分类来源、网络、Codex、证据、存储和调度问题；`retention-plan` 只列旧文件候选，不删除或移动；`recovery-check` 只把白名单数据复制到全新空目录并校验 Schema、引用和哈希。三条命令均不启动网络、Codex 或定时任务；离线恢复检查最高标记为 `Implemented`，真实隔离恢复演练另行验收。
+
+核验与 Digest 的 Codex 调用共用 `CodexProcessAdapter`：它只负责临时目录、输出 Schema、只读 CLI 参数、超时、返回码和结构化输出读取；各领域仍独立负责 prompt、响应模型、程序复核和安全回退。M6 仅完成离线实现和回归测试，不代表已执行生产 Codex 验收。
 
 如果个人使用只需要人工查看候选，可以使用 `mynews digest --no-codex` 生成线索链接，再自行打开官方页面确认。该模式不会把 `unverified` 条目升级为 `verified`；不要直接编辑 `output/latest.json`，也不要把人工判断冒充 `codex_primary_evidence`。需要程序正式接收人工证据时，应另行增加带 URL、日期、摘录和哈希校验的人工复核入口。report、digest、watchlist、publication 和 feedback 会拒绝绝对路径、疑似密钥和敏感 URL 查询参数。
 

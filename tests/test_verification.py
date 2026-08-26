@@ -11,6 +11,7 @@ import pytest
 
 from mynews.domain.models import Candidate, Evidence, EvidenceValidation
 from mynews.domain.normalization import Normalizer
+from mynews.infrastructure import codex_process
 from mynews.infrastructure.http import HttpResponse
 from mynews.verification.codex import (
     CodexVerifier,
@@ -473,7 +474,7 @@ def test_codex_runner_is_read_only_ephemeral_and_never_uses_shell(
         output_path.write_text('{"suggestions":[]}', encoding="utf-8")
         return SimpleNamespace(returncode=0, stderr="")
 
-    monkeypatch.setattr("mynews.verification.codex.subprocess.run", run)
+    monkeypatch.setattr(codex_process.subprocess, "run", run)
 
     output = SubprocessCodexRunner("codex-test").run(
         "structured prompt", model="test-model", timeout=2.5
@@ -489,6 +490,7 @@ def test_codex_runner_is_read_only_ephemeral_and_never_uses_shell(
     )
     assert captured["shell"] is False
     assert captured["timeout"] == 2.5
+    assert Path(str(captured["cwd"])).name.startswith("mynews-codex-")
 
 
 def test_codex_runner_emits_strict_output_schema_for_cli(
@@ -517,7 +519,7 @@ def test_codex_runner_emits_strict_output_schema_for_cli(
         output_path.write_text('{"suggestions":[]}', encoding="utf-8")
         return SimpleNamespace(returncode=0, stderr="")
 
-    monkeypatch.setattr("mynews.verification.codex.subprocess.run", run)
+    monkeypatch.setattr(codex_process.subprocess, "run", run)
 
     SubprocessCodexRunner("codex-test").run(
         "structured prompt", model="test-model", timeout=2.5

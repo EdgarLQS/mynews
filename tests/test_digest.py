@@ -22,6 +22,7 @@ from mynews.domain.models import (
     RunReport,
     VerificationRetry,
 )
+from mynews.infrastructure import codex_process
 
 NOW = datetime(2026, 8, 9, 12, 0, tzinfo=UTC)
 
@@ -76,15 +77,16 @@ def test_digest_codex_runner_passes_reasoning_effort_to_cli(
         shell: bool,
         cwd: str,
     ) -> SimpleNamespace:
-        del input, text, capture_output, timeout, check, shell, cwd
+        del input, text, capture_output, timeout, check, shell
         captured["command"] = command
+        captured["cwd"] = cwd
         output_path = Path(
             command[command.index("--output-last-message") + 1]
         )
         output_path.write_text('{"summaries":[]}', encoding="utf-8")
         return SimpleNamespace(returncode=0, stderr="")
 
-    monkeypatch.setattr("mynews.application.digest.subprocess.run", run)
+    monkeypatch.setattr(codex_process.subprocess, "run", run)
 
     output = CodexDigestSummaryRunner("codex-test").run(
         "structured prompt",
@@ -101,6 +103,7 @@ def test_digest_codex_runner_passes_reasoning_effort_to_cli(
         'model_reasoning_effort="low"'
     )
     assert command[command.index("--output-schema") + 1]
+    assert Path(str(captured["cwd"])).name.startswith("mynews-digest-codex-")
 
 
 def _item(

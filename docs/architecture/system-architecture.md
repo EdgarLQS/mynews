@@ -47,7 +47,11 @@ flowchart LR
     JSON --> VAL["Schema + evidence validation"]
     JSON --> DIGEST["DigestBuilder"]
     PREV["上一期 Digest"] --> DIGEST
-    DIGEST --> SUMMARY["Evidence-grounded Codex summary"]
+    DIGEST --> CODEX_PROCESS["Shared CodexProcessAdapter"]
+    RES --> CODEX_PROCESS
+    CODEX_PROCESS --> CODEX["Codex response"]
+    CODEX --> RES
+    CODEX_PROCESS --> SUMMARY["Evidence-grounded Codex summary"]
     DIGEST --> DIGEST_STORE["Atomic DigestFileStore"]
     DIGEST_STORE --> ART
     APP --> PREPARE["Prepare: cached editorial collection"]
@@ -82,6 +86,7 @@ flowchart LR
 | Validation | `validate_run_file` | 1.x Schema 和已保存证据复核 |
 | DigestBuilder | `build(report, previous, config)` | 保守事件聚合、确定性排序、生命周期与主榜/线索隔离；不改变 RunReport |
 | DigestSummaryRunner | `run(prompt, model, timeout, reasoning_effort)` | 只读取已保存证据的可替换摘要调用；非法输出只能触发安全回退 |
+| CodexProcessAdapter | `run(CodexProcessRequest) -> str` | 统一临时目录、输出 Schema、只读 CLI 参数、超时、返回码和结构化输出读取；不拥有领域 prompt、响应模型、verified 判定或回退策略 |
 | DigestFileStore | `load_latest`、`write` | 历史 Digest、latest JSON 和 Markdown 的同批次原子提交 |
 | QualityEvaluator | `evaluate(QualitySuite) -> QualityEvaluation` | 只比较自包含离线样本的期望/实际快照；报告质量指标，不访问网络、Codex 或运行时 Store |
 | Operations | `diagnose`、`build_retention_plan`、`recovery_check` | 只读诊断、非破坏性保留候选和白名单隔离恢复；报告相对路径、哈希和统计，不启动网络、Codex 或调度 |
@@ -254,7 +259,8 @@ src/mynews/
 │   └── digest_store.py
 └── infrastructure/
     ├── http.py
-    └── clock.py
+    ├── clock.py
+    └── codex_process.py
 ```
 
 ## 失败和安全规则
@@ -269,6 +275,7 @@ src/mynews/
 - Digest 输出失败时恢复旧 `digest-latest.json`/`.md`，不留下临时文件；摘要模型失败时状态为 `partial` 并回退到标题和已保存证据摘录。
 - Digest 在调用 Codex 前检查不可信标题/摘录中的提示注入标记；模型摘要或影响判断出现同类标记时拒绝其结果并以不回显可疑摘录的 `partial` 回退。
 - 核验和摘要的 Codex 推理强度由各自 CLI 参数配置，默认 `medium`；该运行时选项不改变 verified、第一方证据或安全回退门槛。
+- `CodexProcessAdapter` 只负责 Codex 进程机制；Verifier、Digest 和后续编辑建议各自保留 prompt、响应 Schema、程序复核与安全回退。它不访问 HTTP、Store，不写运行目录，也不改变 `verified`。
 - launchd 只能由用户显式操作；开发和 CI 不安装或加载真实任务。
 
 重要变更见 [ADR-0001](../decisions/ADR-0001-strict-evidence-and-module-seams.md)、[ADR-0002](../decisions/ADR-0002-controlled-resolution-and-evidence-lifecycle.md) 与 [ADR-0003](../decisions/ADR-0003-evidence-grounded-intelligence-digest.md)。
