@@ -26,7 +26,7 @@ manual/blocked。外部插件仍是受信任本地 Python 代码，显式清单�
 | AI-01 | 协作 | `AGENTS.md` 与 `CLAUDE.md` 共用项目规则 | Implemented | 指令入口检查 |
 | AI-02 | 协作 | `news-task.md` 驱动 09:00/18:00 分时情报任务 | Implemented | 元数据、latest-only、证据隔离和失败停止；P5 G6-V/真实双档仍 BLOCKED，M2 豁免不改变此状态 |
 | ARCH-01 | 架构 | 深 `ApplicationRuntime` 与 CLI 薄 Adapter | Implemented | M2 `run(Command) -> CommandOutcome`、CLI/JSON/退出码兼容和 303 项离线测试 |
-| ARCH-02 | 架构 | 统一 `ArtifactCommitter` 文件提交 module | Implemented | M3 `commit(writes)` 统一暂存、fsync、替换、回滚和临时清理；保持 latest、历史和报告先于状态语义兼容；离线测试 307 项 |
+| ARCH-02 | 架构 | 统一 `ArtifactCommitter` 文件提交 module | Implemented | M3 `commit(writes)` 统一暂存、fsync、替换、回滚和临时清理；保持 latest、历史和报告先于状态语义兼容；当前全量测试 319 项 |
 | ARCH-03 | 架构 | 共享结构化 Codex 进程 Adapter | Planned | 统一总计划 M6；只统一进程机制，不合并领域 prompt 或复核 |
 | QA-01 | 验收 | 统一验收规则、Claude `/acceptance` 与真实环境交接 | Implemented | 验收规则 + v1.2 真实环境清单 |
 | CLI-01 | CLI | 全局、子命令和脚本中文 `--help` | Implemented | `uv run mynews --help`、子命令和脚本 help |
@@ -42,7 +42,7 @@ manual/blocked。外部插件仍是受信任本地 Python 代码，显式清单�
 | CLI-11 | CLI | `mynews prepare --date` 与 `--refresh` editorial 候选包 | Implemented | 日期重放、refresh、中文 help、0/1/3 退出码和失败恢复测试 |
 | CLI-12 | CLI | `mynews publication add` 人工发布记录 | Implemented | Candidate ID、多事件、幂等、缺失字段、CSV 兼容和原子恢复 |
 | CLI-13 | CLI | `mynews feedback record` 周反馈记录 | Implemented | 指标校验、稳定区块、冲突/replace、隐私和原子恢复 |
-| CLI-14 | CLI | `mynews evaluate` 可重复质量评估 | Planned | 统一总计划 M4；独立 QualityEvaluation 1.0 JSON/Markdown |
+| CLI-14 | CLI | `mynews evaluate` 可重复质量评估 | Implemented | M4 离线固定样本、独立 QualityEvaluation 1.0 JSON/Markdown、零容忍失败退出 1；真实质量门禁仍未 Verified |
 | CLI-15 | CLI | `mynews ops` 诊断、保留计划与隔离恢复检查 | Planned | 统一总计划 M5；不自动删除或原地覆盖 |
 | CLI-16 | CLI | `mynews editorial review` 周复盘与只读建议 | Planned | 统一总计划 M7；数据不足 partial，Codex 可选且可回退 |
 | SRC-01 | 来源 | Hacker News 官方 API | Verified | fixture + 既有真实 probe；v1.2 目标环境重新执行 G6-S |
@@ -71,7 +71,7 @@ manual/blocked。外部插件仍是受信任本地 Python 代码，显式清单�
 | DATA-05 | 数据 | Candidate Contract v1、公开 JSON Schema、兼容读取和匹配统计 | Implemented | Schema/旧 categories 读取、最多 500 条、`firstSeenAt <= generatedAt` 和隐私门禁 |
 | DATA-06 | 数据 | editorial 观察历史、first-seen、source family、重复观察和保守事件聚类 | Implemented | `duplicateGroupId`、`multiSources`、`repeat_count` 和跨来源误合并测试 |
 | DATA-07 | 数据 | 分时报告和任务状态的原子写入与 latest-only 演进 | Implemented | 报告先提交、状态后推进、失败恢复、相对路径和无敏感值；P5 真实双档当前 BLOCKED |
-| DATA-08 | 数据 | QualityEvaluation、Operations、EditorialReview 独立 1.0 Schema | Planned | 各阶段独立契约；不修改 RunReport、Candidate、Digest 或 automation state |
+| DATA-08 | 数据 | QualityEvaluation、Operations、EditorialReview 独立 1.0 Schema | In progress | M4 已完成 QualityEvaluation 1.0；Operations 与 EditorialReview 仍待 M5/M7，不修改 RunReport、Candidate、Digest 或 automation state |
 | EDITORIAL-01 | 编辑 | candidates JSON/Markdown、完整 manual watchlist、publication history 和 weekly feedback 提示 | Implemented | 确定性输出、人工只读台账、失败状态和原子多文件写入 |
 | EDITORIAL-02 | 编辑 | 0–6 条四问式情报、中国 AI 单列和人工反馈闭环 | Implemented | verified 主榜边界、重要更新、跳过原因、发布历史和周反馈提示 |
 | EDITORIAL-03 | 编辑 | 基于已保存事实与人工反馈的周复盘和选题提示 | Planned | 统一总计划 M7；只读输入、建议可追溯、不自动发布 |

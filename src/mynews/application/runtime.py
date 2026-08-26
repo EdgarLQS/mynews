@@ -16,6 +16,12 @@ from mynews.application.digest import DigestBuildConfig, DigestBuilder
 from mynews.application.feedback import FeedbackArgumentError, record_weekly_feedback
 from mynews.application.prepare import prepare_editorial_pack
 from mynews.application.publication import PublicationArgumentError, add_publication
+from mynews.application.quality import (
+    QualityEvaluationError,
+    QualityEvaluator,
+    load_quality_suite,
+    write_quality_evaluation,
+)
 from mynews.application.report import load_report, render_report, write_report
 from mynews.application.validation import RunValidation, validate_run_file, write_schema
 from mynews.application.watchlist import (
@@ -91,6 +97,8 @@ class ApplicationRuntime:
             return self._run_publication(command.options)
         if command.name == "feedback":
             return self._run_feedback(command.options)
+        if command.name == "evaluate":
+            return self._run_evaluate(command.options)
         active = self._prepare_registry(command.options)
         if isinstance(active, CommandOutcome):
             return active
@@ -426,6 +434,27 @@ class ApplicationRuntime:
             )
             + "\n",
         )
+
+    def _run_evaluate(self, options: Mapping[str, object]) -> CommandOutcome:
+        try:
+            suite = load_quality_suite(_path_option(options, "suite"))
+            evaluation = QualityEvaluator().evaluate(suite)
+            json_path, markdown_path = write_quality_evaluation(
+                evaluation, _path_option(options, "out_dir")
+            )
+        except QualityEvaluationError as error:
+            return _failure(
+                "质量评估失败：", error, "请检查 suite.json 内容和输出目录权限"
+            )
+        output_dir = _path_option(options, "out_dir")
+        payload = {
+            "status": evaluation.status,
+            "suite_id": evaluation.suite_id,
+            "case_count": evaluation.case_count,
+            "json": _relative_path(json_path, output_dir),
+            "markdown": _relative_path(markdown_path, output_dir),
+        }
+        return CommandOutcome(0 if evaluation.status == "passed" else 1, payload)
 
 
 def collection_request_from_options(

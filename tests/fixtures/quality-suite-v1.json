@@ -1,0 +1,150 @@
+{
+  "schema_version": "1.0",
+  "suite_id": "m4-offline-v1",
+  "cases": [
+    {
+      "case_id": "official-direct-1",
+      "category": "official_direct",
+      "expected": {"candidate_event_keys": ["evt-official-1"], "verified_event_keys": ["evt-official-1"], "main_event_keys": ["evt-official-1"], "ranking_runs": [["evt-official-1"], ["evt-official-1"]]},
+      "actual": {"candidate_event_keys": ["evt-official-1"], "verified_event_keys": ["evt-official-1"], "main_event_keys": ["evt-official-1"], "ranking_runs": [["evt-official-1"], ["evt-official-1"]]}
+    },
+    {
+      "case_id": "official-direct-2",
+      "category": "official_direct",
+      "expected": {"candidate_event_keys": ["evt-official-2"], "verified_event_keys": ["evt-official-2"], "main_event_keys": ["evt-official-2"], "ranking_runs": [["evt-official-2"], ["evt-official-2"]]},
+      "actual": {"candidate_event_keys": ["evt-official-2"], "verified_event_keys": ["evt-official-2"], "main_event_keys": ["evt-official-2"], "ranking_runs": [["evt-official-2"], ["evt-official-2"]]}
+    },
+    {
+      "case_id": "official-direct-3",
+      "category": "official_direct",
+      "expected": {"candidate_event_keys": ["evt-official-3"], "verified_event_keys": ["evt-official-3"], "main_event_keys": ["evt-official-3"], "ranking_runs": [["evt-official-3"], ["evt-official-3"]]},
+      "actual": {"candidate_event_keys": ["evt-official-3"], "verified_event_keys": ["evt-official-3"], "main_event_keys": ["evt-official-3"], "ranking_runs": [["evt-official-3"], ["evt-official-3"]]}
+    },
+    {
+      "case_id": "discovery-1",
+      "category": "discovery",
+      "expected": {"candidate_event_keys": ["evt-discovery-1"], "main_event_keys": [], "lead_event_keys": ["evt-discovery-1"], "ranking_runs": [["evt-discovery-1"], ["evt-discovery-1"]]},
+      "actual": {"candidate_event_keys": ["evt-discovery-1"], "main_event_keys": [], "lead_event_keys": ["evt-discovery-1"], "ranking_runs": [["evt-discovery-1"], ["evt-discovery-1"]]}
+    },
+    {
+      "case_id": "discovery-2",
+      "category": "discovery",
+      "expected": {"candidate_event_keys": ["evt-discovery-2"], "main_event_keys": [], "lead_event_keys": ["evt-discovery-2"], "ranking_runs": [["evt-discovery-2"], ["evt-discovery-2"]]},
+      "actual": {"candidate_event_keys": ["evt-discovery-2"], "main_event_keys": [], "lead_event_keys": ["evt-discovery-2"], "ranking_runs": [["evt-discovery-2"], ["evt-discovery-2"]]}
+    },
+    {
+      "case_id": "discovery-3",
+      "category": "discovery",
+      "expected": {"candidate_event_keys": ["evt-discovery-3"], "main_event_keys": [], "lead_event_keys": ["evt-discovery-3"], "ranking_runs": [["evt-discovery-3"], ["evt-discovery-3"]]},
+      "actual": {"candidate_event_keys": ["evt-discovery-3"], "main_event_keys": [], "lead_event_keys": ["evt-discovery-3"], "ranking_runs": [["evt-discovery-3"], ["evt-discovery-3"]]}
+    },
+    {
+      "case_id": "retry-failure-1",
+      "category": "retry_failure",
+      "expected": {"candidate_event_keys": ["evt-retry-1"], "pending_before": ["evt-retry-1"], "pending_after": ["evt-retry-1"], "lead_event_keys": ["evt-retry-1"], "ranking_runs": [["evt-retry-1"], ["evt-retry-1"]]},
+      "actual": {"candidate_event_keys": ["evt-retry-1"], "pending_before": ["evt-retry-1"], "pending_after": ["evt-retry-1"], "lead_event_keys": ["evt-retry-1"], "ranking_runs": [["evt-retry-1"], ["evt-retry-1"]]}
+    },
+    {
+      "case_id": "retry-failure-2",
+      "category": "retry_failure",
+      "expected": {"candidate_event_keys": ["evt-retry-2"], "pending_before": ["evt-retry-2"], "pending_after": [], "lead_event_keys": [], "ranking_runs": [["evt-retry-2"], ["evt-retry-2"]]},
+      "actual": {"candidate_event_keys": ["evt-retry-2"], "pending_before": ["evt-retry-2"], "pending_after": [], "lead_event_keys": [], "ranking_runs": [["evt-retry-2"], ["evt-retry-2"]]}
+    },
+    {
+      "case_id": "retry-failure-3",
+      "category": "retry_failure",
+      "expected": {"candidate_event_keys": ["evt-retry-3"], "pending_before": [], "pending_after": ["evt-retry-3"], "lead_event_keys": ["evt-retry-3"], "ranking_runs": [["evt-retry-3"], ["evt-retry-3"]]},
+      "actual": {"candidate_event_keys": ["evt-retry-3"], "pending_before": [], "pending_after": ["evt-retry-3"], "lead_event_keys": ["evt-retry-3"], "ranking_runs": [["evt-retry-3"], ["evt-retry-3"]]}
+    },
+    {
+      "case_id": "multi-source-same-event-1",
+      "category": "multi_source_same_event",
+      "expected": {"candidate_event_keys": ["evt-multi-1a", "evt-multi-1b"], "verified_event_keys": ["evt-multi-1a"], "merge_groups": [["evt-multi-1a", "evt-multi-1b"]], "main_event_keys": ["evt-multi-1a"], "ranking_runs": [["evt-multi-1a", "evt-multi-1b"], ["evt-multi-1a", "evt-multi-1b"]]},
+      "actual": {"candidate_event_keys": ["evt-multi-1a", "evt-multi-1b"], "verified_event_keys": ["evt-multi-1a"], "merge_groups": [["evt-multi-1a", "evt-multi-1b"]], "main_event_keys": ["evt-multi-1a"], "ranking_runs": [["evt-multi-1a", "evt-multi-1b"], ["evt-multi-1a", "evt-multi-1b"]]}
+    },
+    {
+      "case_id": "multi-source-same-event-2",
+      "category": "multi_source_same_event",
+      "expected": {"candidate_event_keys": ["evt-multi-2a", "evt-multi-2b"], "verified_event_keys": ["evt-multi-2a"], "merge_groups": [["evt-multi-2a", "evt-multi-2b"]], "main_event_keys": ["evt-multi-2a"], "ranking_runs": [["evt-multi-2a", "evt-multi-2b"], ["evt-multi-2a", "evt-multi-2b"]]},
+      "actual": {"candidate_event_keys": ["evt-multi-2a", "evt-multi-2b"], "verified_event_keys": ["evt-multi-2a"], "merge_groups": [["evt-multi-2a", "evt-multi-2b"]], "main_event_keys": ["evt-multi-2a"], "ranking_runs": [["evt-multi-2a", "evt-multi-2b"], ["evt-multi-2a", "evt-multi-2b"]]}
+    },
+    {
+      "case_id": "multi-source-same-event-3",
+      "category": "multi_source_same_event",
+      "expected": {"candidate_event_keys": ["evt-multi-3a", "evt-multi-3b"], "verified_event_keys": ["evt-multi-3a"], "merge_groups": [["evt-multi-3a", "evt-multi-3b"]], "main_event_keys": ["evt-multi-3a"], "ranking_runs": [["evt-multi-3a", "evt-multi-3b"], ["evt-multi-3a", "evt-multi-3b"]]},
+      "actual": {"candidate_event_keys": ["evt-multi-3a", "evt-multi-3b"], "verified_event_keys": ["evt-multi-3a"], "merge_groups": [["evt-multi-3a", "evt-multi-3b"]], "main_event_keys": ["evt-multi-3a"], "ranking_runs": [["evt-multi-3a", "evt-multi-3b"], ["evt-multi-3a", "evt-multi-3b"]]}
+    },
+    {
+      "case_id": "similar-different-event-1",
+      "category": "similar_different_event",
+      "expected": {"candidate_event_keys": ["evt-similar-1a", "evt-similar-1b"], "lead_event_keys": ["evt-similar-1a", "evt-similar-1b"], "ranking_runs": [["evt-similar-1a", "evt-similar-1b"], ["evt-similar-1a", "evt-similar-1b"]]},
+      "actual": {"candidate_event_keys": ["evt-similar-1a", "evt-similar-1b"], "lead_event_keys": ["evt-similar-1a", "evt-similar-1b"], "ranking_runs": [["evt-similar-1a", "evt-similar-1b"], ["evt-similar-1a", "evt-similar-1b"]]}
+    },
+    {
+      "case_id": "similar-different-event-2",
+      "category": "similar_different_event",
+      "expected": {"candidate_event_keys": ["evt-similar-2a", "evt-similar-2b"], "lead_event_keys": ["evt-similar-2a", "evt-similar-2b"], "ranking_runs": [["evt-similar-2a", "evt-similar-2b"], ["evt-similar-2a", "evt-similar-2b"]]},
+      "actual": {"candidate_event_keys": ["evt-similar-2a", "evt-similar-2b"], "lead_event_keys": ["evt-similar-2a", "evt-similar-2b"], "ranking_runs": [["evt-similar-2a", "evt-similar-2b"], ["evt-similar-2a", "evt-similar-2b"]]}
+    },
+    {
+      "case_id": "similar-different-event-3",
+      "category": "similar_different_event",
+      "expected": {"candidate_event_keys": ["evt-similar-3a", "evt-similar-3b"], "lead_event_keys": ["evt-similar-3a", "evt-similar-3b"], "ranking_runs": [["evt-similar-3a", "evt-similar-3b"], ["evt-similar-3a", "evt-similar-3b"]]},
+      "actual": {"candidate_event_keys": ["evt-similar-3a", "evt-similar-3b"], "lead_event_keys": ["evt-similar-3a", "evt-similar-3b"], "ranking_runs": [["evt-similar-3a", "evt-similar-3b"], ["evt-similar-3a", "evt-similar-3b"]]}
+    },
+    {
+      "case_id": "pricing-change-1",
+      "category": "pricing_change",
+      "expected": {"candidate_event_keys": ["evt-pricing-1"], "verified_event_keys": ["evt-pricing-1"], "main_event_keys": ["evt-pricing-1"], "ranking_runs": [["evt-pricing-1"], ["evt-pricing-1"]]},
+      "actual": {"candidate_event_keys": ["evt-pricing-1"], "verified_event_keys": ["evt-pricing-1"], "main_event_keys": ["evt-pricing-1"], "ranking_runs": [["evt-pricing-1"], ["evt-pricing-1"]]}
+    },
+    {
+      "case_id": "pricing-change-2",
+      "category": "pricing_change",
+      "expected": {"candidate_event_keys": ["evt-pricing-2"], "verified_event_keys": ["evt-pricing-2"], "main_event_keys": ["evt-pricing-2"], "ranking_runs": [["evt-pricing-2"], ["evt-pricing-2"]]},
+      "actual": {"candidate_event_keys": ["evt-pricing-2"], "verified_event_keys": ["evt-pricing-2"], "main_event_keys": ["evt-pricing-2"], "ranking_runs": [["evt-pricing-2"], ["evt-pricing-2"]]}
+    },
+    {
+      "case_id": "pricing-change-3",
+      "category": "pricing_change",
+      "expected": {"candidate_event_keys": ["evt-pricing-3"], "verified_event_keys": ["evt-pricing-3"], "main_event_keys": ["evt-pricing-3"], "ranking_runs": [["evt-pricing-3"], ["evt-pricing-3"]]},
+      "actual": {"candidate_event_keys": ["evt-pricing-3"], "verified_event_keys": ["evt-pricing-3"], "main_event_keys": ["evt-pricing-3"], "ranking_runs": [["evt-pricing-3"], ["evt-pricing-3"]]}
+    },
+    {
+      "case_id": "prompt-injection-1",
+      "category": "prompt_injection",
+      "expected": {"candidate_event_keys": ["evt-injection-1"], "lead_event_keys": ["evt-injection-1"], "ranking_runs": [["evt-injection-1"], ["evt-injection-1"]]},
+      "actual": {"candidate_event_keys": ["evt-injection-1"], "lead_event_keys": ["evt-injection-1"], "ranking_runs": [["evt-injection-1"], ["evt-injection-1"]]}
+    },
+    {
+      "case_id": "prompt-injection-2",
+      "category": "prompt_injection",
+      "expected": {"candidate_event_keys": ["evt-injection-2"], "lead_event_keys": ["evt-injection-2"], "ranking_runs": [["evt-injection-2"], ["evt-injection-2"]]},
+      "actual": {"candidate_event_keys": ["evt-injection-2"], "lead_event_keys": ["evt-injection-2"], "ranking_runs": [["evt-injection-2"], ["evt-injection-2"]]}
+    },
+    {
+      "case_id": "prompt-injection-3",
+      "category": "prompt_injection",
+      "expected": {"candidate_event_keys": ["evt-injection-3"], "lead_event_keys": ["evt-injection-3"], "ranking_runs": [["evt-injection-3"], ["evt-injection-3"]]},
+      "actual": {"candidate_event_keys": ["evt-injection-3"], "lead_event_keys": ["evt-injection-3"], "ranking_runs": [["evt-injection-3"], ["evt-injection-3"]]}
+    },
+    {
+      "case_id": "evidence-drift-1",
+      "category": "evidence_drift",
+      "expected": {"candidate_event_keys": ["evt-drift-1"], "verified_event_keys": ["evt-drift-1"], "main_event_keys": ["evt-drift-1"], "ranking_runs": [["evt-drift-1"], ["evt-drift-1"]]},
+      "actual": {"candidate_event_keys": ["evt-drift-1"], "verified_event_keys": ["evt-drift-1"], "main_event_keys": ["evt-drift-1"], "ranking_runs": [["evt-drift-1"], ["evt-drift-1"]]}
+    },
+    {
+      "case_id": "evidence-drift-2",
+      "category": "evidence_drift",
+      "expected": {"candidate_event_keys": ["evt-drift-2"], "verified_event_keys": ["evt-drift-2"], "main_event_keys": ["evt-drift-2"], "ranking_runs": [["evt-drift-2"], ["evt-drift-2"]]},
+      "actual": {"candidate_event_keys": ["evt-drift-2"], "verified_event_keys": ["evt-drift-2"], "main_event_keys": ["evt-drift-2"], "ranking_runs": [["evt-drift-2"], ["evt-drift-2"]]}
+    },
+    {
+      "case_id": "evidence-drift-3",
+      "category": "evidence_drift",
+      "expected": {"candidate_event_keys": ["evt-drift-3"], "verified_event_keys": ["evt-drift-3"], "main_event_keys": ["evt-drift-3"], "ranking_runs": [["evt-drift-3"], ["evt-drift-3"]]},
+      "actual": {"candidate_event_keys": ["evt-drift-3"], "verified_event_keys": ["evt-drift-3"], "main_event_keys": ["evt-drift-3"], "ranking_runs": [["evt-drift-3"], ["evt-drift-3"]]}
+    }
+  ]
+}

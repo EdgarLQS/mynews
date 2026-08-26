@@ -60,6 +60,9 @@ flowchart LR
     APP --> HUMAN["Manual publication / weekly feedback"]
     HUMAN --> LEDGER["CSV ledger + stable Markdown blocks"]
     HUMAN --> ART
+    APP --> EVAL["QualityEvaluator: offline suite comparison"]
+    EVAL --> QUALITY["QualityEvaluation 1.0 JSON + Markdown"]
+    QUALITY --> ART
 ```
 
 ## Module 与 seam
@@ -80,6 +83,7 @@ flowchart LR
 | DigestBuilder | `build(report, previous, config)` | 保守事件聚合、确定性排序、生命周期与主榜/线索隔离；不改变 RunReport |
 | DigestSummaryRunner | `run(prompt, model, timeout, reasoning_effort)` | 只读取已保存证据的可替换摘要调用；非法输出只能触发安全回退 |
 | DigestFileStore | `load_latest`、`write` | 历史 Digest、latest JSON 和 Markdown 的同批次原子提交 |
+| QualityEvaluator | `evaluate(QualitySuite) -> QualityEvaluation` | 只比较自包含离线样本的期望/实际快照；报告质量指标，不访问网络、Codex 或运行时 Store |
 | AutomationOutput | `commit_automation_output` | 先原子写分时报告，再推进受约束的任务状态；不修改 Store、verified 或人工台账 |
 | PublicationLedger | `add_publication` | 只读校验 Candidate，按 `duplicateGroupId` 优先匹配并原子追加人工确认记录 |
 | WeeklyFeedback | `record_weekly_feedback` | 校验 ISO 周和非负指标，维护周/平台稳定 Markdown 区块；冲突必须显式 replace |

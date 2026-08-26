@@ -28,7 +28,13 @@ def test_collect_help_is_chinese(capsys: pytest.CaptureFixture[str]) -> None:
 
 @pytest.mark.parametrize(
     "arguments",
-    [["--help"], ["probe", "--help"], ["validate", "--help"], ["digest", "--help"]],
+    [
+        ["--help"],
+        ["probe", "--help"],
+        ["validate", "--help"],
+        ["digest", "--help"],
+        ["evaluate", "--help"],
+    ],
 )
 def test_global_and_probe_help_are_available(
     arguments: list[str], capsys: pytest.CaptureFixture[str]
@@ -50,6 +56,52 @@ def test_digest_help_includes_reasoning_effort(
 
     assert raised.value.code == 0
     assert "--summary-reasoning-effort" in capsys.readouterr().out
+
+
+def test_evaluate_command_writes_quality_outputs_offline(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fixture = Path(__file__).parent / "fixtures" / "quality-suite-v1.json"
+    result = main(
+        [
+            "evaluate",
+            "--suite",
+            str(fixture),
+            "--out-dir",
+            str(tmp_path),
+        ]
+    )
+
+    assert result == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload == {
+        "status": "passed",
+        "suite_id": "m4-offline-v1",
+        "case_count": 24,
+        "json": "quality-evaluation.json",
+        "markdown": "quality-evaluation.md",
+    }
+    assert (tmp_path / "quality-evaluation.json").is_file()
+    assert (tmp_path / "quality-evaluation.md").is_file()
+
+
+def test_evaluate_command_returns_one_for_failed_expectations(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    fixture = Path(__file__).parent / "fixtures" / "quality-suite-v1.json"
+    payload = json.loads(fixture.read_text(encoding="utf-8"))
+    payload["cases"][0]["actual"]["verified_event_keys"] = ["wrong-event"]
+    suite_path = tmp_path / "suite.json"
+    suite_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = main(
+        ["evaluate", "--suite", str(suite_path), "--out-dir", str(tmp_path / "out")]
+    )
+
+    assert result == 1
+    output = json.loads(capsys.readouterr().out)
+    assert output["status"] == "failed"
+    assert (tmp_path / "out" / "quality-evaluation.json").is_file()
 
 
 @pytest.mark.parametrize(

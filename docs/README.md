@@ -23,7 +23,7 @@ owner: project-maintainers
 | v1.5 扩展来源与安全交接计划 | Archived / Implemented | 已移动到历史归档；来源插件、人工清单和安全边界继续被 v1.6 复用 |
 | v1.6 newsFromAI 数据能力完整吸收计划 | Archived / Implemented | datacollection 能力已完成吸收；逐来源真实状态和 partial 限制保留在归档原文 |
 | v1.7 分时情报分析与人工反馈闭环计划 | Archived / Implemented | P0–P4 离线实现完成；P5 未完成记录保留在归档，后续由统一总计划管理 |
-| v1.7 收口至 v2.0 统一开发总计划 | Current / In Progress | M0 已完成；P5 真实双档仍为 BLOCKED，M2、M3 已按用户限定范围完成离线实施，未将 P5 写成 Verified |
+| v1.7 收口至 v2.0 统一开发总计划 | Current / In Progress | M0 已完成；P5 真实双档仍为 BLOCKED，M2、M3、M4 已按用户限定范围完成离线实施，未将 P5 或 M4 写成真实 Verified |
 | v1.2 计划与真实验收 | Archived / In Progress | 实际命令、两次 Run ID、G6-S 限制、G6-V `BLOCKED` 和 G7 结果已归档；真实发布门禁未完成，不能写成 Verified |
 | 系统架构 | Current / Implemented | SourcePlugin、registry、规范化/去重、EvidenceVerifier、pending、证据生命周期、NewsStore 和 Digest seam 已实现 |
 | AI 开发说明 | Current / Implemented | Codex 与 Claude Code 共用一套项目规则 |
@@ -77,7 +77,7 @@ owner: project-maintainers
 
 | 文档 | 状态 | 实现状态 |
 | --- | --- | --- |
-| [统一开发总计划](planning/v1.7-v2.0-master-plan.md) | Current | In Progress；M2、M3 已在限定范围下 Implemented，M1/P5 真实能力仍不得写成 Verified |
+| [统一开发总计划](planning/v1.7-v2.0-master-plan.md) | Current | In Progress；M2、M3、M4 已在限定范围下 Implemented，M1/P5 与 M4 真实能力仍不得写成 Verified |
 | [系统架构](architecture/system-architecture.md) | Current | Implemented |
 | [功能矩阵](product/feature-matrix.md) | Current | Implemented |
 | [项目验收规则](testing/acceptance-rules.md) | Current | Implemented |
@@ -92,4 +92,4 @@ owner: project-maintainers
 
 | 文档 | 状态 | 实现状态 |
 | --- | --- | --- |
-| [架构方向审查](architecture/architecture-direction-review-2026-08-20.md) | Draft | Proposed；整理当前设计与候选方向，M2/M3 已在统一总计划中锁定，系统架构仍是当前结构真相 |
+| [架构方向审查](architecture/architecture-direction-review-2026-08-20.md) | Draft | Proposed；整理当前设计与候选方向，M2/M3/M4 已在统一总计划中锁定，系统架构仍是当前结构真相 |

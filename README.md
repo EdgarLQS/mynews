@@ -14,6 +14,7 @@ uv run mynews report --run output/latest.json --out output/report.md
 uv run mynews digest --run output/latest.json --out-dir output --no-codex
 uv run mynews watchlist --file config/manual-watchlist.json --out output/watchlist.md
 uv run mynews prepare --date 2026-08-11
+uv run mynews evaluate --suite tests/fixtures/quality-suite-v1.json --out-dir output/quality
 uv run mynews publication add --candidate-file output/editorial/2026-08-11/candidates.json \
   --event-id event-2026-08-11-example --title "已发布标题" --platform "平台" \
   --url https://example.com/post --published-at 2026-08-11T18:00:00+08:00
@@ -22,6 +23,9 @@ uv run mynews feedback record --week 2026-W32 --platform "平台" \
 ```
 
 增加 `--check-evidence` 会重新抓取每条 `verified` 证据。若页面整体发生变化，但原摘录、日期和官方边界仍成立，校验结果会产生 `changed_supporting` warning；支持文本、日期或安全边界失效时仍然失败。
+
+离线质量评估读取自包含固定样本，输出 `quality-evaluation.json` 和
+`quality-evaluation.md`；指标期望不符返回退出码 `1`，不访问网络、Codex 或定时任务。
 
 如果个人使用只需要人工查看候选，可以使用 `mynews digest --no-codex` 生成线索链接，再自行打开官方页面确认。该模式不会把 `unverified` 条目升级为 `verified`；不要直接编辑 `output/latest.json`，也不要把人工判断冒充 `codex_primary_evidence`。需要程序正式接收人工证据时，应另行增加带 URL、日期、摘录和哈希校验的人工复核入口。report、digest、watchlist、publication 和 feedback 会拒绝绝对路径、疑似密钥和敏感 URL 查询参数。
 

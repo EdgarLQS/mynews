@@ -192,6 +192,7 @@ def build_parser() -> ChineseArgumentParser:
     _add_watchlist_parser(commands)
     _add_digest_parser(commands)
     _add_prepare_parser(commands)
+    _add_evaluate_parser(commands)
     _add_publication_parser(commands)
     _add_feedback_parser(commands)
     _add_plugin_parser(commands)
@@ -436,6 +437,35 @@ def _add_prepare_parser(
     )
     prepare.add_argument(
         "--refresh", action="store_true", help="重新抓取当天数据并更新候选包"
+    )
+
+
+def _add_evaluate_parser(
+    commands: argparse._SubParsersAction[ChineseArgumentParser],
+) -> None:
+    evaluate = commands.add_parser(
+        "evaluate",
+        help="执行离线情报质量评估",
+        description=(
+            "读取自包含 suite.json，比较固定样本的期望与实际结果；"
+            "不访问网络、Codex 或定时任务。"
+        ),
+        add_help=False,
+    )
+    evaluate.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    evaluate.add_argument(
+        "--suite",
+        required=True,
+        type=Path,
+        metavar="路径",
+        help="自包含质量评估样本 JSON",
+    )
+    evaluate.add_argument(
+        "--out-dir",
+        required=True,
+        type=Path,
+        metavar="目录",
+        help="JSON 与 Markdown 输出目录",
     )
 
 

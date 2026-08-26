@@ -408,6 +408,38 @@ open output/digest-latest.md
 
 人工查看应从标题和 `canonical_url` 出发，继续找到官方公告、官方文档、官方仓库或发行说明，核对页面日期和逐字摘录。当前版本只支持人工阅读，不提供人工证据写入命令；`validate --check-evidence` 只复核已经是 `verified` 的证据，不会把 `unverified` 自动升级。
 
+## QualityEvaluation Schema 1.0
+
+```bash
+uv run mynews evaluate \
+  --suite tests/fixtures/quality-suite-v1.json \
+  --out-dir output/quality
+```
+
+`suite.json` 是自包含离线样本，顶层固定为 `schema_version: "1.0"`、`suite_id` 和 `cases`。
+首版至少包含 24 个案例，八个类别各至少三例：`official_direct`、`discovery`、
+`retry_failure`、`multi_source_same_event`、`similar_different_event`、`pricing_change`、
+`prompt_injection` 和 `evidence_drift`。每个案例包含 `case_id`、`category`、`expected` 和
+`actual` 快照；快照记录候选、verified、合并分组、pending 前后状态、主榜、线索和重复排序结果。
+
+输出目录一次原子提交 `quality-evaluation.json` 与 `quality-evaluation.md`。JSON 顶层字段包括：
+
+| 字段 | 约束 |
+| --- | --- |
+| `schema_version`、`suite_id`、`status`、`case_count` | Schema 固定为 `1.0`；状态为 `passed` 或 `failed`；案例数为非负整数 |
+| `category_counts` | 各固定类别的案例数量 |
+| `candidate_coverage` | 期望数、实际数、覆盖数、比例和缺失事件 |
+| `verified_escalations` | 不在期望 verified 集合中的升级事件；数量必须为零才通过 |
+| `merge_quality` | 不安全合并与漏合并分组；不安全合并必须为零才通过 |
+| `pending_evolution` | 期望/实际 pending 前后状态不匹配的案例 |
+| `digest_isolation` | 主榜和线索污染事件；两者必须为零才通过 |
+| `ranking_stability` | 重复排序不稳定的案例 |
+| `failures` | 逐案例、逐规则的失败原因；不包含综合评分 |
+
+评估完全离线，不修改 RunReport、Candidate、Digest、automation state 或 `latest.json`。期望不符
+返回退出码 `1`；输入参数错误返回 `2`。固定样本通过只能标记 `Implemented`，不能替代至少
+20 个真实事件、七天窗口、三类来源角色和人工标注的真实质量验收。
+
 ## 事务规则
 
 一次 complete/partial 提交同时包含历史 run、latest、dedup 和 pending。每个文件先写同目录临时文件并 `fsync`。任一替换失败时恢复提交前内容，删除本次历史 run。

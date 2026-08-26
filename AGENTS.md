@@ -37,7 +37,7 @@
   真实网络 probe、Scheduled Task 注册或故障恢复演练；P5 未 PASS 时不得启动 v1.8。用户于
   2026-08-26 明确允许在 P5 保持 BLOCKED 的前提下开始 M2，该豁免不代表 P5 Verified。
 - `ApplicationRuntime` 在 M2 中已 Implemented；`ArtifactCommitter` 在 M3 中已 Implemented；
-  `evaluate`、`ops` 和 `editorial review` 当前仍为 Planned/Proposed，不能从计划文档推断代码已经存在。
+  `evaluate` 在 M4 已完成离线 Implemented；`ops` 和 `editorial review` 当前仍为 Planned/Proposed。
 
 - 根目录 `news-task.md` 固定 `Asia/Shanghai`、`09:00`/`18:00`、`catch_up=latest_only` 和每档 `0–6` 条正式情报；它是离线任务契约，不代表已注册 Codex 或 launchd 任务。
 - 固定顺序为 `prepare --refresh`、`scripts/collect-expanded.sh --days 2`、`validate --check-evidence`、`digest`、报告生成；只有 Digest `main_items` 的 `verified` 条目能进入正式情报，Candidate、manual watchlist、discovery 和 `lead_items` 只能进入待核查线索。
