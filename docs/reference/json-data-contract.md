@@ -440,6 +440,37 @@ uv run mynews evaluate \
 返回退出码 `1`；输入参数错误返回 `2`。固定样本通过只能标记 `Implemented`，不能替代至少
 20 个真实事件、七天窗口、三类来源角色和人工标注的真实质量验收。
 
+## Operations Schema 1.0
+
+运行可靠性命令共享独立的 `Operations 1.0` 输出，不修改 RunReport 1.x、Candidate v1、Digest
+1.0、dedup、pending 或 automation state：
+
+```bash
+uv run mynews ops diagnose --root . --days 30 --out-dir /tmp/mynews-ops
+uv run mynews ops retention-plan --root . --older-than-days 30 --out-dir /tmp/mynews-ops
+uv run mynews ops recovery-check \
+  --source-root . --target /tmp/mynews-recovery --out-dir /tmp/mynews-ops
+```
+
+每次输出目录原子提交 `operations.json` 与 `operations.md`。顶层字段包括：
+
+| 字段 | 约束 |
+| --- | --- |
+| `schema_version`、`operation`、`status` | Schema 固定为 `1.0`；操作为 `diagnose`、`retention-plan` 或 `recovery-check`；状态为 `complete`、`partial` 或 `failed` |
+| `summary` | 扫描、候选、受保护、复制、校验、pending、陈旧 latest 和连续失败统计 |
+| `files` | 只含相对路径、字节数和 `sha256:<hex>` 哈希 |
+| `protected_paths`、`candidates` | 保留计划保护路径和候选文件；命令不删除或移动文件 |
+| `checks`、`issues` | 恢复校验结果和分类问题；不回显正文、绝对路径或秘密 |
+
+`diagnose` 只读扫描白名单运行文件和日志，按来源、网络、Codex、证据、存储、调度和 Schema
+问题分类，并计算最后成功档位、连续失败、陈旧 latest 与 pending。`retention-plan` 只列出超过
+期限且未被人工台账、latest、automation report 或历史引用保护的候选。`recovery-check` 要求
+目标是全新空目录，只复制白名单数据，校验 RunReport/Digest/Dedup/Pending/automation state、
+相对引用和哈希，禁止原地恢复或覆盖非空目录。
+
+三个命令均为离线能力；完成返回 `0`，partial 预警返回 `3`，数据或恢复失败返回 `1`，参数错误
+返回 `2`。离线检查最高只能标记 `Implemented`；真实隔离恢复演练完成后才能标记 `Verified`。
+
 ## 事务规则
 
 一次 complete/partial 提交同时包含历史 run、latest、dedup 和 pending。每个文件先写同目录临时文件并 `fsync`。任一替换失败时恢复提交前内容，删除本次历史 run。

@@ -84,6 +84,7 @@ flowchart LR
 | DigestSummaryRunner | `run(prompt, model, timeout, reasoning_effort)` | 只读取已保存证据的可替换摘要调用；非法输出只能触发安全回退 |
 | DigestFileStore | `load_latest`、`write` | 历史 Digest、latest JSON 和 Markdown 的同批次原子提交 |
 | QualityEvaluator | `evaluate(QualitySuite) -> QualityEvaluation` | 只比较自包含离线样本的期望/实际快照；报告质量指标，不访问网络、Codex 或运行时 Store |
+| Operations | `diagnose`、`build_retention_plan`、`recovery_check` | 只读诊断、非破坏性保留候选和白名单隔离恢复；报告相对路径、哈希和统计，不启动网络、Codex 或调度 |
 | AutomationOutput | `commit_automation_output` | 先原子写分时报告，再推进受约束的任务状态；不修改 Store、verified 或人工台账 |
 | PublicationLedger | `add_publication` | 只读校验 Candidate，按 `duplicateGroupId` 优先匹配并原子追加人工确认记录 |
 | WeeklyFeedback | `record_weekly_feedback` | 校验 ISO 周和非负指标，维护周/平台稳定 Markdown 区块；冲突必须显式 replace |
@@ -224,12 +225,14 @@ src/mynews/
 │   ├── editorial_io.py
 │   ├── automation.py
 │   ├── publication.py
-│   └── feedback.py
+│   ├── feedback.py
+│   └── operations.py
 ├── domain/
 │   ├── models.py
 │   ├── normalization.py
 │   ├── deduplication.py
-│   └── relevance.py
+│   ├── relevance.py
+│   └── operations.py
 ├── sources/
 │   ├── protocol.py
 │   ├── feed.py

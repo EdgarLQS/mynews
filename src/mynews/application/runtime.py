@@ -14,6 +14,13 @@ from zoneinfo import ZoneInfo
 from mynews.application.collector import PipelineCollector, SourceCollector
 from mynews.application.digest import DigestBuildConfig, DigestBuilder
 from mynews.application.feedback import FeedbackArgumentError, record_weekly_feedback
+from mynews.application.operations import (
+    OperationsError,
+    build_retention_plan,
+    diagnose,
+    recovery_check,
+    write_operations_report,
+)
 from mynews.application.prepare import prepare_editorial_pack
 from mynews.application.publication import PublicationArgumentError, add_publication
 from mynews.application.quality import (
@@ -99,6 +106,8 @@ class ApplicationRuntime:
             return self._run_feedback(command.options)
         if command.name == "evaluate":
             return self._run_evaluate(command.options)
+        if command.name == "ops":
+            return self._run_ops(command.options)
         active = self._prepare_registry(command.options)
         if isinstance(active, CommandOutcome):
             return active
@@ -455,6 +464,45 @@ class ApplicationRuntime:
             "markdown": _relative_path(markdown_path, output_dir),
         }
         return CommandOutcome(0 if evaluation.status == "passed" else 1, payload)
+
+    def _run_ops(self, options: Mapping[str, object]) -> CommandOutcome:
+        command = _string_option(options, "ops_command")
+        try:
+            if command == "diagnose":
+                report = diagnose(
+                    _path_option(options, "root"),
+                    days=_int_option(options, "days", 30),
+                )
+            elif command == "retention-plan":
+                report = build_retention_plan(
+                    _path_option(options, "root"),
+                    older_than_days=_int_option(options, "older_than_days"),
+                )
+            elif command == "recovery-check":
+                report = recovery_check(
+                    _path_option(options, "source_root"),
+                    _path_option(options, "target"),
+                )
+            else:
+                return CommandOutcome(2, help_requested=True)
+            json_path, markdown_path = write_operations_report(
+                report, _path_option(options, "out_dir")
+            )
+        except OperationsError as error:
+            return _failure(
+                "运行可靠性检查失败：",
+                error,
+                "请检查运行目录、目标目录和报告输出权限",
+            )
+        output_dir = _path_option(options, "out_dir")
+        payload = {
+            "status": report.status,
+            "operation": report.operation,
+            "json": _relative_path(json_path, output_dir),
+            "markdown": _relative_path(markdown_path, output_dir),
+        }
+        exit_code = {"complete": 0, "partial": 3, "failed": 1}[report.status]
+        return CommandOutcome(exit_code, payload)
 
 
 def collection_request_from_options(

@@ -193,6 +193,7 @@ def build_parser() -> ChineseArgumentParser:
     _add_digest_parser(commands)
     _add_prepare_parser(commands)
     _add_evaluate_parser(commands)
+    _add_ops_parser(commands)
     _add_publication_parser(commands)
     _add_feedback_parser(commands)
     _add_plugin_parser(commands)
@@ -466,6 +467,80 @@ def _add_evaluate_parser(
         type=Path,
         metavar="目录",
         help="JSON 与 Markdown 输出目录",
+    )
+
+
+def _add_ops_parser(
+    commands: argparse._SubParsersAction[ChineseArgumentParser],
+) -> None:
+    ops = commands.add_parser(
+        "ops",
+        help="执行离线运行可靠性检查",
+        description=(
+            "诊断运行状态、生成非破坏性保留计划或检查隔离恢复；"
+            "不访问网络、不调用 Codex、不删除文件。"
+        ),
+        add_help=False,
+    )
+    ops.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    subcommands = ops.add_subparsers(
+        dest="ops_command", title="运维子命令", parser_class=ChineseArgumentParser
+    )
+    diagnose = subcommands.add_parser(
+        "diagnose",
+        help="诊断来源、证据、存储和调度状态",
+        description="只读分析指定运行目录，报告只含相对路径、哈希和统计。",
+        add_help=False,
+    )
+    diagnose.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    diagnose.add_argument(
+        "--root", required=True, type=Path, metavar="目录", help="运行根目录"
+    )
+    diagnose.add_argument(
+        "--days",
+        type=_positive_int,
+        default=30,
+        metavar="天数",
+        help="陈旧 latest 的判断天数，默认 30",
+    )
+    diagnose.add_argument(
+        "--out-dir", required=True, type=Path, metavar="目录", help="报告输出目录"
+    )
+    retention = subcommands.add_parser(
+        "retention-plan",
+        help="生成非破坏性保留候选",
+        description="只列出候选，不移动或删除文件，人工台账和引用记录受保护。",
+        add_help=False,
+    )
+    retention.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    retention.add_argument(
+        "--root", required=True, type=Path, metavar="目录", help="运行根目录"
+    )
+    retention.add_argument(
+        "--older-than-days",
+        required=True,
+        type=_positive_int,
+        metavar="天数",
+        help="只列出早于该天数的候选",
+    )
+    retention.add_argument(
+        "--out-dir", required=True, type=Path, metavar="目录", help="报告输出目录"
+    )
+    recovery = subcommands.add_parser(
+        "recovery-check",
+        help="检查隔离恢复结果",
+        description="只复制白名单到全新空目录，校验 Schema、引用和哈希。",
+        add_help=False,
+    )
+    recovery.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    recovery.add_argument(
+        "--source-root", required=True, type=Path, metavar="目录", help="恢复源目录"
+    )
+    recovery.add_argument(
+        "--target", required=True, type=Path, metavar="目录", help="全新空目标目录"
+    )
+    recovery.add_argument(
+        "--out-dir", required=True, type=Path, metavar="目录", help="报告输出目录"
     )
 
 

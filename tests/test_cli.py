@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -34,6 +35,7 @@ def test_collect_help_is_chinese(capsys: pytest.CaptureFixture[str]) -> None:
         ["validate", "--help"],
         ["digest", "--help"],
         ["evaluate", "--help"],
+        ["ops", "--help"],
     ],
 )
 def test_global_and_probe_help_are_available(
@@ -102,6 +104,64 @@ def test_evaluate_command_returns_one_for_failed_expectations(
     output = json.loads(capsys.readouterr().out)
     assert output["status"] == "failed"
     assert (tmp_path / "out" / "quality-evaluation.json").is_file()
+
+
+def test_ops_diagnose_command_writes_outputs(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = tmp_path / "runtime"
+    fixture = Path(__file__).parent / "fixtures" / "run-report-v1.json"
+    (root / "output/runs").mkdir(parents=True)
+    shutil.copy(fixture, root / "output/latest.json")
+    shutil.copy(fixture, root / "output/runs/run.json")
+
+    result = main(
+        [
+            "ops",
+            "diagnose",
+            "--root",
+            str(root),
+            "--days",
+            "30",
+            "--out-dir",
+            str(tmp_path / "report"),
+        ]
+    )
+
+    assert result == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "complete"
+    assert payload["operation"] == "diagnose"
+    assert (tmp_path / "report/operations.json").is_file()
+    assert (tmp_path / "report/operations.md").is_file()
+
+
+def test_ops_diagnose_returns_three_for_partial_warning(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = tmp_path / "runtime"
+    fixture = Path(__file__).parent / "fixtures" / "run-report-v1.json"
+    (root / "output").mkdir(parents=True)
+    shutil.copy(fixture, root / "output/latest.json")
+    (root / "state").mkdir()
+    (root / "state/pending_verifications.json").write_text(
+        '{"schema_version":"1.0","entries":{"event-a":{}}}',
+        encoding="utf-8",
+    )
+
+    result = main(
+        [
+            "ops",
+            "diagnose",
+            "--root",
+            str(root),
+            "--out-dir",
+            str(tmp_path / "report"),
+        ]
+    )
+
+    assert result == 3
+    assert json.loads(capsys.readouterr().out)["status"] == "partial"
 
 
 @pytest.mark.parametrize(
