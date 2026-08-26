@@ -13,6 +13,12 @@ from zoneinfo import ZoneInfo
 
 from mynews.application.collector import PipelineCollector, SourceCollector
 from mynews.application.digest import DigestBuildConfig, DigestBuilder
+from mynews.application.editorial import (
+    EditorialReviewConfig,
+    EditorialReviewError,
+    build_editorial_review,
+    write_editorial_review,
+)
 from mynews.application.feedback import FeedbackArgumentError, record_weekly_feedback
 from mynews.application.operations import (
     OperationsError,
@@ -108,6 +114,8 @@ class ApplicationRuntime:
             return self._run_evaluate(command.options)
         if command.name == "ops":
             return self._run_ops(command.options)
+        if command.name == "editorial":
+            return self._run_editorial(command.options)
         active = self._prepare_registry(command.options)
         if isinstance(active, CommandOutcome):
             return active
@@ -464,6 +472,33 @@ class ApplicationRuntime:
             "markdown": _relative_path(markdown_path, output_dir),
         }
         return CommandOutcome(0 if evaluation.status == "passed" else 1, payload)
+
+    def _run_editorial(self, options: Mapping[str, object]) -> CommandOutcome:
+        if _string_option(options, "editorial_command") != "review":
+            return CommandOutcome(2, help_requested=True)
+        output_dir = _path_option(options, "out_dir")
+        try:
+            review = build_editorial_review(
+                Path.cwd(),
+                _string_option(options, "week"),
+                config=EditorialReviewConfig(
+                    use_codex=not _bool_option(options, "no_codex")
+                ),
+            )
+            paths = write_editorial_review(review, output_dir)
+        except EditorialReviewError as error:
+            return _failure(
+                "编辑复盘失败：", error, "请检查本周输入文件和报告输出目录权限"
+            )
+        payload = {
+            "status": review.status,
+            "week": review.week,
+            "json": _relative_path(paths[0], output_dir),
+            "markdown": _relative_path(paths[1], output_dir),
+            "latest_json": _relative_path(paths[2], output_dir),
+            "latest_markdown": _relative_path(paths[3], output_dir),
+        }
+        return CommandOutcome(0 if review.status == "complete" else 3, payload)
 
     def _run_ops(self, options: Mapping[str, object]) -> CommandOutcome:
         command = _string_option(options, "ops_command")

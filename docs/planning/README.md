@@ -17,7 +17,7 @@ owner: project-maintainers
 
 | 计划 | 文档状态 | 实现状态 | 下一门槛 |
 | --- | --- | --- | --- |
-| [v1.7 收口至 v2.0 统一开发总计划](v1.7-v2.0-master-plan.md) | Current | In progress | M1/P5 仍 BLOCKED；M2–M6 已按用户限定范围离线 Implemented，后续仍按顺序推进 |
+| [v1.7 收口至 v2.0 统一开发总计划](v1.7-v2.0-master-plan.md) | Current | In progress | M1/P5 仍 BLOCKED；M2–M7 已按用户限定范围离线 Implemented，真实 Verified 仍需独立验收 |
 
 ## 已完成计划
 

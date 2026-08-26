@@ -67,6 +67,13 @@ flowchart LR
     APP --> EVAL["QualityEvaluator: offline suite comparison"]
     EVAL --> QUALITY["QualityEvaluation 1.0 JSON + Markdown"]
     QUALITY --> ART
+    APP --> REVIEW["EditorialReview: read-only weekly review"]
+    CANDIDATES["Candidate history"] --> REVIEW
+    DIGEST_HISTORY["Digest history"] --> REVIEW
+    LEDGER["Publication ledger"] --> REVIEW
+    FEEDBACK["Weekly feedback"] --> REVIEW
+    REVIEW --> EDITORIAL_REVIEW["EditorialReview 1.0 JSON + Markdown + latest"]
+    EDITORIAL_REVIEW --> ART
 ```
 
 ## Module 与 seam
@@ -90,6 +97,8 @@ flowchart LR
 | DigestFileStore | `load_latest`、`write` | 历史 Digest、latest JSON 和 Markdown 的同批次原子提交 |
 | QualityEvaluator | `evaluate(QualitySuite) -> QualityEvaluation` | 只比较自包含离线样本的期望/实际快照；报告质量指标，不访问网络、Codex 或运行时 Store |
 | Operations | `diagnose`、`build_retention_plan`、`recovery_check` | 只读诊断、非破坏性保留候选和白名单隔离恢复；报告相对路径、哈希和统计，不启动网络、Codex 或调度 |
+| EditorialReview | `build_editorial_review(root, week, config)` | 只读聚合 Candidate、Digest、发布台账和周反馈；生成确定性分层、重复/更新提示与可追溯建议，不回写输入或自动发布 |
+| EditorialSuggestionRunner | `run(prompt, model, timeout, reasoning_effort)` | 可替换的编辑建议 seam；Codex 失败或未知引用只丢弃模型建议，不改变事实统计或 `verified` |
 | AutomationOutput | `commit_automation_output` | 先原子写分时报告，再推进受约束的任务状态；不修改 Store、verified 或人工台账 |
 | PublicationLedger | `add_publication` | 只读校验 Candidate，按 `duplicateGroupId` 优先匹配并原子追加人工确认记录 |
 | WeeklyFeedback | `record_weekly_feedback` | 校验 ISO 周和非负指标，维护周/平台稳定 Markdown 区块；冲突必须显式 replace |
@@ -135,6 +144,18 @@ P1–P6 实现；逐来源真实 probe 仍是 v1.6 P7 独立门槛：
 Markdown 文件和输出安全门禁，不调用网络、Store 或 Codex；它们不会改变 Candidate、Digest、
 RunReport 或 `verified`。发布记录按 `duplicateGroupId` 优先、缺失时按 `candidateRef`/`id` 匹配；
 周反馈按 ISO 周与平台定位稳定区块，默认冲突失败，`--replace` 才替换。
+
+### v2.0 editorial review seam
+
+`EditorialReview` 只读取 `output/editorial/*/candidates.json`、`output/digests/*.json`、
+`publication-ledger.csv` 和 `weekly-feedback.md`。它在目标 ISO 周内构造已发布、未发布和待核查三层，
+并从候选标题和 Digest 生命周期确定性生成重复选题与实质更新提示；报告不计算综合分，不修改任何
+输入、Digest、Candidate、publication ledger、weekly feedback 或 automation state。
+
+完整四周、十条发布记录和对应反馈是趋势/模型建议的输入门槛；不足时仍可生成确定性报告，但状态为
+`partial` 并列出缺失要求。Codex 只接收已保存统计和引用键，响应必须通过独立 Schema 和引用白名单；
+失败、超时、非法 JSON 或未知引用会丢弃模型建议并保留确定性统计。周文件和 latest 双格式由
+`ArtifactCommitter` 一次原子提交。
 
 Digest 的信任边界：只有 RunReport 中严格保存的 `primary_evidence` 可以形成 `evidence_refs`；Codex 不能增加 URL、事实或引用。主榜只接收 `verified`，线索观察只接收 `unverified`，两类输出在 Pydantic Schema 和 Markdown 渲染层同时隔离。
 
@@ -207,6 +228,7 @@ Codex 只提供候选 URL、日期、摘录和哈希建议。它不能增加域�
 - `VerificationStats`：尝试、重试、pending、expired 和复核统计。
 - `RunReport`：一次运行的完整 1.x JSON interface。
 - `Digest`：独立 Schema 1.0 的主榜、线索观察、摘要状态、生命周期和证据引用。
+- `EditorialReview`：独立 Schema 1.0 的周输入门槛、统计、三层事件、重复/更新提示和建议状态。
 
 领域模型不依赖 Codex CLI、具体 HTTP 实现或文件系统。
 
@@ -231,12 +253,14 @@ src/mynews/
 │   ├── automation.py
 │   ├── publication.py
 │   ├── feedback.py
-│   └── operations.py
+│   ├── operations.py
+│   └── editorial.py
 ├── domain/
 │   ├── models.py
 │   ├── normalization.py
 │   ├── deduplication.py
 │   ├── relevance.py
+│   ├── editorial.py
 │   └── operations.py
 ├── sources/
 │   ├── protocol.py

@@ -194,6 +194,7 @@ def build_parser() -> ChineseArgumentParser:
     _add_prepare_parser(commands)
     _add_evaluate_parser(commands)
     _add_ops_parser(commands)
+    _add_editorial_parser(commands)
     _add_publication_parser(commands)
     _add_feedback_parser(commands)
     _add_plugin_parser(commands)
@@ -541,6 +542,42 @@ def _add_ops_parser(
     )
     recovery.add_argument(
         "--out-dir", required=True, type=Path, metavar="目录", help="报告输出目录"
+    )
+
+
+def _add_editorial_parser(
+    commands: argparse._SubParsersAction[ChineseArgumentParser],
+) -> None:
+    editorial = commands.add_parser(
+        "editorial",
+        help="生成只读周复盘",
+        description=(
+            "读取 Candidate、Digest、发布台账和周反馈，生成 EditorialReview 1.0；"
+            "不修改输入、不访问网络、不自动发布。"
+        ),
+        add_help=False,
+    )
+    editorial.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    subcommands = editorial.add_subparsers(
+        dest="editorial_command",
+        title="编辑子命令",
+        parser_class=ChineseArgumentParser,
+    )
+    review = subcommands.add_parser(
+        "review",
+        help="生成指定 ISO 周的复盘报告",
+        description=(
+            "确定性统计始终离线完成；Codex 仅可生成可丢弃的建议，不是事实来源。"
+        ),
+        add_help=False,
+    )
+    review.add_argument("-h", "--help", action="help", help="显示帮助并退出")
+    review.add_argument("--week", required=True, metavar="YYYY-Www", help="目标 ISO 周")
+    review.add_argument(
+        "--out-dir", required=True, type=Path, metavar="目录", help="报告输出目录"
+    )
+    review.add_argument(
+        "--no-codex", action="store_true", help="只运行确定性离线统计，不调用 Codex"
     )
 
 

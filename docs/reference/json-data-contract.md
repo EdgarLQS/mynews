@@ -53,6 +53,11 @@ state/editorial/automation/
 └── state.json
 output/editorial/automation/reports/
 └── YYYY-MM-DD-HHmm.md
+output/editorial/reviews/
+├── YYYY-Www.json
+├── YYYY-Www.md
+├── latest.json
+└── latest.md
 ```
 
 - 历史 run 追加保存。
@@ -470,6 +475,39 @@ uv run mynews ops recovery-check \
 
 三个命令均为离线能力；完成返回 `0`，partial 预警返回 `3`，数据或恢复失败返回 `1`，参数错误
 返回 `2`。离线检查最高只能标记 `Implemented`；真实隔离恢复演练完成后才能标记 `Verified`。
+
+## EditorialReview Schema 1.0
+
+```bash
+uv run mynews editorial review \
+  --week 2026-W32 \
+  --out-dir output/editorial/reviews \
+  --no-codex
+```
+
+命令只读取历史 `Candidate Contract v1`、`Digest 1.0`、`publication-ledger.csv` 和
+`weekly-feedback.md`，不回写这些输入，也不修改 RunReport、automation state 或 `verified`。
+输出目录一次原子提交目标周的 JSON/Markdown 以及 `latest.json`/`latest.md`。
+
+`EditorialReview` 顶层字段如下：
+
+| 字段 | 约束 |
+| --- | --- |
+| `schema_version` | 固定为字符串 `"1.0"`；未知字段拒绝 |
+| `week`、`generated_at` | 有效 ISO 周和带时区生成时间 |
+| `status` | `complete` 或 `partial`；输入不足或 Codex 建议失败为 `partial` |
+| `inputs` | 候选批次、Digest、发布记录、反馈数量、完整周列表和缺失要求 |
+| `feedback` | 截止目标周的反馈周、平台、记录数以及阅读/收藏/转发/新增关注聚合；不代表新闻事实 |
+| `stats` | Candidate/Digest 条目、发布分层、发布记录、反馈、重复选题和实质更新统计；不含综合分 |
+| `published`、`unpublished`、`pending` | 目标周事件三层；`pending` 只能表示未核验 Digest 条目 |
+| `duplicate_topics`、`substantive_updates` | 确定性提示及事件键引用 |
+| `suggestions` | 最多五条；每条为 `duplicate_topic`、`substantive_update`、`trend` 或 `model_suggestion`，并带引用 |
+| `codex` | `disabled`、`skipped_incomplete`、`used` 或 `partial` 及可选错误码 |
+
+只有至少四个完整 ISO 周、十条发布记录和对应反馈时才允许请求趋势/模型建议；否则仍生成确定性
+报告并列出 `missing_requirements`。Codex 不是事实来源，响应必须通过独立响应 Schema 和目标周
+事件/指标引用白名单；失败或未知引用会丢弃模型建议、保留确定性统计并返回退出码 `3`。空目录也
+可以执行 `--no-codex`，结果为 `partial`；完整真实编辑质量验收仍然不能由离线报告标记 `Verified`。
 
 ## 事务规则
 
