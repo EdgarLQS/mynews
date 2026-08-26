@@ -5,7 +5,7 @@ status: current
 implementation_status: implemented
 version: 1.3
 created: 2026-08-02
-updated: 2026-08-23
+updated: 2026-08-26
 owner: project-maintainers
 ---
 
@@ -94,9 +94,11 @@ owner: project-maintainers
 - M0 只允许更新治理、计划、验收和 AI 入口；通过 G0、G1、G1-S 及完整回归后最高标记
   Implemented，不得把 M1-M7 或旧 P5 准备结果写成 Verified。
 - M1 真实网络、Codex 双档、latest-only 和故障恢复只有用户另行明确授权后才能执行；批准或
-  实施总计划本身不构成授权。M1 未 PASS 并合入本地 `main` 时，M2-M7 均不得启动。
-- M2-M7 必须从包含上一阶段交付的最新本地 `main` 创建独立分支；若前置阶段为 FAIL、BLOCKED
-  或存在必需 SKIPPED 门禁，本阶段结论不能为 PASS。
+  实施总计划本身不构成授权。M1 未 PASS 并合入本地 `main` 时，M2-M7 均不得启动，除非用户
+  明确记录本阶段豁免并限定本阶段只做离线实施；豁免不把 M1/P5 写成 PASS 或 Verified。
+- M2-M7 直接在包含上一阶段交付的最新本地 `main` 开发，不创建或切换阶段分支；若前置阶段为
+  FAIL、BLOCKED 或存在必需 SKIPPED 门禁，本阶段结论不能为 PASS，除非有上述明确、范围受限的
+  用户豁免，此时最高只能标为 Implemented 或 PASS_WITH_LIMITATIONS。
 - QualityEvaluation、Operations 和 EditorialReview 的真实数据、隔离恢复、四周反馈等门禁
   通过前，相应能力最高标记 Implemented；离线样本、fixture 或 task 文档不能替代真实验收。
 

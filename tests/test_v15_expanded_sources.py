@@ -33,8 +33,7 @@ REQUEST = CollectionRequest.model_validate(
 
 def test_new_source_roles_are_supported_without_lowering_evidence_boundary() -> None:
     assert [
-        normalize_source_role(role)
-        for role in ("research", "incident", "benchmark")
+        normalize_source_role(role) for role in ("research", "incident", "benchmark")
     ] == [
         "research",
         "incident",
@@ -99,11 +98,14 @@ def test_with_plugin_appends_to_all_builtin_selection(
     loader = ExternalPluginLoader(
         [FakeEntryPoint("external-fixture", "fixture:factory", lambda: plugin)]
     )
-    monkeypatch.setattr(cli, "ExternalPluginLoader", lambda: loader)
+    monkeypatch.setattr(
+        "mynews.application.runtime.ExternalPluginLoader", lambda: loader
+    )
 
-    assert cli.main(
-        ["collect", "--with-plugin", "external-fixture"], registry=registry
-    ) == 0
+    assert (
+        cli.main(["collect", "--with-plugin", "external-fixture"], registry=registry)
+        == 0
+    )
 
     payload = json.loads(capsys.readouterr().out)
     assert payload["sources"][0]["source_id"] == "builtin"
@@ -120,12 +122,17 @@ def test_with_plugin_keeps_source_filter_and_records_both_ids(
     loader = ExternalPluginLoader(
         [FakeEntryPoint("external-fixture", "fixture:factory", lambda: plugin)]
     )
-    monkeypatch.setattr(cli, "ExternalPluginLoader", lambda: loader)
+    monkeypatch.setattr(
+        "mynews.application.runtime.ExternalPluginLoader", lambda: loader
+    )
 
-    assert cli.main(
-        ["collect", "--source", "builtin", "--with-plugin", "external-fixture"],
-        registry=registry,
-    ) == 0
+    assert (
+        cli.main(
+            ["collect", "--source", "builtin", "--with-plugin", "external-fixture"],
+            registry=registry,
+        )
+        == 0
+    )
 
     payload = json.loads(capsys.readouterr().out)
     assert [item["source_id"] for item in payload["sources"]] == [
@@ -143,11 +150,13 @@ def test_with_plugin_probe_includes_builtin_and_external_health(
     loader = ExternalPluginLoader(
         [FakeEntryPoint("external-fixture", "fixture:factory", lambda: plugin)]
     )
-    monkeypatch.setattr(cli, "ExternalPluginLoader", lambda: loader)
+    monkeypatch.setattr(
+        "mynews.application.runtime.ExternalPluginLoader", lambda: loader
+    )
 
-    assert cli.main(
-        ["probe", "--with-plugin", "external-fixture"], registry=registry
-    ) == 0
+    assert (
+        cli.main(["probe", "--with-plugin", "external-fixture"], registry=registry) == 0
+    )
 
     payload = json.loads(capsys.readouterr().out)
     assert [item["source_id"] for item in payload["sources"]] == [
@@ -262,7 +271,7 @@ def test_expanded_script_delegates_to_default_compatibility_registry(
     uv = tmp_path / "fake-uv"
     calls = tmp_path / "calls"
     uv.write_text(
-        "#!/bin/sh\nset -eu\nprintf '%s\\n' \"$*\" >> \"$FAKE_CALLS\"\n",
+        '#!/bin/sh\nset -eu\nprintf \'%s\\n\' "$*" >> "$FAKE_CALLS"\n',
         encoding="utf-8",
     )
     uv.chmod(0o755)

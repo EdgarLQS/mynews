@@ -32,11 +32,12 @@
 ## 统一总计划与 v1.7 分时情报边界
 
 - 唯一 Current 计划是 `docs/planning/v1.7-v2.0-master-plan.md`。M0–M7 必须按顺序推进；
-  当前阶段未 PASS 或未合入最新 `main` 时，不得启动后续阶段。
-- 批准或实施统一总计划不等于授权真实 P5。只有用户再次明确要求“开始 P5 真实验收”后，
-  才允许真实网络 probe、Scheduled Task 注册或故障恢复演练；P5 未 PASS 时不得启动 v1.8。
-- `ApplicationRuntime`、`ArtifactCommitter`、`evaluate`、`ops` 和 `editorial review` 当前均为
-  Planned/Proposed，不能从计划文档推断代码已经存在。
+  当前阶段未 PASS 或未合入最新 `main` 时，不得启动后续阶段，除非用户明确记录范围受限的阶段豁免。
+- 批准或实施统一总计划不等于授权真实 P5。只有用户明确要求“开始 P5 真实验收”后，才允许
+  真实网络 probe、Scheduled Task 注册或故障恢复演练；P5 未 PASS 时不得启动 v1.8。用户于
+  2026-08-26 明确允许在 P5 保持 BLOCKED 的前提下开始 M2，该豁免不代表 P5 Verified。
+- `ApplicationRuntime` 在 M2 中已 Implemented；`ArtifactCommitter`、`evaluate`、`ops` 和
+  `editorial review` 当前仍为 Planned/Proposed，不能从计划文档推断代码已经存在。
 
 - 根目录 `news-task.md` 固定 `Asia/Shanghai`、`09:00`/`18:00`、`catch_up=latest_only` 和每档 `0–6` 条正式情报；它是离线任务契约，不代表已注册 Codex 或 launchd 任务。
 - 固定顺序为 `prepare --refresh`、`scripts/collect-expanded.sh --days 2`、`validate --check-evidence`、`digest`、报告生成；只有 Digest `main_items` 的 `verified` 条目能进入正式情报，Candidate、manual watchlist、discovery 和 `lead_items` 只能进入待核查线索。

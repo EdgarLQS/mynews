@@ -5,7 +5,7 @@ status: current
 implementation_status: implemented
 version: 1.7
 created: 2026-08-02
-updated: 2026-08-23
+updated: 2026-08-26
 owner: project-maintainers
 ---
 
@@ -13,6 +13,7 @@ owner: project-maintainers
 
 本表是产品范围和实现状态的唯一真相来源。唯一 Current 的统一总计划从 v1.7 P5 收口推进到
 v2.0；v1.7 分时情报分析和人工反馈闭环的 P0–P4 已按 Implemented 落地，真实双档仍未验收。
+用户于 2026-08-26 明确允许在 P5 保持 BLOCKED 的前提下实施 M2；该豁免不改变真实能力状态。
 `paperswithcode-daily` 当前为
 manual/blocked。外部插件仍是受信任本地 Python 代码，显式清单只控制加载，不承诺进程级
 沙箱。真实 Codex 任务和 launchd 未经授权不加载。
@@ -23,8 +24,8 @@ manual/blocked。外部插件仍是受信任本地 Python 代码，显式清单�
 | --- | --- | --- | --- | --- |
 | DOC-01 | 治理 | 文档索引、状态、计划和归档机制 | Implemented | `python3 scripts/check_docs.py`；唯一 Current 计划和运行目录保护 |
 | AI-01 | 协作 | `AGENTS.md` 与 `CLAUDE.md` 共用项目规则 | Implemented | 指令入口检查 |
-| AI-02 | 协作 | `news-task.md` 驱动 09:00/18:00 分时情报任务 | Implemented | 元数据、latest-only、证据隔离和失败停止；P5 已开始但 G6-V/真实双档当前 BLOCKED |
-| ARCH-01 | 架构 | 深 `ApplicationRuntime` 与 CLI 薄 Adapter | Planned | 统一总计划 M2；P5 PASS 后实施，公共 CLI/JSON 行为不变 |
+| AI-02 | 协作 | `news-task.md` 驱动 09:00/18:00 分时情报任务 | Implemented | 元数据、latest-only、证据隔离和失败停止；P5 G6-V/真实双档仍 BLOCKED，M2 豁免不改变此状态 |
+| ARCH-01 | 架构 | 深 `ApplicationRuntime` 与 CLI 薄 Adapter | Implemented | M2 `run(Command) -> CommandOutcome`、CLI/JSON/退出码兼容和 303 项离线测试 |
 | ARCH-02 | 架构 | 统一 `ArtifactCommitter` 文件提交 module | Planned | 统一总计划 M3；失败恢复、latest 和报告先于状态语义保持兼容 |
 | ARCH-03 | 架构 | 共享结构化 Codex 进程 Adapter | Planned | 统一总计划 M6；只统一进程机制，不合并领域 prompt 或复核 |
 | QA-01 | 验收 | 统一验收规则、Claude `/acceptance` 与真实环境交接 | Implemented | 验收规则 + v1.2 真实环境清单 |

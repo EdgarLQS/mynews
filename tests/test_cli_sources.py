@@ -86,7 +86,7 @@ def test_collect_without_injected_registry_uses_compatibility_registry(
     monkeypatch: pytest.MonkeyPatch, capsys
 ) -> None:
     registry = FakeRegistry((healthy(),))
-    monkeypatch.setattr(cli, "default_registry", lambda: registry)
+    monkeypatch.setattr("mynews.application.runtime.default_registry", lambda: registry)
 
     assert cli.main(["collect", "--source", "qwen"]) == 0
     assert registry.collect_calls == [("qwen",)]

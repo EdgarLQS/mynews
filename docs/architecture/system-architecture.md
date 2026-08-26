@@ -5,7 +5,7 @@ status: current
 implementation_status: implemented
 version: 1.7
 created: 2026-08-02
-updated: 2026-08-11
+updated: 2026-08-26
 owner: project-maintainers
 ---
 
@@ -24,10 +24,11 @@ owner: project-maintainers
 
 ```mermaid
 flowchart LR
-    CLI["CLI: collect / probe / prepare / validate / report / watchlist / digest / plugin / publication / feedback"] --> EXT["ExternalPluginLoader: explicit plugin selection"]
+    CLI["CLI: parse + present"] --> APP["ApplicationRuntime.run(Command)"]
+    APP --> EXT["ExternalPluginLoader: explicit plugin selection"]
     EXT --> REG["SourceRegistry + SourcePlugin"]
-    CLI --> REG
-    CLI --> COL["PipelineCollector"]
+    APP --> REG
+    APP --> COL["PipelineCollector"]
     COL --> REG
     REG --> REL["Relevance Filter"]
     REL --> NOR["Normalizer"]
@@ -47,12 +48,12 @@ flowchart LR
     PREV["上一期 Digest"] --> DIGEST
     DIGEST --> SUMMARY["Evidence-grounded Codex summary"]
     DIGEST --> DIGEST_STORE["Atomic DigestFileStore"]
-    CLI --> PREPARE["Prepare: cached editorial collection"]
+    APP --> PREPARE["Prepare: cached editorial collection"]
     PREPARE --> EDITORIAL["Candidate Contract v1 + candidates JSON/Markdown"]
     PREPARE --> OBS["JSON observations + publication hints"]
     DIGEST --> AUTOMATION["Automation report: verified main items only"]
     AUTOMATION --> AUTOMATION_STATE["Atomic report then state"]
-    CLI --> HUMAN["Manual publication / weekly feedback"]
+    APP --> HUMAN["Manual publication / weekly feedback"]
     HUMAN --> LEDGER["CSV ledger + stable Markdown blocks"]
 ```
 
@@ -60,6 +61,7 @@ flowchart LR
 
 | Module | Interface | 责任边界 |
 | --- | --- | --- |
+| ApplicationRuntime | `run(Command) -> CommandOutcome` | 隐藏 Registry、插件选择、Store、Verifier、DigestStore、时钟和用例装配；不改变公共 CLI、JSON 或退出码 |
 | SourceRegistry | `collect_all`、`probe` | 隔离 Adapter、汇总健康状态，不决定 verified |
 | ExternalPluginLoader | `list_report`、`load(plugin_ids)` | 发现 `mynews.source_plugins`，显式加载无参数工厂，严格校验 metadata 和 source_id；不接触 Store/Verifier/Codex |
 | Normalizer | `normalize` | URL、时间、语言、事件类型和稳定事件键 |
@@ -86,7 +88,7 @@ flowchart LR
 以下边界已按 [v1.6 归档计划](../archive/plan/2026/v1.6-newsfromai-parity-plan.md) 复用并扩展；v1.5
 P1–P6 实现；逐来源真实 probe 仍是 v1.6 P7 独立门槛：
 
-- `ExternalPluginLoader` 和 SourcePlugin 1.0 协议保持不变；`--with-plugin` 只在 CLI
+- `ExternalPluginLoader` 和 SourcePlugin 1.0 协议保持不变；`--with-plugin` 只在 ApplicationRuntime
   应用层把显式插件追加到 built-in 选择，普通 collect/probe 仍不加载插件。
 - 既有 `--plugin` 继续表示 plugin-only，不能与 `--source` 或 `--with-plugin` 混用。
 - 主 wheel 提供不含来源配置的通用 RSS/Atom 插件辅助接口；15 个来源及 entry-point
@@ -197,6 +199,7 @@ Codex 只提供候选 URL、日期、摘录和哈希建议。它不能增加域�
 src/mynews/
 ├── cli.py
 ├── application/
+│   ├── runtime.py
 │   ├── collector.py
 │   ├── verification.py
 │   ├── evidence_review.py

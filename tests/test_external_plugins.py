@@ -116,7 +116,9 @@ def test_default_collect_and_probe_do_not_load_external_factory(
         def __init__(self) -> None:
             raise AssertionError("默认路径不应创建外部 loader")
 
-    monkeypatch.setattr(cli, "ExternalPluginLoader", ExplodingLoader)
+    monkeypatch.setattr(
+        "mynews.application.runtime.ExternalPluginLoader", ExplodingLoader
+    )
     registry = SourceRegistry([FixturePlugin(metadata())])
 
     assert cli.main(["probe"], registry=registry) == 0
@@ -175,7 +177,9 @@ def test_explicit_load_collect_probe_and_source_selection(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     loader = loader_for(entry_point())
-    monkeypatch.setattr(cli, "ExternalPluginLoader", lambda: loader)
+    monkeypatch.setattr(
+        "mynews.application.runtime.ExternalPluginLoader", lambda: loader
+    )
     registry = SourceRegistry([FixturePlugin(metadata("built-in-fixture"))])
 
     probe_code = cli.main(["probe", "--plugin", "external-fixture"], registry=registry)
@@ -204,7 +208,9 @@ def test_plugin_only_can_replace_a_configured_source_id(
 ) -> None:
     plugin = FixturePlugin(metadata("hacker-news"))
     loader = loader_for(entry_point(factory=lambda: plugin))
-    monkeypatch.setattr(cli, "ExternalPluginLoader", lambda: loader)
+    monkeypatch.setattr(
+        "mynews.application.runtime.ExternalPluginLoader", lambda: loader
+    )
     registry = SourceRegistry([FixturePlugin(metadata("hacker-news"))])
 
     assert cli.main(["collect", "--plugin", "external-fixture"], registry=registry) == 0

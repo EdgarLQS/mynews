@@ -5,7 +5,7 @@ status: current
 implementation_status: in_progress
 version: 2.0
 created: 2026-08-02
-updated: 2026-08-23
+updated: 2026-08-26
 owner: project-maintainers
 ---
 
@@ -17,7 +17,7 @@ owner: project-maintainers
 
 | 计划 | 文档状态 | 实现状态 | 下一门槛 |
 | --- | --- | --- | --- |
-| [v1.7 收口至 v2.0 统一开发总计划](v1.7-v2.0-master-plan.md) | Current | In progress | M0 已 Implemented；M1 真实 P5 仍需单独授权，P5 PASS 前不启动 v1.8 |
+| [v1.7 收口至 v2.0 统一开发总计划](v1.7-v2.0-master-plan.md) | Current | In progress | M1/P5 仍 BLOCKED；用户已明确豁免真实门槛，M2 已按限制 Implemented，后续仍按顺序推进 |
 
 ## 已完成计划
 
