@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import json
-import os
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from mynews.application.editorial_io import atomic_write_json
 from mynews.domain.models import NewsItem, RunReport
 from mynews.sources.protocol import SourceMetadata
 from mynews.sources.registry import SourceRegistry, default_registry
@@ -192,33 +190,4 @@ def _match_evidence_metadata(
 
 def write_schema(path: Path) -> None:
     """导出与运行时校验同源的 RunReport JSON Schema。"""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary: str | None = None
-    try:
-        handle = tempfile.NamedTemporaryFile(
-            mode="w",
-            encoding="utf-8",
-            dir=path.parent,
-            prefix=f".{path.name}.",
-            suffix=".tmp",
-            delete=False,
-        )
-        temporary = handle.name
-        with handle:
-            json.dump(
-                RunReport.model_json_schema(),
-                handle,
-                ensure_ascii=False,
-                indent=2,
-            )
-            handle.write("\n")
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary, path)
-        temporary = None
-    finally:
-        if temporary is not None:
-            try:
-                os.unlink(temporary)
-            except FileNotFoundError:
-                pass
+    atomic_write_json(path, RunReport.model_json_schema(), sort_keys=False)

@@ -7,7 +7,7 @@ import pytest
 
 from mynews.application.digest import DigestBuildConfig, DigestBuilder
 from mynews.domain.models import CollectionRequest, RunReport
-from mynews.storage import digest_store as digest_store_module
+from mynews.storage import artifact_committer as artifact_module
 from mynews.storage.digest_store import DigestFileStore, DigestStoreError
 
 NOW = datetime(2026, 8, 9, 12, 0, tzinfo=UTC)
@@ -63,7 +63,7 @@ def test_digest_store_failure_restores_previous_latest_and_history(
     store.write(old_digest)
     latest_before = (tmp_path / "digest-latest.json").read_bytes()
     new_digest = _digest("run-new")
-    original_replace = digest_store_module.os.replace
+    original_replace = artifact_module.os.replace
     calls = 0
 
     def fail_second_replace(source: str, target: str) -> None:
@@ -73,7 +73,7 @@ def test_digest_store_failure_restores_previous_latest_and_history(
             raise OSError("injected replace failure")
         original_replace(source, target)
 
-    monkeypatch.setattr(digest_store_module.os, "replace", fail_second_replace)
+    monkeypatch.setattr(artifact_module.os, "replace", fail_second_replace)
 
     with pytest.raises(DigestStoreError, match="已恢复"):
         store.write(new_digest)

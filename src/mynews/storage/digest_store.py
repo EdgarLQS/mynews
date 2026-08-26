@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-import json
-import os
-import tempfile
 from pathlib import Path
 
 from mynews.application.output_safety import ensure_safe_output
 from mynews.domain.models import Digest, DigestItem
+from mynews.storage.artifact_committer import (
+    ArtifactCommitError,
+    ArtifactCommitter,
+    ArtifactWrite,
+)
 
 
 class DigestStoreError(RuntimeError):
@@ -47,9 +49,9 @@ class DigestFileStore:
             raise DigestStoreError(f"Digest 历史文件已存在：{history_path.name}")
         payload = validated.model_dump(mode="json")
         writes = [
-            (history_path, _json_bytes(payload)),
-            (self._latest_json, _json_bytes(payload)),
-            (self._latest_markdown, render_digest(validated).encode("utf-8")),
+            ArtifactWrite.json(history_path, payload),
+            ArtifactWrite.json(self._latest_json, payload),
+            ArtifactWrite.text(self._latest_markdown, render_digest(validated)),
         ]
         _transactional_write(writes)
         return history_path, self._latest_json, self._latest_markdown
@@ -120,80 +122,16 @@ def _section(title: str, items: list[DigestItem], *, verified: bool) -> list[str
     return lines
 
 
-def _transactional_write(writes: list[tuple[Path, bytes]]) -> None:
-    previous = {
-        path: path.read_bytes() if path.exists() else None
-        for path, _ in writes
-    }
-    staged: dict[Path, str] = {}
+def _transactional_write(writes: list[ArtifactWrite]) -> None:
     try:
-        for path, payload in writes:
-            staged[path] = _stage_bytes(path, payload)
-        for path, _ in writes:
-            temporary = staged[path]
-            os.replace(temporary, path)
-            staged.pop(path)
-    except Exception as error:
-        rollback_errors: list[Exception] = []
-        for path, _ in reversed(writes):
-            try:
-                old = previous[path]
-                if old is None:
-                    path.unlink(missing_ok=True)
-                else:
-                    _restore_bytes(path, old)
-            except Exception as rollback_error:
-                rollback_errors.append(rollback_error)
+        ArtifactCommitter().commit(writes)
+    except ArtifactCommitError as error:
         message = (
             "Digest 提交失败且无法完整恢复先前状态"
-            if rollback_errors
+            if error.rollback_status == "failed"
             else "Digest 提交失败，已恢复先前状态"
         )
         raise DigestStoreError(message) from error
-    finally:
-        for temporary in staged.values():
-            try:
-                os.unlink(temporary)
-            except FileNotFoundError:
-                pass
-
-
-def _stage_bytes(path: Path, payload: bytes) -> str:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    handle = tempfile.NamedTemporaryFile(
-        mode="wb",
-        dir=path.parent,
-        prefix=f".{path.name}.",
-        suffix=".tmp",
-        delete=False,
-    )
-    try:
-        with handle:
-            handle.write(payload)
-            handle.flush()
-            os.fsync(handle.fileno())
-    except Exception:
-        try:
-            os.unlink(handle.name)
-        except FileNotFoundError:
-            pass
-        raise
-    return handle.name
-
-
-def _restore_bytes(path: Path, payload: bytes) -> None:
-    temporary = _stage_bytes(path, payload)
-    try:
-        os.replace(temporary, path)
-    finally:
-        try:
-            os.unlink(temporary)
-        except FileNotFoundError:
-            pass
-
-
-def _json_bytes(payload: object) -> bytes:
-    return (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
 
 
 def _safe_filename(value: str) -> str:

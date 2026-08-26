@@ -7,7 +7,6 @@ from pathlib import Path
 import pytest
 
 import mynews.application.automation as automation_module
-import mynews.application.editorial_io as editorial_io_module
 from mynews.application.automation import (
     commit_automation_output,
     empty_automation_state,
@@ -16,6 +15,7 @@ from mynews.application.automation import (
 from mynews.application.feedback import record_weekly_feedback
 from mynews.application.publication import add_publication
 from mynews.cli import main
+from mynews.storage import artifact_committer as artifact_module
 from mynews.storage.json_store import JsonNewsStore
 from mynews.verification.codex import SubprocessCodexRunner
 
@@ -165,7 +165,7 @@ def test_publication_atomic_failure_preserves_old_ledger(
         del source, target
         raise OSError("replace fixture failure")
 
-    monkeypatch.setattr(editorial_io_module.os, "replace", fail_replace)
+    monkeypatch.setattr(artifact_module.os, "replace", fail_replace)
     with pytest.raises(OSError, match="replace fixture failure"):
         add_publication(
             candidate,
@@ -349,7 +349,7 @@ def test_feedback_atomic_failure_preserves_old_file(
         del source, target
         raise OSError("replace fixture failure")
 
-    monkeypatch.setattr(editorial_io_module.os, "replace", fail_replace)
+    monkeypatch.setattr(artifact_module.os, "replace", fail_replace)
     with pytest.raises(OSError, match="replace fixture failure"):
         record_weekly_feedback(
             week="2026-W33",

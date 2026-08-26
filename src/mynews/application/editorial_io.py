@@ -2,44 +2,42 @@
 
 from __future__ import annotations
 
-import json
-import os
-import tempfile
 from pathlib import Path
 from typing import Any
+
+from mynews.storage.artifact_committer import (
+    ArtifactCommitError,
+    ArtifactCommitter,
+    ArtifactWrite,
+)
 
 
 def atomic_write_text(path: Path, content: str) -> None:
     """在目标文件所在目录写入并原子替换文本。"""
 
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary: str | None = None
     try:
-        handle = tempfile.NamedTemporaryFile(
-            mode="w",
-            encoding="utf-8",
-            dir=path.parent,
-            prefix=f".{path.name}.",
-            suffix=".tmp",
-            delete=False,
-        )
-        temporary = handle.name
-        with handle:
-            handle.write(content)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary, path)
-        temporary = None
-    finally:
-        if temporary is not None:
-            Path(temporary).unlink(missing_ok=True)
+        ArtifactCommitter().commit((ArtifactWrite.text(path, content),))
+    except ArtifactCommitError as error:
+        cause = error.cause
+        if isinstance(cause, OSError):
+            raise OSError(str(cause)) from error
+        raise OSError(str(error)) from error
 
 
-def atomic_write_json(path: Path, payload: Any) -> None:
+def atomic_write_json(
+    path: Path, payload: Any, *, sort_keys: bool = True
+) -> None:
     """以稳定格式原子写入 JSON。"""
 
-    content = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
-    atomic_write_text(path, content + "\n")
+    try:
+        ArtifactCommitter().commit(
+            (ArtifactWrite.json(path, payload, sort_keys=sort_keys),)
+        )
+    except ArtifactCommitError as error:
+        cause = error.cause
+        if isinstance(cause, OSError):
+            raise OSError(str(cause)) from error
+        raise OSError(str(error)) from error
 
 
 __all__ = ["atomic_write_json", "atomic_write_text"]

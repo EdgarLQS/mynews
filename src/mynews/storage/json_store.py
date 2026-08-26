@@ -1,10 +1,8 @@
-"""使用同目录临时文件和 os.replace 的事务化 JSON NewsStore。"""
+"""使用 ArtifactCommitter 提交事务化 JSON NewsStore。"""
 
 from __future__ import annotations
 
 import json
-import os
-import tempfile
 from pathlib import Path
 
 from mynews.domain.deduplication import DedupState
@@ -15,6 +13,11 @@ from mynews.domain.models import (
     SourceSnapshot,
 )
 from mynews.domain.normalization import normalize_url
+from mynews.storage.artifact_committer import (
+    ArtifactCommitError,
+    ArtifactCommitter,
+    ArtifactWrite,
+)
 from mynews.storage.protocol import StoredRun
 
 
@@ -166,96 +169,22 @@ def _safe_filename(value: str) -> str:
 
 
 def _transactional_write_json(writes: list[tuple[Path, object]]) -> None:
-    previous = {
-        path: path.read_bytes() if path.exists() else None
-        for path, _ in writes
-    }
-    staged: dict[Path, str] = {}
-    try:
-        for path, payload in writes:
-            staged[path] = _stage_json(path, payload)
-        for path, _ in writes:
-            temporary = staged[path]
-            os.replace(temporary, path)
-            staged.pop(path)
-    except Exception as error:
-        rollback_errors: list[Exception] = []
-        for path, _ in reversed(writes):
-            try:
-                old = previous[path]
-                if old is None:
-                    path.unlink(missing_ok=True)
-                else:
-                    _atomic_write_bytes(path, old)
-            except Exception as rollback_error:
-                rollback_errors.append(rollback_error)
-        if rollback_errors:
-            raise JsonStoreError(
-                "提交失败且无法完整恢复先前状态"
-            ) from error
-        raise JsonStoreError("提交失败，已恢复先前状态") from error
-    finally:
-        for temporary in staged.values():
-            try:
-                os.unlink(temporary)
-            except FileNotFoundError:
-                pass
-
-
-def _stage_json(path: Path, payload: object) -> str:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    handle = tempfile.NamedTemporaryFile(
-        mode="w",
-        encoding="utf-8",
-        dir=path.parent,
-        prefix=f".{path.name}.",
-        suffix=".tmp",
-        delete=False,
+    artifacts = tuple(
+        ArtifactWrite.json(path, payload) for path, payload in writes
     )
     try:
-        with handle:
-            json.dump(payload, handle, ensure_ascii=False, indent=2)
-            handle.write("\n")
-            handle.flush()
-            os.fsync(handle.fileno())
-    except Exception:
-        try:
-            os.unlink(handle.name)
-        except FileNotFoundError:
-            pass
-        raise
-    return handle.name
+        ArtifactCommitter().commit(artifacts)
+    except ArtifactCommitError as error:
+        message = (
+            "提交失败且无法完整恢复先前状态"
+            if error.rollback_status == "failed"
+            else "提交失败，已恢复先前状态"
+        )
+        raise JsonStoreError(message) from error
 
 
 def _atomic_write_json(path: Path, payload: object) -> None:
-    temporary = _stage_json(path, payload)
     try:
-        os.replace(temporary, path)
-    finally:
-        try:
-            os.unlink(temporary)
-        except FileNotFoundError:
-            pass
-
-
-def _atomic_write_bytes(path: Path, payload: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    handle = tempfile.NamedTemporaryFile(
-        mode="wb",
-        dir=path.parent,
-        prefix=f".{path.name}.",
-        suffix=".tmp",
-        delete=False,
-    )
-    temporary = handle.name
-    try:
-        with handle:
-            handle.write(payload)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary, path)
-    finally:
-        try:
-            os.unlink(temporary)
-        except FileNotFoundError:
-            pass
+        ArtifactCommitter().commit((ArtifactWrite.json(path, payload),))
+    except ArtifactCommitError as error:
+        raise JsonStoreError("文件提交失败") from error

@@ -26,7 +26,7 @@ manual/blocked。外部插件仍是受信任本地 Python 代码，显式清单�
 | AI-01 | 协作 | `AGENTS.md` 与 `CLAUDE.md` 共用项目规则 | Implemented | 指令入口检查 |
 | AI-02 | 协作 | `news-task.md` 驱动 09:00/18:00 分时情报任务 | Implemented | 元数据、latest-only、证据隔离和失败停止；P5 G6-V/真实双档仍 BLOCKED，M2 豁免不改变此状态 |
 | ARCH-01 | 架构 | 深 `ApplicationRuntime` 与 CLI 薄 Adapter | Implemented | M2 `run(Command) -> CommandOutcome`、CLI/JSON/退出码兼容和 303 项离线测试 |
-| ARCH-02 | 架构 | 统一 `ArtifactCommitter` 文件提交 module | Planned | 统一总计划 M3；失败恢复、latest 和报告先于状态语义保持兼容 |
+| ARCH-02 | 架构 | 统一 `ArtifactCommitter` 文件提交 module | Implemented | M3 `commit(writes)` 统一暂存、fsync、替换、回滚和临时清理；保持 latest、历史和报告先于状态语义兼容；离线测试 307 项 |
 | ARCH-03 | 架构 | 共享结构化 Codex 进程 Adapter | Planned | 统一总计划 M6；只统一进程机制，不合并领域 prompt 或复核 |
 | QA-01 | 验收 | 统一验收规则、Claude `/acceptance` 与真实环境交接 | Implemented | 验收规则 + v1.2 真实环境清单 |
 | CLI-01 | CLI | 全局、子命令和脚本中文 `--help` | Implemented | `uv run mynews --help`、子命令和脚本 help |

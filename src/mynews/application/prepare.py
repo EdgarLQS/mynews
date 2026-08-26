@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import csv
 import json
-import os
-import tempfile
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
@@ -26,6 +24,11 @@ from mynews.infrastructure.clock import Clock, SystemClock
 from mynews.sources.newsfromai import DEFAULT_CONFIG_PATH, newsfromai_registry
 from mynews.sources.protocol import SourceCollection, SourceHealth
 from mynews.sources.registry import SourceRegistry as Registry
+from mynews.storage.artifact_committer import (
+    ArtifactCommitError,
+    ArtifactCommitter,
+    ArtifactWrite,
+)
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 
@@ -366,42 +369,21 @@ def _write_failure_record(path: Path, failures: list[dict[str, str]]) -> None:
 
 
 def _write_transaction(values: dict[Path, object]) -> None:
-    previous = {path: path.read_bytes() if path.exists() else None for path in values}
-    staged: dict[Path, str] = {}
+    writes = tuple(
+        ArtifactWrite.text(path, value)
+        if isinstance(value, str)
+        else ArtifactWrite.json(path, value, sort_keys=True)
+        for path, value in values.items()
+    )
     try:
-        for path, value in values.items():
-            path.parent.mkdir(parents=True, exist_ok=True)
-            handle = tempfile.NamedTemporaryFile(
-                mode="w",
-                encoding="utf-8",
-                dir=path.parent,
-                prefix=f".{path.name}.",
-                suffix=".tmp",
-                delete=False,
-            )
-            with handle:
-                if isinstance(value, str):
-                    handle.write(value)
-                else:
-                    json.dump(
-                        value, handle, ensure_ascii=False, indent=2, sort_keys=True
-                    )
-                    handle.write("\n")
-                handle.flush()
-                os.fsync(handle.fileno())
-            staged[path] = handle.name
-        for path, temporary in staged.items():
-            os.replace(temporary, path)
-    except Exception as error:
-        for path, old in previous.items():
-            if old is None:
-                path.unlink(missing_ok=True)
-            else:
-                path.write_bytes(old)
-        raise ValueError("editorial 输出失败，已恢复旧文件") from error
-    finally:
-        for temporary in staged.values():
-            Path(temporary).unlink(missing_ok=True)
+        ArtifactCommitter().commit(writes)
+    except ArtifactCommitError as error:
+        message = (
+            "editorial 输出失败，且无法完整恢复旧文件"
+            if error.rollback_status == "failed"
+            else "editorial 输出失败，已恢复旧文件"
+        )
+        raise ValueError(message) from error
 
 
 __all__ = ["PrepareResult", "prepare_editorial_pack"]

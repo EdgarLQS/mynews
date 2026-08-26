@@ -7,7 +7,6 @@ from xml.sax.saxutils import escape
 
 import pytest
 
-import mynews.application.prepare as prepare_module
 from mynews.application.candidates import (
     MAX_CONTENT_CHARS,
     MAX_SUMMARY_CHARS,
@@ -23,6 +22,7 @@ from mynews.sources.feed import RssFeedPlugin
 from mynews.sources.newsfromai import newsfromai_registry
 from mynews.sources.protocol import SourceContext, SourceMetadata
 from mynews.sources.registry import SourceRegistry
+from mynews.storage import artifact_committer as artifact_module
 
 
 class FixtureHttp:
@@ -326,7 +326,7 @@ def test_editorial_transaction_rolls_back_replace_failure(
     prepare_editorial_pack("2026-08-11", root=tmp_path, registry=registry)
     output = tmp_path / "output/editorial/2026-08-11/candidates.json"
     previous = output.read_bytes()
-    original_replace = prepare_module.os.replace
+    original_replace = artifact_module.os.replace
     calls = 0
 
     def fail_second_replace(source: str, target: str) -> None:
@@ -336,7 +336,7 @@ def test_editorial_transaction_rolls_back_replace_failure(
             raise OSError("fixture replacement failure")
         original_replace(source, target)
 
-    monkeypatch.setattr(prepare_module.os, "replace", fail_second_replace)
+    monkeypatch.setattr(artifact_module.os, "replace", fail_second_replace)
     with pytest.raises(ValueError, match="editorial 输出失败"):
         prepare_editorial_pack(
             "2026-08-11", root=tmp_path, registry=registry, refresh=True

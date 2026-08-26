@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import os
-import tempfile
 from pathlib import Path
 
+from mynews.application.editorial_io import atomic_write_text
 from mynews.application.output_safety import ensure_safe_output
 from mynews.domain.models import NewsItem, RunReport, SourceResult
 
@@ -41,26 +40,7 @@ def render_report(report: RunReport) -> str:
 
 def write_report(report: RunReport, path: Path) -> None:
     text = render_report(report)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    handle = tempfile.NamedTemporaryFile(
-        mode="w",
-        encoding="utf-8",
-        dir=path.parent,
-        prefix=f".{path.name}.",
-        suffix=".tmp",
-        delete=False,
-    )
-    try:
-        with handle:
-            handle.write(text)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(handle.name, path)
-    finally:
-        try:
-            os.unlink(handle.name)
-        except FileNotFoundError:
-            pass
+    atomic_write_text(path, text)
 
 
 def load_report(path: Path) -> RunReport:

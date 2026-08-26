@@ -23,6 +23,7 @@ from mynews.sources.protocol import (
     SourceMetadata,
 )
 from mynews.sources.registry import SourceRegistry
+from mynews.storage import artifact_committer as artifact_module
 
 ROOT = Path(__file__).resolve().parents[1]
 NOW = datetime(2026, 8, 11, tzinfo=UTC)
@@ -217,7 +218,7 @@ def test_report_write_is_atomic_and_preserves_old_output_on_replace_failure(
         del source, destination
         raise OSError("replace blocked")
 
-    monkeypatch.setattr("mynews.application.report.os.replace", fail_replace)
+    monkeypatch.setattr(artifact_module.os, "replace", fail_replace)
     with pytest.raises(OSError, match="replace blocked"):
         write_report(report, path)
 

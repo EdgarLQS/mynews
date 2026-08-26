@@ -21,6 +21,7 @@ from mynews.domain.models import (
 )
 from mynews.domain.normalization import Normalizer
 from mynews.sources.protocol import SourceCollection, SourceHealth, SourceMetadata
+from mynews.storage import artifact_committer as artifact_module
 from mynews.storage.json_store import JsonNewsStore, JsonStoreError
 from mynews.verification.pending import PendingVerificationManager, RetryPolicy
 from mynews.verification.protocol import (
@@ -388,7 +389,7 @@ def test_commit_failure_rolls_back_run_latest_dedup_and_pending(
             raise OSError("simulated replace failure")
         original_replace(source, destination)  # type: ignore[arg-type]
 
-    monkeypatch.setattr("mynews.storage.json_store.os.replace", fail_once)
+    monkeypatch.setattr(artifact_module.os, "replace", fail_once)
     changed = PendingVerificationManager(
         baseline_pending.state.model_copy(deep=True)
     )

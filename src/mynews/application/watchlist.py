@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
-import tempfile
 from pathlib import Path
 from typing import Literal
 
@@ -17,6 +15,7 @@ from pydantic import (
     field_validator,
 )
 
+from mynews.application.editorial_io import atomic_write_text
 from mynews.application.output_safety import ensure_safe_output
 
 
@@ -89,26 +88,7 @@ def render_watchlist(items: tuple[WatchlistItem, ...]) -> str:
 
 def write_watchlist(items: tuple[WatchlistItem, ...], path: Path) -> None:
     text = render_watchlist(items)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    handle = tempfile.NamedTemporaryFile(
-        mode="w",
-        encoding="utf-8",
-        dir=path.parent,
-        prefix=f".{path.name}.",
-        suffix=".tmp",
-        delete=False,
-    )
-    try:
-        with handle:
-            handle.write(text)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(handle.name, path)
-    finally:
-        try:
-            os.unlink(handle.name)
-        except FileNotFoundError:
-            pass
+    atomic_write_text(path, text)
 
 
 __all__ = ["WatchlistItem", "load_watchlist", "render_watchlist", "write_watchlist"]

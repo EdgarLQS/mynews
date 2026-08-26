@@ -42,19 +42,24 @@ flowchart LR
     COORD --> TX["Transactional NewsStore"]
     LIFE --> TX
     TX --> JSON["runs + latest + dedup + pending"]
+    TX --> ART["ArtifactCommitter: stage + fsync + replace + rollback"]
     JSON --> REPORT["Offline Markdown report"]
     JSON --> VAL["Schema + evidence validation"]
     JSON --> DIGEST["DigestBuilder"]
     PREV["上一期 Digest"] --> DIGEST
     DIGEST --> SUMMARY["Evidence-grounded Codex summary"]
     DIGEST --> DIGEST_STORE["Atomic DigestFileStore"]
+    DIGEST_STORE --> ART
     APP --> PREPARE["Prepare: cached editorial collection"]
     PREPARE --> EDITORIAL["Candidate Contract v1 + candidates JSON/Markdown"]
     PREPARE --> OBS["JSON observations + publication hints"]
+    PREPARE --> ART
     DIGEST --> AUTOMATION["Automation report: verified main items only"]
     AUTOMATION --> AUTOMATION_STATE["Atomic report then state"]
+    AUTOMATION --> ART
     APP --> HUMAN["Manual publication / weekly feedback"]
     HUMAN --> LEDGER["CSV ledger + stable Markdown blocks"]
+    HUMAN --> ART
 ```
 
 ## Module 与 seam
@@ -62,6 +67,7 @@ flowchart LR
 | Module | Interface | 责任边界 |
 | --- | --- | --- |
 | ApplicationRuntime | `run(Command) -> CommandOutcome` | 隐藏 Registry、插件选择、Store、Verifier、DigestStore、时钟和用例装配；不改变公共 CLI、JSON 或退出码 |
+| ArtifactCommitter | `commit(writes)` | 同目录暂存、`fsync`、批次替换、失败回滚和临时文件清理；不承诺跨文件系统事务 |
 | SourceRegistry | `collect_all`、`probe` | 隔离 Adapter、汇总健康状态，不决定 verified |
 | ExternalPluginLoader | `list_report`、`load(plugin_ids)` | 发现 `mynews.source_plugins`，显式加载无参数工厂，严格校验 metadata 和 source_id；不接触 Store/Verifier/Codex |
 | Normalizer | `normalize` | URL、时间、语言、事件类型和稳定事件键 |
@@ -98,21 +104,21 @@ P1–P6 实现；逐来源真实 probe 仍是 v1.6 P7 独立门槛：
 - 主 wheel 的 `mynews.sources.feed.RssFeedPlugin` 是不含来源配置的 RSS/Atom 辅助 seam；
   15 个来源位于 `plugins/newsfromai-source-pack/`，每个 entry-point 是无参数工厂。
 - `watchlist` 只校验本地 JSON 并渲染确定性 Markdown；report、digest、watchlist 共用
-  输出敏感值检查，report 文本使用同目录临时文件、`flush`、`fsync` 和 `os.replace`。
+  输出敏感值检查，文件输出统一调用 `ArtifactCommitter`。
 
 ### v1.6 editorial prepare seam
 
 `Prepare` 复用 `SourcePlugin`、`SourceRegistry` 和 `SourceCollector` 获取候选，使用业务日期
 （`Asia/Shanghai`）及每来源 freshness 规则过滤当天和前一天；它不复制 SQLite，也不绕过
-`EvidenceVerifier`。采集快照、观察历史和失败状态写入 JSON，候选包使用同目录临时文件、
-`fsync` 和 `os.replace`；失败恢复时旧候选包与既有 Store 保持不变。`publication-ledger.csv`
+`EvidenceVerifier`。采集快照、观察历史和失败状态写入 JSON，候选包统一调用
+`ArtifactCommitter`；失败恢复时旧候选包与既有 Store 保持不变。`publication-ledger.csv`
 和 `weekly-feedback.md` 仅为人工只读提示，不参与事实、聚类或 `verified` 判定。
 
 ### v1.7 intelligence loop seam
 
 根目录 `news-task.md` 只描述 `Asia/Shanghai` 的 `09:00`/`18:00`、latest-only 补跑、固定命令
 顺序和报告事实边界；它不是已注册的定时任务。Automation 输出把报告目录和状态文件分开，
-先用同目录临时文件、`flush`、`fsync`、`os.replace` 提交报告，再写状态；状态只接受 schema、
+先通过 `ArtifactCommitter` 提交报告，再提交状态；状态只接受 schema、
 时刻、完成档位、相对报告路径和事件哈希，不保存密钥、Cookie、授权头或绝对路径。
 
 `publication add` 和 `feedback record` 是人工明确调用的离线命令。它们只依赖 Candidate、CSV、
@@ -171,7 +177,8 @@ Codex 只提供候选 URL、日期、摘录和哈希建议。它不能增加域�
 
 ## Store 事务
 
-`JsonNewsStore.commit` 先在每个目标文件所在目录写临时文件、刷新并 `fsync`，然后执行替换。提交集合包括：
+`JsonNewsStore.commit` 把提交集合交给 `ArtifactCommitter`；提交器在每个目标文件所在目录写临时文件、
+刷新并 `fsync`，然后执行替换。提交集合包括：
 
 - `output/runs/<run-id>.json`；
 - complete/partial 时的 `output/latest.json`；
@@ -235,6 +242,7 @@ src/mynews/
 │   └── lifecycle.py
 ├── storage/
 │   ├── protocol.py
+│   ├── artifact_committer.py
 │   ├── json_store.py
 │   └── digest_store.py
 └── infrastructure/
